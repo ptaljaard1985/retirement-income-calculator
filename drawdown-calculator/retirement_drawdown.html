@@ -437,21 +437,62 @@
     border-color: var(--brand);
     background: var(--surface-alt);
   }
+  /* Other-income stream rows reuse .event-row styling with a wider grid. */
+  .event-row.income-row {
+    grid-template-columns: 1fr 150px 120px 80px 70px auto 36px;
+  }
+  .event-row.income-row .escalate-toggle {
+    height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 12px;
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+  }
+  .event-row.income-row .escalate-toggle input[type="checkbox"] {
+    width: 14px; height: 14px; margin: 0;
+    accent-color: var(--brand); cursor: pointer;
+  }
   .household-panel .hp-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 18px 20px;
   }
   .household-panel .hp-row + .hp-row { margin-top: 16px; }
   .hp-col-head {
     grid-column: 1 / -1;
-    display: flex; align-items: baseline; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
     color: var(--ink-faint); font-weight: 600;
     padding-top: 12px; margin-top: 4px;
     border-top: 1px solid var(--line);
   }
   .hp-col-head:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  .hp-name {
+    font-family: inherit;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--ink-faint);
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin-left: -8px;
+    width: 240px; max-width: 60%;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .hp-name:hover {
+    border-color: var(--line);
+    background: var(--surface-alt);
+  }
+  .hp-name:focus {
+    outline: none;
+    border-color: var(--brand);
+    background: var(--surface);
+    color: var(--ink);
+  }
   .hp-field label {
     display: block; font-size: 12px; color: var(--ink-muted);
     margin-bottom: 4px;
@@ -645,6 +686,7 @@
     .print-summary { page-break-before: always; border: none; padding: 0; }
     .action-btn, .toggle { display: none; }
     .client-bar input { border: none !important; }
+    .hp-name { border: none !important; background: transparent !important; padding-left: 0 !important; margin-left: 0 !important; }
   }
 
   @media (max-width: 900px) {
@@ -703,7 +745,7 @@
   <div class="household-panel collapsible-body" id="hh-position-body" style="max-height: 1500px; margin-bottom: 28px;">
     <div class="hp-row">
       <div class="hp-col-head">
-        <span>Spouse A</span>
+        <input type="text" id="hp-name-A" class="hp-name" value="Spouse A" aria-label="Spouse A name" maxlength="40">
         <span style="text-transform:none; letter-spacing:0; color:var(--ink-muted); font-weight:400; display: inline-flex; align-items: center; gap: 8px;">
           age
           <input type="number" id="hp-age-A" value="65" min="55" max="100" step="1"
@@ -722,15 +764,11 @@
         <label>Discretionary base cost</label>
         <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-A" value="500 000" inputmode="numeric"></div>
       </div>
-      <div class="hp-field">
-        <label>Other taxable income p.a.</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-other-A" value="0" inputmode="numeric"></div>
-      </div>
     </div>
 
     <div class="hp-row">
       <div class="hp-col-head">
-        <span>Spouse B</span>
+        <input type="text" id="hp-name-B" class="hp-name" value="Spouse B" aria-label="Spouse B name" maxlength="40">
         <span style="text-transform:none; letter-spacing:0; color:var(--ink-muted); font-weight:400; display: inline-flex; align-items: center; gap: 8px;">
           age
           <input type="number" id="hp-age-B" value="65" min="55" max="100" step="1"
@@ -748,10 +786,6 @@
       <div class="hp-field">
         <label>Discretionary base cost</label>
         <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-B" value="500 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Other taxable income p.a.</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-other-B" value="0" inputmode="numeric"></div>
       </div>
     </div>
   </div>
@@ -787,6 +821,19 @@
         <span><strong>Auto-top-up to meet target</strong> — when LA income (at the CPI-escalated rate) falls short, fill the gap from discretionary (proportional to balance, CGT-aware). If discretionary is exhausted and a gap remains, boost LA draws toward the 17.5% ceiling (proportional to LA balance).</span>
       </label>
     </div>
+  </div>
+
+  <!-- Other taxable income streams (rental, DB pension, maintenance, etc.) -->
+  <div class="section-header collapsible" data-target="incomes-body">
+    <span class="caret"></span>Other taxable income streams
+  </div>
+  <div class="household-panel collapsible-body" id="incomes-body" style="max-height: 1200px; margin-bottom: 28px;">
+    <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 14px;">
+      Rental income, a DB pension, trust distributions, maintenance orders — anything taxable alongside living-annuity income. Amounts are entered in today's money; tick Escalate for streams that grow with CPI. Start age and duration set when the stream runs for the chosen spouse.
+    </div>
+    <div id="incomes-list" class="events-list"></div>
+    <div id="incomes-empty" class="events-empty">No other income streams. Click below to add one.</div>
+    <button type="button" id="incomes-add" class="events-add">+ Add income stream</button>
   </div>
 
   <!-- Future capital events (inheritance, property sale, etc.) -->
@@ -890,7 +937,7 @@
   <div class="levers-two-col">
 
     <div class="levers">
-      <h3>Spouse A</h3>
+      <h3 id="lev-name-A">Spouse A</h3>
       <div class="levers-grid">
         <div class="lever">
           <div class="lever-head">
@@ -910,7 +957,7 @@
     </div>
 
     <div class="levers">
-      <h3>Spouse B</h3>
+      <h3 id="lev-name-B">Spouse B</h3>
       <div class="levers-grid">
         <div class="lever">
           <div class="lever-head">
@@ -957,10 +1004,10 @@
     <div class="tax-sub">Tax is computed on each spouse individually at 2026/27 SARS rates. Living annuity income is fully taxable. Discretionary withdrawals trigger CGT on the gain portion (proportional to base cost), included at 40% into taxable income with a R50 000 annual exclusion applied per person.</div>
     <div class="tax-grid">
       <div class="tax-side">
-        <h4>Spouse A</h4>
+        <h4 id="tax-name-A">Spouse A</h4>
         <table class="tax-table">
           <tr><td>LA income</td><td id="ta-la">R0</td></tr>
-          <tr><td>Other taxable income</td><td id="ta-other">R0</td></tr>
+          <tr><td>Other taxable income (year 1)</td><td id="ta-other">R0</td></tr>
           <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
           <tr class="sub"><td>CGT inclusion (40% &times; [gain − R50k])</td><td id="ta-incl">R0</td></tr>
           <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
@@ -971,10 +1018,10 @@
         </table>
       </div>
       <div class="tax-side">
-        <h4>Spouse B</h4>
+        <h4 id="tax-name-B">Spouse B</h4>
         <table class="tax-table">
           <tr><td>LA income</td><td id="tb-la">R0</td></tr>
-          <tr><td>Other taxable income</td><td id="tb-other">R0</td></tr>
+          <tr><td>Other taxable income (year 1)</td><td id="tb-other">R0</td></tr>
           <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
           <tr class="sub"><td>CGT inclusion (40% &times; [gain − R50k])</td><td id="tb-incl">R0</td></tr>
           <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
@@ -998,7 +1045,7 @@
       <tr><td>Adviser</td><td id="s-adviser">—</td></tr>
     </table>
 
-    <h3>Spouse A — inputs</h3>
+    <h3 id="s-name-A">Spouse A — inputs</h3>
     <table class="summary-table">
       <tr><td>Current age</td><td id="s-age-A">—</td></tr>
       <tr><td>Living annuity balance</td><td id="s-la-A">—</td></tr>
@@ -1006,10 +1053,9 @@
       <tr><td>Discretionary portfolio balance</td><td id="s-disc-A">—</td></tr>
       <tr><td>Discretionary base cost</td><td id="s-base-A">—</td></tr>
       <tr><td>Annual discretionary withdrawal</td><td id="s-draw-A">—</td></tr>
-      <tr><td>Other taxable income</td><td id="s-other-A">—</td></tr>
     </table>
 
-    <h3>Spouse B — inputs</h3>
+    <h3 id="s-name-B">Spouse B — inputs</h3>
     <table class="summary-table">
       <tr><td>Current age</td><td id="s-age-B">—</td></tr>
       <tr><td>Living annuity balance</td><td id="s-la-B">—</td></tr>
@@ -1017,7 +1063,6 @@
       <tr><td>Discretionary portfolio balance</td><td id="s-disc-B">—</td></tr>
       <tr><td>Discretionary base cost</td><td id="s-base-B">—</td></tr>
       <tr><td>Annual discretionary withdrawal</td><td id="s-draw-B">—</td></tr>
-      <tr><td>Other taxable income</td><td id="s-other-B">—</td></tr>
     </table>
 
     <h3>Shared assumptions</h3>
@@ -1025,6 +1070,11 @@
       <tr><td>Expected investment return (nominal, p.a.)</td><td id="s-return">—</td></tr>
       <tr><td>General inflation (CPI)</td><td id="s-cpi">—</td></tr>
       <tr><td>Projection horizon</td><td id="s-horizon">—</td></tr>
+    </table>
+
+    <h3 id="s-incomes-header" style="display: none;">Other taxable income streams</h3>
+    <table class="summary-table" id="s-incomes-table" style="display: none;">
+      <tbody id="s-incomes-body"></tbody>
     </table>
 
     <h3>Year 1 outcome</h3>
@@ -1049,7 +1099,7 @@
 
     <div class="assumptions">
       <strong style="color: var(--ink);">Notes on methodology.</strong>
-      Projections are annual. Year 1 living annuity income is calculated as the client's initial drawdown rate applied to the starting LA balance. In every subsequent year, the rand income escalates at the general inflation (CPI) rate, maintaining purchasing power. The resulting rand amount is expressed as a percentage of the LA balance at the start of that year and clamped to the legislated 2.5%–17.5% band if it falls outside. Draws that hit the 17.5% ceiling or are pushed up to the 2.5% floor are flagged in the projection table. LA income is fully taxable at marginal income-tax rates. Discretionary withdrawals are drawn down proportionally against the current balance, with the gain portion calculated as <em>draw × (1 − base cost / balance)</em>; base cost is reduced pro-rata as capital is drawn. Capital gains tax is calculated per individual at the 2026/27 SARS framework: annual exclusion of R50 000, 40% inclusion rate, assessed at the individual's marginal rate (maximum effective 18%). Income tax rebates applied: primary R17 820, secondary R9 765 (age 65+), tertiary R3 249 (age 75+). Tax brackets, rebates, and the CGT annual exclusion are assumed to grow at 3% p.a. (approximation of SARS fiscal drag relief). When the auto-top-up option is enabled, the projection applies each year in three phases: (1) draw LA income at the CPI-escalated target; (2) if there is an after-tax shortfall against the household expense target, draw from each spouse's discretionary portfolio in proportion to their current balance (CGT on gains included in the solve); (3) if discretionary is exhausted and the gap remains, boost each spouse's LA draw in proportion to their LA balance, up to the 17.5% legal ceiling. Any residual shortfall after LA draws reach the ceiling is surfaced as a negative gap in the projection table. Future capital events (property sales, inheritances, maturing policies) are entered in today's money and inflated to nominal at the CPI rate; each event lands in the specified spouse's discretionary portfolio at the end of its designated year, with the full amount added to base cost so no unrealised gain is assumed on arrival. Values labelled "real" are deflated by CPI to express future amounts in current purchasing power. No allowance has been made for platform fees, advice fees, dividend withholding tax, interest exemptions, or medical tax credits; where relevant these should be factored in separately.
+      Projections are annual. Year 1 living annuity income is calculated as the client's initial drawdown rate applied to the starting LA balance. In every subsequent year, the rand income escalates at the general inflation (CPI) rate, maintaining purchasing power. The resulting rand amount is expressed as a percentage of the LA balance at the start of that year and clamped to the legislated 2.5%–17.5% band if it falls outside. Draws that hit the 17.5% ceiling or are pushed up to the 2.5% floor are flagged in the projection table. LA income is fully taxable at marginal income-tax rates. Discretionary withdrawals are drawn down proportionally against the current balance, with the gain portion calculated as <em>draw × (1 − base cost / balance)</em>; base cost is reduced pro-rata as capital is drawn. Capital gains tax is calculated per individual at the 2026/27 SARS framework: annual exclusion of R50 000, 40% inclusion rate, assessed at the individual's marginal rate (maximum effective 18%). Income tax rebates applied: primary R17 820, secondary R9 765 (age 65+), tertiary R3 249 (age 75+). Tax brackets, rebates, and the CGT annual exclusion are assumed to grow at 3% p.a. (approximation of SARS fiscal drag relief). When the auto-top-up option is enabled, the projection applies each year in three phases: (1) draw LA income at the CPI-escalated target; (2) if there is an after-tax shortfall against the household expense target, draw from each spouse's discretionary portfolio in proportion to their current balance (CGT on gains included in the solve); (3) if discretionary is exhausted and the gap remains, boost each spouse's LA draw in proportion to their LA balance, up to the 17.5% legal ceiling. Any residual shortfall after LA draws reach the ceiling is surfaced as a negative gap in the projection table. Future capital events (property sales, inheritances, maturing policies) are entered in today's money and inflated to nominal at the CPI rate; each event lands in the specified spouse's discretionary portfolio at the end of its designated year, with the full amount added to base cost so no unrealised gain is assumed on arrival. Other taxable income streams (rental income, DB pensions, trust distributions, maintenance orders) are entered as annual rand amounts in today's money; streams flagged as CPI-escalating grow each year at the general inflation rate while active, while flat streams stay fixed in nominal terms (and erode in real terms). Each stream contributes fully to taxable income at the relevant spouse's marginal rate while the spouse's age lies within the stated window. Values labelled "real" are deflated by CPI to express future amounts in current purchasing power. No allowance has been made for platform fees, advice fees, dividend withholding tax, interest exemptions, or medical tax credits; where relevant these should be factored in separately.
     </div>
 
     <div class="disclaimer">
@@ -1102,6 +1152,14 @@
   function fmtPct(n){ return n.toFixed(2) + '%'; }
   function read(id){ return parseFloat(document.getElementById(id).value); }
   function set(id, txt){ document.getElementById(id).textContent = txt; }
+
+  // Spouse display names. Stored only in the DOM inputs; read on every render.
+  // Default fallbacks preserve "Spouse A" / "Spouse B" if a field is blanked.
+  function getName(suffix){
+    var el = document.getElementById('hp-name-' + suffix);
+    var v = (el && el.value || '').trim();
+    return v || ('Spouse ' + suffix);
+  }
 
   // ===== Tax engine =====
   function incomeTaxPreRebate(taxable){
@@ -1158,6 +1216,21 @@
     return CGT.exclusion * Math.pow(1 + BRACKET_CREEP, yearIdx);
   }
 
+  // Resolve an other-income schedule to a single nominal rand for one spouse
+  // in year (yearIdx + 1). Active when age is in [startAge, startAge+duration);
+  // nominal = amountPV × (1+cpi)^yearIdx if escalates else amountPV.
+  function otherIncomeForYear(store, suffix, age, yearIdx, cpi){
+    var total = 0;
+    for (var i = 0; i < store.length; i++){
+      var it = store[i];
+      if (it.spouse !== suffix) continue;
+      if (age < it.startAge) continue;
+      if (age >= it.startAge + it.duration) continue;
+      total += it.escalates ? it.amountPV * Math.pow(1 + cpi, yearIdx) : it.amountPV;
+    }
+    return total;
+  }
+
   // ===== Yearly projection for one person =====
   // Convention: at start of year, withdraw LA (clamped) and discretionary.
   // Then the remaining balances grow at `growth` for the rest of the year.
@@ -1205,6 +1278,8 @@
   }
 
   // ===== Read person from UI =====
+  // `otherIncome` is NOT read here — it's resolved per year from the income
+  // schedule inside project() and written onto sA/sB before any tax/solver call.
   function readPerson(suffix){
     var laBal = parseCurrency('hp-la-'+suffix);
     var discBal = parseCurrency('hp-disc-'+suffix);
@@ -1214,7 +1289,7 @@
       discBalance:  discBal,
       discBaseCost: Math.min(parseCurrency('hp-base-'+suffix), discBal),
       discDraw:     Math.min(read('disc-draw-'+suffix), discBal),
-      otherIncome:  parseCurrency('hp-other-'+suffix)
+      otherIncome:  0
     };
   }
 
@@ -1240,6 +1315,7 @@
     var targetPVAnnual = parseCurrency('needs-monthly') * 12 + parseCurrency('needs-lump');
     var autoTopup = document.getElementById('needs-topup').checked;
     var events = readEvents();
+    var incomes = readIncomes();
 
     // Solve discretionary top-up to meet the year's target.
     // Given spouse states (disc balance + base cost), their LA draws and LA tax
@@ -1435,6 +1511,7 @@
     var discB_series = [], discB_draw = [];
     var taxA_series = [], taxB_series = [];
     var clampA_series = [], clampB_series = [];
+    var otherA_series = [], otherB_series = [];
     var laSeriesNom = [], discSeriesNom = [], totalNom = [];
     var drawSeriesNom = [], taxSeriesNom = [], netSeriesNom = [], targetSeriesNom = [];
     var drawRatePct = [];
@@ -1448,6 +1525,12 @@
       // Ages this year: spouse's starting age plus y
       var ageThisYearA = ageA + y;
       var ageThisYearB = ageB + y;
+
+      // Resolve other-income schedule to this year's nominal rand per spouse.
+      // Every downstream read of sA.otherIncome / sB.otherIncome (solver, step,
+      // tax, yearDraw) uses the value we set here.
+      sA.otherIncome = otherIncomeForYear(incomes, 'A', ageThisYearA, y, cpi);
+      sB.otherIncome = otherIncomeForYear(incomes, 'B', ageThisYearB, y, cpi);
 
       // Target LA rand for this year: Y1 draw × (1 + CPI)^y
       var targetA = laTargetA_Y1 * Math.pow(1 + cpi, y);
@@ -1501,6 +1584,8 @@
       laB_series.push(laB_start); laB_draw.push(rB.laDraw);
       discA_series.push(discA_start); discA_draw.push(rA.discDraw);
       discB_series.push(discB_start); discB_draw.push(rB.discDraw);
+      otherA_series.push(sA.otherIncome);
+      otherB_series.push(sB.otherIncome);
       taxA_series.push(taxY_A);
       taxB_series.push(taxY_B);
       clampA_series.push(rA.laClamp);
@@ -1519,22 +1604,24 @@
         var exclY = cgtExclusionYear(0);
         var inclA = Math.max(0, (rA.gainRealised - exclY) * CGT.inclusion);
         var inclB = Math.max(0, (rB.gainRealised - exclY) * CGT.inclusion);
-        var taxableA = rA.laDraw + pA.otherIncome + inclA;
-        var taxableB = rB.laDraw + pB.otherIncome + inclB;
+        var taxableA = rA.laDraw + sA.otherIncome + inclA;
+        var taxableB = rB.laDraw + sB.otherIncome + inclB;
         var grossA = incomeTaxPreRebate(taxableA);
         var grossB = incomeTaxPreRebate(taxableB);
         var rebA = rebate(ageA);
         var rebB = rebate(ageB);
-        var grossIncomeA = rA.laDraw + rA.discDraw + pA.otherIncome;
-        var grossIncomeB = rB.laDraw + rB.discDraw + pB.otherIncome;
+        var grossIncomeA = rA.laDraw + rA.discDraw + sA.otherIncome;
+        var grossIncomeB = rB.laDraw + rB.discDraw + sB.otherIncome;
         taxA = {
-          laDraw: rA.laDraw, gain: rA.gainRealised, inclusion: inclA,
+          laDraw: rA.laDraw, otherIncome: sA.otherIncome,
+          gain: rA.gainRealised, inclusion: inclA,
           taxable: taxableA, grossPreRebate: grossA, rebate: rebA,
           tax: taxY_A, grossIncome: grossIncomeA,
           effRate: grossIncomeA > 0 ? taxY_A / grossIncomeA : 0
         };
         taxB = {
-          laDraw: rB.laDraw, gain: rB.gainRealised, inclusion: inclB,
+          laDraw: rB.laDraw, otherIncome: sB.otherIncome,
+          gain: rB.gainRealised, inclusion: inclB,
           taxable: taxableB, grossPreRebate: grossB, rebate: rebB,
           tax: taxY_B, grossIncome: grossIncomeB,
           effRate: grossIncomeB > 0 ? taxY_B / grossIncomeB : 0
@@ -1582,6 +1669,7 @@
       drawRatePct: drawRatePct,
       targetPVAnnual: targetPVAnnual,
       events: events,
+      incomes: incomes,
       // Per-spouse table data (nominal only — real-view deflation handled in the renderer)
       table: {
         ageA: ageASeries, ageB: ageBSeries,
@@ -1589,6 +1677,7 @@
         laB_bal: laB_series, laB_draw: laB_draw,
         discA_bal: discA_series, discA_draw: discA_draw,
         discB_bal: discB_series, discB_draw: discB_draw,
+        otherA: otherA_series, otherB: otherB_series,
         taxA: taxA_series, taxB: taxB_series,
         clampA: clampA_series, clampB: clampB_series
       },
@@ -1597,6 +1686,19 @@
       real:    { la: laSeriesReal, disc: discSeriesReal, total: totalReal,
                  draw: drawSeriesReal, tax: taxSeriesReal, net: netSeriesReal, target: targetSeriesReal }
     };
+  }
+
+  // Propagate current spouse names to every static label that displays them.
+  // Dynamic renderers (table, events, alerts, print-summary) read getName()
+  // directly each refresh, so they are not listed here.
+  function updateNameLabels(){
+    var nA = getName('A'), nB = getName('B');
+    set('lev-name-A', nA);
+    set('lev-name-B', nB);
+    set('tax-name-A', nA);
+    set('tax-name-B', nB);
+    set('s-name-A', nA + ' — inputs');
+    set('s-name-B', nB + ' — inputs');
   }
 
   // ===== Label updates =====
@@ -1649,9 +1751,9 @@
 
   // ===== Tax panel =====
   function updateTaxPanel(p){
-    function paint(prefix, t, person){
+    function paint(prefix, t){
       set(prefix+'-la', fmtR(t.laDraw));
-      set(prefix+'-other', fmtR(person.otherIncome));
+      set(prefix+'-other', fmtR(t.otherIncome));
       set(prefix+'-gain', fmtR(t.gain));
       set(prefix+'-incl', fmtR(t.inclusion));
       set(prefix+'-taxable', fmtR(t.taxable));
@@ -1660,8 +1762,8 @@
       set(prefix+'-payable', fmtR(t.tax));
       set(prefix+'-eff', (t.effRate * 100).toFixed(1) + '%');
     }
-    paint('ta', p.taxA, p.pA);
-    paint('tb', p.taxB, p.pB);
+    paint('ta', p.taxA);
+    paint('tb', p.taxB);
   }
 
   // ===== Print summary =====
@@ -1676,7 +1778,6 @@
     set('s-disc-A',  fmtR(p.pA.discBalance));
     set('s-base-A',  fmtR(p.pA.discBaseCost));
     set('s-draw-A',  fmtR(p.pA.discDraw));
-    set('s-other-A', fmtR(p.pA.otherIncome));
 
     set('s-age-B',   p.ageB + ' years');
     set('s-la-B',    fmtR(p.pB.laBalance));
@@ -1684,7 +1785,6 @@
     set('s-disc-B',  fmtR(p.pB.discBalance));
     set('s-base-B',  fmtR(p.pB.discBaseCost));
     set('s-draw-B',  fmtR(p.pB.discDraw));
-    set('s-other-B', fmtR(p.pB.otherIncome));
 
     set('s-return',  fmtPct(p.rNom * 100));
     set('s-cpi',     fmtPct(p.cpi * 100));
@@ -1713,7 +1813,7 @@
       var rows = p.events.slice().sort(function(a, b){ return a.year - b.year; }).map(function(ev){
         var age = p.startAge + ev.year;
         var nominalAmt = ev.amountPV * Math.pow(1 + p.cpi, ev.year - 1);
-        return '<tr><td>Year ' + ev.year + ' · age ' + age + ' · Spouse ' + ev.spouse + '</td>' +
+        return '<tr><td>Year ' + ev.year + ' · age ' + age + ' · ' + getName(ev.spouse) + '</td>' +
                '<td>' + fmtR(ev.amountPV) + ' today\u2019s money (' + fmtR(nominalAmt) + ' nominal)</td></tr>';
       });
       body.innerHTML = rows.join('');
@@ -1721,6 +1821,32 @@
       header.style.display = 'none';
       table.style.display = 'none';
       body.innerHTML = '';
+    }
+
+    // Other-income schedule — only shown when streams exist
+    var iHdr = document.getElementById('s-incomes-header');
+    var iTbl = document.getElementById('s-incomes-table');
+    var iBody = document.getElementById('s-incomes-body');
+    if (p.incomes && p.incomes.length > 0){
+      iHdr.style.display = '';
+      iTbl.style.display = '';
+      var iRows = p.incomes.slice().sort(function(a, b){
+        if (a.spouse !== b.spouse) return a.spouse < b.spouse ? -1 : 1;
+        return a.startAge - b.startAge;
+      }).map(function(it){
+        var who = getName(it.spouse);
+        var endAge = it.startAge + it.duration - 1;
+        var escTxt = it.escalates ? 'CPI-escalating' : 'flat nominal';
+        var name = it.label ? (it.label + ' — ' + who) : who;
+        return '<tr><td>' + name + '</td>' +
+               '<td>' + fmtR(it.amountPV) + ' p.a. (today’s money) · age ' +
+               it.startAge + '–' + endAge + ' (' + it.duration + ' yrs) · ' + escTxt + '</td></tr>';
+      });
+      iBody.innerHTML = iRows.join('');
+    } else {
+      iHdr.style.display = 'none';
+      iTbl.style.display = 'none';
+      iBody.innerHTML = '';
     }
   }
 
@@ -1913,20 +2039,25 @@
     var discA_draw = deflateMaybe(tbl.discA_draw);
     var discB_bal  = deflateMaybe(tbl.discB_bal);
     var discB_draw = deflateMaybe(tbl.discB_draw);
+    var otherA = deflateMaybe(tbl.otherA);
+    var otherB = deflateMaybe(tbl.otherB);
     var taxA = deflateMaybe(tbl.taxA);
     var taxB = deflateMaybe(tbl.taxB);
 
     // Header: two rows — group labels, then column sub-labels
+    function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    }); }
     thead.innerHTML =
       '<tr>' +
         '<th class="age" rowspan="2">Year</th>' +
-        '<th class="group-A group-sep" colspan="5">Spouse A</th>' +
-        '<th class="group-B group-sep" colspan="5">Spouse B</th>' +
+        '<th class="group-A group-sep" colspan="6">' + esc(getName('A')) + '</th>' +
+        '<th class="group-B group-sep" colspan="6">' + esc(getName('B')) + '</th>' +
         '<th class="group-HH group-sep" colspan="5">Household</th>' +
       '</tr>' +
       '<tr class="sub">' +
-        '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th>' +
-        '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th>' +
+        '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th><th>Other</th>' +
+        '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th><th>Other</th>' +
         '<th class="group-sep">Gross</th><th>Tax</th><th>Net</th><th>Target</th><th>Gap</th>' +
       '</tr>';
 
@@ -1953,11 +2084,13 @@
           '<td class="' + cA.trim() + '">' + fmtR(laA_draw[i]) + '</td>' +
           '<td>' + fmtR(discA_bal[i]) + '</td>' +
           '<td>' + fmtR(discA_draw[i]) + '</td>' +
+          '<td>' + fmtR(otherA[i]) + '</td>' +
           '<td class="sep">' + tbl.ageB[i] + '</td>' +
           '<td>' + fmtR(laB_bal[i])  + '</td>' +
           '<td class="' + cB.trim() + '">' + fmtR(laB_draw[i]) + '</td>' +
           '<td>' + fmtR(discB_bal[i]) + '</td>' +
           '<td>' + fmtR(discB_draw[i]) + '</td>' +
+          '<td>' + fmtR(otherB[i]) + '</td>' +
           '<td class="sep">' + fmtR(gross)  + '</td>' +
           '<td>' + fmtR(tax)   + '</td>' +
           '<td>' + fmtR(net)   + '</td>' +
@@ -1992,10 +2125,12 @@
     }
     // Single-spouse cap is also useful to flag (one-sided strain)
     var singleCapAge = null;
+    var singleCapWho = null;
     if (!capAge){
       for (var j = 0; j < p.labels.length; j++){
         if (tbl.clampA[j] === 'cap' || tbl.clampB[j] === 'cap'){
           singleCapAge = p.startAge + j;
+          singleCapWho = tbl.clampA[j] === 'cap' ? getName('A') : getName('B');
           break;
         }
       }
@@ -2027,7 +2162,7 @@
     if (capAge !== null){
       alerts.push('<span class="chart-alert cap">Both LAs at 17.5% ceiling from age ' + capAge + '</span>');
     } else if (singleCapAge !== null){
-      alerts.push('<span class="chart-alert cap">LA ceiling reached from age ' + singleCapAge + '</span>');
+      alerts.push('<span class="chart-alert cap">' + singleCapWho + ' LA at 17.5% ceiling from age ' + singleCapAge + '</span>');
     }
     if (discAge !== null){
       alerts.push('<span class="chart-alert disc">Discretionary exhausted from age ' + discAge + '</span>');
@@ -2046,6 +2181,7 @@
   }
 
   function refresh(){
+    updateNameLabels();
     updateLeverLabels();
     var p = project();
     updateCards(p);
@@ -2131,8 +2267,8 @@
           '<label>Lands in</label>' +
           '<div class="input-wrap">' +
             '<select data-idx="' + idx + '" data-field="spouse">' +
-              '<option value="A"' + (ev.spouse === 'A' ? ' selected' : '') + '>Spouse A disc</option>' +
-              '<option value="B"' + (ev.spouse === 'B' ? ' selected' : '') + '>Spouse B disc</option>' +
+              '<option value="A"' + (ev.spouse === 'A' ? ' selected' : '') + '>' + getName('A') + ' disc</option>' +
+              '<option value="B"' + (ev.spouse === 'B' ? ' selected' : '') + '>' + getName('B') + ' disc</option>' +
             '</select>' +
           '</div>' +
         '</div>' +
@@ -2193,6 +2329,140 @@
     refresh();
   });
 
+  // ===== Other taxable income streams =====
+  // In-memory store. Each item: { label, spouse, amountPV, startAge, duration, escalates }.
+  // Rendered into #incomes-list. Read by readIncomes() inside project() on every refresh.
+  var incomeStore = [];
+
+  function readIncomes(){
+    return incomeStore.filter(function(it){
+      return it && it.amountPV > 0 &&
+             (it.spouse === 'A' || it.spouse === 'B') &&
+             it.startAge >= 1 && it.duration >= 1;
+    }).map(function(it){
+      return {
+        label: (it.label || '').toString().trim(),
+        spouse: it.spouse,
+        amountPV: Math.round(it.amountPV),
+        startAge: Math.round(it.startAge),
+        duration: Math.round(it.duration),
+        escalates: !!it.escalates
+      };
+    });
+  }
+
+  function renderIncomes(){
+    var host = document.getElementById('incomes-list');
+    var empty = document.getElementById('incomes-empty');
+    host.innerHTML = '';
+    if (incomeStore.length === 0){
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+    incomeStore.forEach(function(it, idx){
+      var row = document.createElement('div');
+      row.className = 'event-row income-row';
+      var amountFmt = Math.round(it.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
+      var labelEsc = (it.label || '').toString().replace(/"/g, '&quot;');
+      row.innerHTML =
+        '<div class="event-col">' +
+          '<label>Label</label>' +
+          '<div class="input-wrap"><input type="text" maxlength="40" placeholder="e.g. Rental, Pension" value="' + labelEsc + '" data-idx="' + idx + '" data-field="label"></div>' +
+        '</div>' +
+        '<div class="event-col">' +
+          '<label>Amount p.a. (today)</label>' +
+          '<div class="input-wrap"><span class="pfx">R</span><input type="text" inputmode="numeric" value="' + amountFmt + '" data-idx="' + idx + '" data-field="amountPV"></div>' +
+        '</div>' +
+        '<div class="event-col">' +
+          '<label>Spouse</label>' +
+          '<div class="input-wrap">' +
+            '<select data-idx="' + idx + '" data-field="spouse">' +
+              '<option value="A"' + (it.spouse === 'A' ? ' selected' : '') + '>' + getName('A') + '</option>' +
+              '<option value="B"' + (it.spouse === 'B' ? ' selected' : '') + '>' + getName('B') + '</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="event-col">' +
+          '<label>Start age</label>' +
+          '<div class="input-wrap"><input type="number" min="18" max="120" step="1" value="' + it.startAge + '" data-idx="' + idx + '" data-field="startAge"></div>' +
+        '</div>' +
+        '<div class="event-col">' +
+          '<label>Years</label>' +
+          '<div class="input-wrap"><input type="number" min="1" max="50" step="1" value="' + it.duration + '" data-idx="' + idx + '" data-field="duration"></div>' +
+        '</div>' +
+        '<div class="event-col">' +
+          '<label>Escalate</label>' +
+          '<label class="escalate-toggle" title="Grow with CPI">' +
+            '<input type="checkbox" data-idx="' + idx + '" data-field="escalates"' + (it.escalates ? ' checked' : '') + '>' +
+          '</label>' +
+        '</div>' +
+        '<button type="button" class="event-delete" data-idx="' + idx + '" title="Remove income stream" aria-label="Remove income stream">×</button>';
+      host.appendChild(row);
+    });
+  }
+
+  document.getElementById('incomes-list').addEventListener('input', function(e){
+    var t = e.target;
+    var idx = parseInt(t.getAttribute('data-idx'), 10);
+    var field = t.getAttribute('data-field');
+    if (isNaN(idx) || !field) return;
+    if (field === 'label'){
+      incomeStore[idx].label = t.value;
+    } else if (field === 'amountPV'){
+      var n = parseFloat((t.value || '').replace(/[^0-9.\-]/g, ''));
+      incomeStore[idx].amountPV = isFinite(n) ? n : 0;
+    } else if (field === 'startAge'){
+      incomeStore[idx].startAge = parseInt(t.value, 10) || 0;
+    } else if (field === 'duration'){
+      incomeStore[idx].duration = parseInt(t.value, 10) || 0;
+    }
+    refresh();
+  });
+  document.getElementById('incomes-list').addEventListener('change', function(e){
+    var t = e.target;
+    var idx = parseInt(t.getAttribute('data-idx'), 10);
+    var field = t.getAttribute('data-field');
+    if (isNaN(idx) || !field) return;
+    if (field === 'spouse'){
+      incomeStore[idx].spouse = t.value;
+      refresh();
+    } else if (field === 'escalates'){
+      incomeStore[idx].escalates = !!t.checked;
+      refresh();
+    }
+  });
+  document.getElementById('incomes-list').addEventListener('click', function(e){
+    if (e.target.classList.contains('event-delete')){
+      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+      if (!isNaN(idx)){
+        incomeStore.splice(idx, 1);
+        renderIncomes();
+        refresh();
+      }
+    }
+  });
+  // Reformat amount on blur
+  document.getElementById('incomes-list').addEventListener('blur', function(e){
+    if (e.target.tagName === 'INPUT' && e.target.getAttribute('data-field') === 'amountPV'){
+      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+      if (!isNaN(idx)){
+        var val = incomeStore[idx].amountPV;
+        e.target.value = Math.round(val).toLocaleString('en-ZA').replace(/,/g, ' ');
+      }
+    }
+  }, true);
+  document.getElementById('incomes-add').addEventListener('click', function(){
+    // Seed a new stream with the current spouse-A age so the default is sensible.
+    var defaultAge = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
+    incomeStore.push({
+      label: '', spouse: 'A', amountPV: 120000,
+      startAge: defaultAge, duration: 20, escalates: true
+    });
+    renderIncomes();
+    refresh();
+  });
+
   // ===== Number-input formatting =====
   // On blur, reformat currency inputs to "R 1 234 567" style.
   function formatCurrencyInput(el){
@@ -2209,8 +2479,8 @@
 
   // Household-position number inputs: parse on every keystroke for live feedback,
   // reformat on blur.
-  var hpInputs = ['hp-la-A','hp-disc-A','hp-base-A','hp-other-A',
-                  'hp-la-B','hp-disc-B','hp-base-B','hp-other-B',
+  var hpInputs = ['hp-la-A','hp-disc-A','hp-base-A',
+                  'hp-la-B','hp-disc-B','hp-base-B',
                   'needs-monthly','needs-lump'];
   hpInputs.forEach(function(id){
     var el = document.getElementById(id);
@@ -2220,6 +2490,11 @@
 
   // Age inputs: plain integer, no currency formatting
   ['hp-age-A','hp-age-B'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', refresh);
+  });
+
+  // Spouse name inputs: text only; flow through every per-spouse label on refresh
+  ['hp-name-A','hp-name-B'].forEach(function(id){
     document.getElementById(id).addEventListener('input', refresh);
   });
 
