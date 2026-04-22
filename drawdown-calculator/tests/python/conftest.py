@@ -82,6 +82,34 @@ def cgt_exclusion_year(year_idx):
 
 
 # ============================================================
+# Other taxable income schedule
+# ============================================================
+
+def other_income_for_year(schedule, suffix, age, year_idx, cpi):
+    """
+    Resolve a schedule of other-income streams to a single nominal rand amount
+    for one spouse in year (year_idx + 1).
+
+    Each stream: {label, spouse ('A'|'B'), amountPV, startAge, duration, escalates}.
+    Active when age in [startAge, startAge + duration). While active, nominal is
+    amountPV × (1+cpi)^year_idx if escalates else amountPV.
+    """
+    total = 0
+    for item in (schedule or []):
+        if item['spouse'] != suffix:
+            continue
+        if age < item['startAge']:
+            continue
+        if age >= item['startAge'] + item['duration']:
+            continue
+        if item.get('escalates'):
+            total += item['amountPV'] * ((1 + cpi) ** year_idx)
+        else:
+            total += item['amountPV']
+    return total
+
+
+# ============================================================
 # LA draw clamping
 # ============================================================
 
@@ -280,15 +308,20 @@ def solve_topup(sA, sB, la_target_A, la_target_B, age_A, age_B, year_idx, target
 # ============================================================
 
 def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
-            auto_topup=False, events=None, horizon_age=100):
+            auto_topup=False, events=None, incomes=None, horizon_age=100):
     """
     Run a full year-by-year projection. Returns dict with series arrays.
 
     pA, pB: dicts with laBalance, laRate, discBalance, discBaseCost,
             otherIncome, discDraw (slider default)
     events: list of dicts {year, amountPV, spouse}
+    incomes: optional list of other-income streams
+             {label, spouse, amountPV, startAge, duration, escalates}.
+             When provided (even as []), overrides sA/sB['otherIncome'] per year.
+             When None, the scalar in pA/pB['otherIncome'] is used flat (legacy).
     """
     events = events or []
+    use_schedule = incomes is not None
     youngest = min(age_A, age_B)
     years = max(0, horizon_age - youngest)
 
@@ -304,6 +337,7 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         labels=[], la=[], disc=[], total=[], draw=[], tax=[], net=[], target=[],
         laA_bal=[], laA_draw=[], laB_bal=[], laB_draw=[],
         discA_bal=[], discA_draw=[], discB_bal=[], discB_draw=[],
+        otherA=[], otherB=[],
         tax_A=[], tax_B=[], clamp_A=[], clamp_B=[],
         draw_rate_pct=[],
     )
@@ -318,6 +352,10 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         target_A = la_target_A_Y1 * (1 + cpi) ** y
         target_B = la_target_B_Y1 * (1 + cpi) ** y
         year_target_nom = target_pv_annual * (1 + cpi) ** y
+
+        if use_schedule:
+            sA['otherIncome'] = other_income_for_year(incomes, 'A', age_this_A, y, cpi)
+            sB['otherIncome'] = other_income_for_year(incomes, 'B', age_this_B, y, cpi)
 
         if auto_topup:
             topup = solve_topup(sA, sB, target_A, target_B,
@@ -371,6 +409,8 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         series['discA_draw'].append(rA['disc_draw'])
         series['discB_bal'].append(disc_start_B)
         series['discB_draw'].append(rB['disc_draw'])
+        series['otherA'].append(sA['otherIncome'])
+        series['otherB'].append(sB['otherIncome'])
         series['tax_A'].append(tax_Y_A)
         series['tax_B'].append(tax_Y_B)
         series['clamp_A'].append(rA['la_clamp'])

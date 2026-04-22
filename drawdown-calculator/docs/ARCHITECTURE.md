@@ -16,8 +16,9 @@ Chart.js is the only runtime dependency, loaded from `cdnjs.cloudflare.com`.
 <header>              Simple Wealth brand + document title + print button
 <title-block>         H1, subtitle
 <client-bar>          Prepared for / Meeting date / Adviser
-<household-position>  Per-spouse: age, LA balance, disc balance, base cost, other income
+<household-position>  Per-spouse name + age, LA balance, disc balance, disc base cost
 <household-needs>     Monthly expenses, lump sum, auto-top-up toggle
+<income-streams>      Optional list of other taxable income streams (see below)
 <capital-events>      Optional list: year / amount / destination spouse
 <summary-cards>       Y1 gross, tax, net, gap — four cards, navy highlight on first
 <chart-controls>      Capital/Income/Table toggle + Real/Nominal toggle
@@ -62,7 +63,11 @@ The function is pure — it does not mutate `p`. The caller assigns `laAfter`/`d
 
 ### 3. `readPerson(suffix)`
 
-Reads spouse A or B inputs from the DOM, parses currency strings, clamps sensibly.
+Reads spouse A or B inputs from the DOM, parses currency strings, clamps sensibly. Returns `otherIncome: 0` as a placeholder — the schedule resolver overwrites this per year inside the projection loop, so the field is effectively unused outside the loop's per-year assignment.
+
+### 3a. `otherIncomeForYear(store, suffix, age, yearIdx, cpi)`
+
+Pure helper that resolves the current `incomeStore` schedule to a single nominal rand amount for one spouse in a given year. Active condition: `age ∈ [startAge, startAge + duration)`. While active, nominal = `amountPV × (1+cpi)^yearIdx` if `escalates` else `amountPV`. Lives alongside `incomeTaxYear` / `cgtExclusionYear` for symmetry.
 
 ### 4. `project()` — the heart of the calculator
 
@@ -71,15 +76,16 @@ Called on every refresh. Reads all inputs, runs the year loop, returns a structu
 Each iteration:
 
 1. Record start-of-year balances (`laA_start`, `discA_start`, etc.)
-2. Compute CPI-escalated LA rand targets: `targetA = laTargetA_Y1 * (1 + cpi)^y`
-3. Compute the year's nominal expense target: `yearTargetNom = targetPVAnnual * (1 + cpi)^y`
-4. If auto-top-up is on, call `solveTopUp()` to find LA + disc draws that meet the target after tax (see below). Otherwise use slider values for disc draws.
-5. Call `stepPerson()` twice (once per spouse) to apply draws and growth.
-6. Compute tax on the final LA + disc + other income.
-7. Commit balances.
-8. Push to all series arrays.
-9. (If `y === 0`) capture `taxA`/`taxB` objects for the summary cards and tax panel — always from this loop's output, never from a separate calculation.
-10. Apply any capital events scheduled for year `y + 1` — add nominal amount to that spouse's discBalance AND discBaseCost.
+2. Resolve the other-income schedule for this year: `sA.otherIncome = otherIncomeForYear(incomes, 'A', ageThisYearA, y, cpi)` (same for B). Every downstream read (solver, `stepPerson`, `taxForYear`, `yearDraw` accumulation, Y1 capture) uses these values.
+3. Compute CPI-escalated LA rand targets: `targetA = laTargetA_Y1 * (1 + cpi)^y`
+4. Compute the year's nominal expense target: `yearTargetNom = targetPVAnnual * (1 + cpi)^y`
+5. If auto-top-up is on, call `solveTopUp()` to find LA + disc draws that meet the target after tax (see below). Otherwise use slider values for disc draws.
+6. Call `stepPerson()` twice (once per spouse) to apply draws and growth.
+7. Compute tax on the final LA + disc + other income.
+8. Commit balances.
+9. Push to all series arrays (including per-spouse `otherA_series` / `otherB_series` for the year-table `Other` column).
+10. (If `y === 0`) capture `taxA`/`taxB` objects for the summary cards and tax panel, including `otherIncome: sA.otherIncome` for the Y1 row in the tax panel — always from this loop's output, never from a separate calculation.
+11. Apply any capital events scheduled for year `y + 1` — add nominal amount to that spouse's discBalance AND discBaseCost.
 
 The return object exposes:
 
@@ -94,10 +100,12 @@ The return object exposes:
   drawRatePct,        // household withdrawal rate % for each year
   targetPVAnnual,
   events,             // raw events array (for print summary)
+  incomes,            // raw income-schedule array (for print summary)
   table: {            // per-spouse per-year for the Table view
     ageA, ageB,
     laA_bal, laA_draw, laB_bal, laB_draw,
     discA_bal, discA_draw, discB_bal, discB_draw,
+    otherA, otherB,   // per-spouse nominal other-income each year
     taxA, taxB,
     clampA, clampB
   },
@@ -153,6 +161,10 @@ A binary search that finds the single LA rate (equal for both spouses, 2.5%–17
 ### 9. Events store + wiring
 
 `eventsStore` is an in-memory array. `renderEvents()` paints the DOM from it. Event delegation on `#events-list` handles input/change/delete. `readEvents()` filters to valid events and is called inside `project()` on every refresh.
+
+### 9a. Income-schedule store + wiring
+
+`incomeStore` is an in-memory array that mirrors `eventsStore`. Each item is `{label, spouse, amountPV, startAge, duration, escalates}`. `renderIncomes()` paints rows into `#incomes-list`; delegated handlers on the list cover `input` (label/amount/startAge/duration), `change` (spouse select and escalates checkbox), `click` (delete button), and capture-phase `blur` (reformat amount). `readIncomes()` filters to valid rows (`amountPV > 0`, spouse in {A,B}, startAge ≥ 1, duration ≥ 1) and is called once per refresh inside `project()`. The resolver `otherIncomeForYear` consumes the filtered list.
 
 ### 10. Event wiring
 

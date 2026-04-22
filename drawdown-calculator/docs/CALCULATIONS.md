@@ -121,6 +121,33 @@ The boost is always measured against the Phase-1 baseline LA draw. Mutating `laD
 
 If both spouses hit the 17.5% ceiling, the ceiling bites: LA draws are capped, the real shortfall is preserved, clamp flags are set to `'cap'`, and the "Real shortfall vs target" alert fires.
 
+## Other taxable income streams
+
+The user can enter an arbitrary list of "other income" streams — rental income, a DB pension, trust distributions, a maintenance order, whatever is taxable alongside living-annuity income. Each stream has:
+
+- `label` — free text, for print-summary readability only
+- `spouse` — `A` or `B`
+- `amountPV` — annual rand in today's money
+- `startAge` — integer age at which the stream begins (for that spouse)
+- `duration` — years the stream is active
+- `escalates` — boolean; `true` = grow with CPI, `false` = stay flat in nominal terms
+
+For year `y` of the projection (zero-indexed, `y = 0` is the first year of retirement), the helper `otherIncomeForYear(schedule, suffix, age, y, cpi)` resolves the schedule to a single nominal rand amount:
+
+```
+active        = (age >= startAge) AND (age < startAge + duration)
+nominal_year  = escalates ? amountPV × (1 + cpi)^y : amountPV   # if active, else 0
+total         = Σ nominal_year over all active streams for that spouse
+```
+
+Key points:
+
+- The active window is **half-open**: `[startAge, startAge + duration)`. A stream with `startAge=65, duration=10` is active at ages 65 through 74 inclusive.
+- The escalation exponent is the **year index**, not "years since this stream started". A deferred stream entered as R50 000 today's money with `startAge = current_age + 5` and `escalates = true` starts at `50 000 × (1+cpi)^5` — preserving the real value the adviser typed.
+- The resolver is evaluated **before** the solver and tax calculations each year, and the result is written to `sA['otherIncome']` / `sB['otherIncome']`. All downstream math (`taxable = laDraw + otherIncome + inclusion`, `netLA`, `grossIncome`, `yearDraw`) reads from those fields, so no other code had to change to support the schedule.
+- Multiple streams on the same spouse sum. A flat stream and an escalating stream can coexist.
+- When the schedule is empty, the resolver returns 0 every year and the projection matches the pre-schedule behaviour exactly.
+
 ## Capital events
 
 The user can enter one-off capital inflows: property sales, inheritances, maturing policies. Each event has:
