@@ -132,7 +132,7 @@ Each of these reads the `project()` result and updates the DOM:
 - `updateTaxPanel(p)` — per-spouse tax breakdown
 - `updateAlerts(p)` — the chart-alerts bar (LA cap, disc exhausted, real shortfall)
 - `buildChart(p)` — Capital view (stacked bars + withdrawal rate line)
-- `buildIncomeChart(p)` — Income view (gross, tax, net, target lines)
+- `buildIncomeChart(p)` — Income view (stacked bars inside per-year dashed coral target boxes; default is `mode='nominal'`)
 - `buildYearTable(p)` — Table view (sticky-column HTML table)
 - `updatePrintSummary(p)` — all the print-only tables, including events
 
@@ -192,5 +192,7 @@ There is no caching, no debouncing, no animation. The whole projection re-runs i
 - The LA clamp flag can be `'ok' | 'floor' | 'cap' | 'empty'`. Only `'cap'` is used for the visual cap markers in the table — the floor case fires green, the empty case fires nothing.
 - `updateCards` and `updateTaxPanel` both read from `p.taxA`/`p.taxB`. These are the same objects built inside the first iteration of the year loop, so they're guaranteed to match the Y1 entry in any series.
 - The event delegation on `#events-list` uses capture phase for `blur` because `blur` doesn't bubble.
-- The print summary is a single div with inline class attributes. `@media print` handles page breaks and hides everything else.
+- The print summary is a single div nested **inside `#state-single`** so it only renders on screen in single mode. `@media print` forces `#state-single` visible regardless of on-screen state, so printing still works from any state.
 - Chart.js dataset visibility (via the series-toggle buttons) is managed by mutating `dataset.hidden`, not by filtering the dataset list. This preserves order and colour assignments.
+- The Income chart registers two inline plugins in order: `targetBoxPlugin` draws per-year dashed coral box outlines for the target need; `shortfallShadingPlugin` paints a coral wash + dashed vertical at the first shortfall age. Both read `chart.data.datasets[3].data[i]` for the target value, so the (otherwise invisible) "Target need" `line` dataset is retained as a data carrier and for legend/tooltip semantics.
+- `setAppState(next)` no longer persists to `localStorage`. Refresh always lands on the default `appState = 'empty'`. The `beforeprint` listener still snapshots the current state, forces `'single'` for paper, and `afterprint` restores.

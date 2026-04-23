@@ -104,6 +104,26 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 3 — 2026-04-23 (PR 3)
+
+**Built / changed** on branch `pr-3-changes`:
+- **Refresh always lands on State 1.** `appState` default flipped from `'single'` to `'empty'`; `localStorage` read+write removed from `setAppState` and init. Initial DOM `is-hidden` swapped: `#state-empty` starts visible, `#state-single` starts hidden. Print flow (`beforeprint` forces `single`, `afterprint` restores) untouched and verified.
+- **Print-summary leaked onto State 1.** Cause: `#print-summary` was a top-level sibling, not nested inside `#state-single` as the docs implied. Moved the entire block inside `#state-single` (just above its closing `</section>`). It now only renders on screen in single mode; print still works because `@media print` already forces `#state-single` visible regardless of on-screen state. Side effect: print-summary no longer shows on State 3 (Compare) — intentional, Compare is a side-by-side view, not a print-ready scenario.
+- **State 1 headline reworded.** `A plan for ___ family, living off R___ a month.` → `A retirement income plan for the ___ family.` Dropped the `#hl-monthly-empty` `contenteditable` span and the entire `hlMonthly`/`needsMonthly` bidirectional sync block in init. The monthly figure is now sourced solely from the `#needs-monthly` input in the household-needs strip.
+- **Income chart defaults to Nominal.** `var mode = 'real'` → `'nominal'`. Toggle `class="on"` and `aria-selected` swapped on both `#btn-real`/`#btn-nom` (State 2) and `#btn-real-c`/`#btn-nom-c` (State 3) so initial visual state matches.
+- **Income target as box outlines, not a smoothed line.** New inline `targetBoxPlugin` (afterDatasetsDraw) draws per-year dashed coral rectangles from y=0 to y=`series.target[i]`, sized to the bar slot's width minus a 0.18 inset to align with bar edges. The original `line` dataset is retained (transparent border, zero width) so legend toggle, tooltips, and `shortfallShadingPlugin`'s `target.data[i]` access still work. Plugin order is `[targetBoxPlugin, shortfallShadingPlugin]` so the coral wash + dashed vertical paint over the box outline in shortfall years.
+- **Auto-top-up default.** Verified — already OFF on disk (no `checked` attr, both pills `aria-checked="false"`, no init JS flips it). No change needed.
+
+**Architectural decisions**
+- **Engine still untouched.** No changes to `project()`, `solveTopUp`, `stepPerson`, tax helpers, or any series math. Tests confirm: 77/77 Python + 16/16 JS pass after the change.
+- **Box plugin keeps the dataset.** Tempting to remove the now-invisible `line` dataset entirely, but it carries the per-year target values that both the new box plugin and the existing shortfall plugin read via `chart.data.datasets[3].data[i]`. Keeping it as a transparent line is the smallest delta and preserves legend semantics.
+- **localStorage write removed entirely** rather than left in place "just in case". Stale keys in users' browsers are inert (no read path consumes them).
+
+**Follow-ups**
+- Browser walk-through across Chrome / Safari / Firefox: confirm box outlines render correctly at all zoom levels and bar widths; confirm refresh on State 2/3 always lands on State 1.
+- Print preview with a populated scenario: verify the print-summary still appears on its own page and the methodology + disclaimer are intact.
+- The `setMode()` function still only updates `#btn-real`/`#btn-nom`, not the `-c` pair. State 3's manual sync handlers cover the click case but the two pairs can drift if `setMode` is called from elsewhere. Out of scope for this PR; worth a follow-up if the plan-bar's mode pill ever gets shared logic.
+
 ### Session 2 — 2026-04-23
 
 **Built / changed**

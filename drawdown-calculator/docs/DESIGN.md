@@ -89,7 +89,7 @@ The app is a single HTML file; state is driven by a `data-app-state` attribute o
 
 A **shared chrome** block (`#shared-chrome`) holds the per-spouse drawdown levers and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`).
 
-Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-hidden`. The `setAppState(next)` helper writes to `localStorage` so the last state survives reloads.
+Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-hidden`. The `setAppState(next)` helper does **not** persist — every page refresh resets to State 1 (`appState = 'empty'`), so an adviser opening the calculator at the start of a meeting always lands on the blank setup view.
 
 ## Layout
 
@@ -102,15 +102,15 @@ Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-
 ## Component conventions
 
 ### Title plate (State 1)
-Centred. Eyebrow above a Fraunces 44px headline with two `contenteditable` spans (`#hl-family`, `#hl-monthly-empty`). Dashed underline when empty; on focus, `--paper-2` background. Monospace "Prepared DD Month YYYY" below.
+Centred. Eyebrow above a Fraunces 44px headline reading *"A retirement income plan for [the ___ family]"*. The bracketed family name is a single `contenteditable` span (`#hl-family`); dashed underline when empty, `--paper-2` background on focus. The monthly figure does not appear in the headline — it lives only in the household-needs strip below (`#needs-monthly`). Monospace "Prepared DD Month YYYY" sits beneath the headline.
 
 ### Plan-bar
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
 
 ### Canvas head (State 2)
 Left: eyebrow + editorial headline + sub-paragraph. Right action cluster:
-- `.toggle-pill` (Auto-top-up) — default ON
-- `.seg.mini` (Real | Nominal) — default Real
+- `.toggle-pill` (Auto-top-up) — default OFF
+- `.seg.mini` (Real | Nominal) — default Nominal (clients quote rand figures in nominal terms during meetings)
 - Ghost `Print ↓` button
 - Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
 
@@ -124,9 +124,12 @@ Grid `1fr 1fr`, 22px gap.
 
 ### Chart
 
-Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered:
+Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered for the Income chart:
 
-- **Income chart (default)**: stacked bars (teal LA + gold Disc + navy-soft Other) plus a dashed coral line dataset for the target need. The `shortfallShadingPlugin` fills coral rectangles between bar-top and need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label.
+- **Income chart (default)**: stacked bars (teal LA + gold Disc + navy-soft Other) drawn inside per-year **dashed coral box outlines** representing the target need. Each box runs from y=0 to y=`series.target[i]`, sized to the bar slot's width minus an 0.18 inset so it aligns with the bar edges. Years where the bar stack falls short of the box top read visually as an unfilled box.
+  - `targetBoxPlugin` (afterDatasetsDraw) draws the per-year box outlines.
+  - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between bar-top and need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label.
+  - The "Target need" `line` dataset is retained for legend/tooltip semantics but rendered with `borderColor: 'transparent'` and `borderWidth: 0` — its data values feed both plugins.
 - **Capital chart**: stacked LA + Disc bars with a secondary-axis dashed coral withdrawal-rate line. New tokens applied (teal unchanged, gold shifts to `#b8893c`, coral shifts to `#a04438`).
 - **Table view**: the existing year-by-year table, with per-spouse clamp flags in coral (▲ cap) / green (▼ floor).
 
@@ -164,7 +167,7 @@ Sliders use direct manipulation: move the thumb → number at the right updates 
 
 The `Solve LA rates to target` button in shared chrome still binary-searches for the equal LA rate that hits the target. State 3's "Solve to target" placeholder link is out of scope for this pass.
 
-Editable title-plate spans are `contenteditable`. `#hl-monthly-empty` is bi-directionally bound to `#needs-monthly` — edits propagate both ways on blur. `#hl-family` is free-text editorial only (does not feed the engine).
+The single editable title-plate span `#hl-family` is `contenteditable` — free-text editorial only, does not feed the engine. The monthly figure is sourced solely from the `#needs-monthly` input in the household-needs strip.
 
 ## Print
 
@@ -183,8 +186,9 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 - Don't introduce a third accent colour. Gold and coral carry the accents; teal is reserved for LA.
 - Don't replace Chart.js with a different charting library.
 - Don't use emoji.
-- Don't break the `contenteditable` title-plate binding. If you change `#needs-monthly`, re-test the headline sync.
+- Don't reintroduce a localStorage-restored app state. Refresh always lands on State 1 — that's the adviser's reset between client meetings.
 - Don't hide the shared chrome outside of State 1.
+- Don't move `#print-summary` back outside `#state-single`. It needs to be a child of state-single so it only shows in single mode on screen; print still works because `@media print` forces state-single visible.
 
 ## References
 

@@ -1708,28 +1708,20 @@
 <div class="page">
 
 <!-- ============= STATE 1: Empty / Setup ============= -->
-<section id="state-empty" class="state is-hidden" data-state="empty">
+<section id="state-empty" class="state" data-state="empty">
   <div class="empty-canvas">
 
     <!-- Title plate -->
     <div class="empty-titleplate">
       <div class="eyebrow">Simple Wealth &middot; Retirement Drawdown</div>
       <h1 class="headline empty-title">
-        A plan for
+        A retirement income plan for
         <span id="hl-family"
               class="editable"
               contenteditable="true"
               role="textbox"
               aria-label="Family name"
-              data-placeholder="the &mdash;&mdash;&mdash; family">the Mitchell family</span>,
-        living off
-        <span id="hl-monthly-empty"
-              class="editable"
-              contenteditable="true"
-              role="textbox"
-              aria-label="Monthly income"
-              data-placeholder="R &mdash;&mdash;&mdash;">R 50 000</span>
-        a month.
+              data-placeholder="the &mdash;&mdash;&mdash; family">the Mitchell family</span>
       </h1>
       <div class="empty-date num">Prepared <span id="empty-date-val">—</span></div>
     </div>
@@ -1869,7 +1861,7 @@
 </section>
 
 <!-- ============= STATE 2: Single scenario projection ============= -->
-<section id="state-single" class="state" data-state="single">
+<section id="state-single" class="state is-hidden" data-state="single">
 
   <!-- Plan inputs summary bar -->
   <div class="plan-bar-lite">
@@ -1900,8 +1892,8 @@
         <span>Auto-top-up</span>
       </label>
       <div class="seg mini" role="tablist" aria-label="Real or Nominal">
-        <button id="btn-real" class="on" role="tab" aria-selected="true">Real</button>
-        <button id="btn-nom" role="tab" aria-selected="false">Nominal</button>
+        <button id="btn-real" role="tab" aria-selected="false">Real</button>
+        <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
       </div>
       <button type="button" class="btn ghost no-print" onclick="window.print()">Print &darr;</button>
       <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
@@ -2019,6 +2011,79 @@
     </span>
   </div>
 
+  <!-- Print summary (lives inside state-single so it's only visible on screen in single mode; print flow forces state-single visible regardless). -->
+  <div class="print-summary" id="print-summary">
+    <h2>Summary of assumptions and outcome</h2>
+
+    <h3>Client &amp; meeting</h3>
+    <table class="summary-table">
+      <tr><td>Client</td><td id="s-client">—</td></tr>
+      <tr><td>Meeting date</td><td id="s-date">—</td></tr>
+      <tr><td>Adviser</td><td id="s-adviser">—</td></tr>
+    </table>
+
+    <h3 id="s-name-A">Spouse A — inputs</h3>
+    <table class="summary-table">
+      <tr><td>Current age</td><td id="s-age-A">—</td></tr>
+      <tr><td>Living annuity balance</td><td id="s-la-A">—</td></tr>
+      <tr><td>LA drawdown rate</td><td id="s-rate-A">—</td></tr>
+      <tr><td>Discretionary portfolio balance</td><td id="s-disc-A">—</td></tr>
+      <tr><td>Discretionary base cost</td><td id="s-base-A">—</td></tr>
+      <tr><td>Annual discretionary withdrawal</td><td id="s-draw-A">—</td></tr>
+    </table>
+
+    <h3 id="s-name-B">Spouse B — inputs</h3>
+    <table class="summary-table">
+      <tr><td>Current age</td><td id="s-age-B">—</td></tr>
+      <tr><td>Living annuity balance</td><td id="s-la-B">—</td></tr>
+      <tr><td>LA drawdown rate</td><td id="s-rate-B">—</td></tr>
+      <tr><td>Discretionary portfolio balance</td><td id="s-disc-B">—</td></tr>
+      <tr><td>Discretionary base cost</td><td id="s-base-B">—</td></tr>
+      <tr><td>Annual discretionary withdrawal</td><td id="s-draw-B">—</td></tr>
+    </table>
+
+    <h3>Shared assumptions</h3>
+    <table class="summary-table">
+      <tr><td>Expected investment return (nominal, p.a.)</td><td id="s-return">—</td></tr>
+      <tr><td>General inflation (CPI)</td><td id="s-cpi">—</td></tr>
+      <tr><td>Projection horizon</td><td id="s-horizon">—</td></tr>
+    </table>
+
+    <h3 id="s-incomes-header" style="display: none;">Other taxable income streams</h3>
+    <table class="summary-table" id="s-incomes-table" style="display: none;">
+      <tbody id="s-incomes-body"></tbody>
+    </table>
+
+    <h3>Year 1 outcome</h3>
+    <table class="summary-table">
+      <tr><td>Household capital today</td><td id="s-cap">—</td></tr>
+      <tr><td>Gross drawdown (LA + discretionary)</td><td id="s-gross">—</td></tr>
+      <tr><td>Total income tax across household</td><td id="s-tax">—</td></tr>
+      <tr><td>After-tax household income</td><td id="s-net">—</td></tr>
+    </table>
+
+    <h3>Projected capital at youngest spouse's age 100</h3>
+    <table class="summary-table">
+      <tr><td>Nominal (future rands)</td><td id="s-end-nom">—</td></tr>
+      <tr><td>Real (today's money)</td><td id="s-end-real">—</td></tr>
+      <tr><td>Change from today, real terms</td><td id="s-end-change">—</td></tr>
+    </table>
+
+    <h3 id="s-events-header" style="display: none;">Expected capital events</h3>
+    <table class="summary-table" id="s-events-table" style="display: none;">
+      <tbody id="s-events-body"></tbody>
+    </table>
+
+    <div class="assumptions">
+      <strong style="color: var(--ink);">Notes on methodology.</strong>
+      Projections are annual. Year 1 living annuity income is calculated as the client's initial drawdown rate applied to the starting LA balance. In every subsequent year, the rand income escalates at the general inflation (CPI) rate, maintaining purchasing power. The resulting rand amount is expressed as a percentage of the LA balance at the start of that year and clamped to the legislated 2.5%–17.5% band if it falls outside. Draws that hit the 17.5% ceiling or are pushed up to the 2.5% floor are flagged in the projection table. LA income is fully taxable at marginal income-tax rates. Discretionary withdrawals are drawn down proportionally against the current balance, with the gain portion calculated as <em>draw × (1 − base cost / balance)</em>; base cost is reduced pro-rata as capital is drawn. Capital gains tax is calculated per individual at the 2026/27 SARS framework: annual exclusion of R50 000, 40% inclusion rate, assessed at the individual's marginal rate (maximum effective 18%). Income tax rebates applied: primary R17 820, secondary R9 765 (age 65+), tertiary R3 249 (age 75+). Tax brackets, rebates, and the CGT annual exclusion are assumed to grow at 3% p.a. (approximation of SARS fiscal drag relief). When the auto-top-up option is enabled, the projection applies each year in three phases: (1) draw LA income at the CPI-escalated target; (2) if there is an after-tax shortfall against the household expense target, draw from each spouse's discretionary portfolio in proportion to their current balance (CGT on gains included in the solve); (3) if discretionary is exhausted and the gap remains, boost each spouse's LA draw in proportion to their LA balance, up to the 17.5% legal ceiling. Any residual shortfall after LA draws reach the ceiling is surfaced as a negative gap in the projection table. Future capital events (property sales, inheritances, maturing policies) are entered in today's money and inflated to nominal at the CPI rate; each event lands in the specified spouse's discretionary portfolio at the end of its designated year, with the full amount added to base cost so no unrealised gain is assumed on arrival. Other taxable income streams (rental income, DB pensions, trust distributions, maintenance orders) are entered as annual rand amounts in today's money; streams flagged as CPI-escalating grow each year at the general inflation rate while active, while flat streams stay fixed in nominal terms (and erode in real terms). Each stream contributes fully to taxable income at the relevant spouse's marginal rate while the spouse's age lies within the stated window. Values labelled "real" are deflated by CPI to express future amounts in current purchasing power. No allowance has been made for platform fees, advice fees, dividend withholding tax, interest exemptions, or medical tax credits; where relevant these should be factored in separately.
+    </div>
+
+    <div class="disclaimer">
+      This projection is illustrative only and is based on the assumptions shown above as entered at the time of the meeting. Tax calculations use the 2026/27 SARS framework as announced in the February 2026 Budget and may be varied by subsequent legislation. Actual outcomes will differ, potentially materially, depending on investment performance, inflation, drawdown elections, tax changes, and individual circumstances. This document does not constitute financial advice in isolation and should be read together with a full financial plan and formal record of advice. Simple Wealth (Pty) Ltd is an authorised financial services provider, FSP no. 50637. Personal information has been processed in line with the Protection of Personal Information Act (POPIA).
+    </div>
+  </div>
+
   </section>
   <!-- /state-single -->
 
@@ -2049,8 +2114,8 @@
           <span>Auto-top-up</span>
         </label>
         <div class="seg mini" role="tablist" aria-label="Real or Nominal (compare)">
-          <button id="btn-real-c" class="on" role="tab" aria-selected="true">Real</button>
-          <button id="btn-nom-c" role="tab" aria-selected="false">Nominal</button>
+          <button id="btn-real-c" role="tab" aria-selected="false">Real</button>
+          <button id="btn-nom-c" class="on" role="tab" aria-selected="true">Nominal</button>
         </div>
         <button type="button" class="btn ghost" id="btn-clear-baseline">Clear baseline</button>
         <button type="button" class="btn primary" id="btn-relock-baseline">Re-lock as new baseline</button>
@@ -2173,79 +2238,6 @@
     </div>
   </div>
 
-  <!-- Print summary (always available; print flow forces state-single on paper) -->
-  <div class="print-summary" id="print-summary">
-    <h2>Summary of assumptions and outcome</h2>
-
-    <h3>Client &amp; meeting</h3>
-    <table class="summary-table">
-      <tr><td>Client</td><td id="s-client">—</td></tr>
-      <tr><td>Meeting date</td><td id="s-date">—</td></tr>
-      <tr><td>Adviser</td><td id="s-adviser">—</td></tr>
-    </table>
-
-    <h3 id="s-name-A">Spouse A — inputs</h3>
-    <table class="summary-table">
-      <tr><td>Current age</td><td id="s-age-A">—</td></tr>
-      <tr><td>Living annuity balance</td><td id="s-la-A">—</td></tr>
-      <tr><td>LA drawdown rate</td><td id="s-rate-A">—</td></tr>
-      <tr><td>Discretionary portfolio balance</td><td id="s-disc-A">—</td></tr>
-      <tr><td>Discretionary base cost</td><td id="s-base-A">—</td></tr>
-      <tr><td>Annual discretionary withdrawal</td><td id="s-draw-A">—</td></tr>
-    </table>
-
-    <h3 id="s-name-B">Spouse B — inputs</h3>
-    <table class="summary-table">
-      <tr><td>Current age</td><td id="s-age-B">—</td></tr>
-      <tr><td>Living annuity balance</td><td id="s-la-B">—</td></tr>
-      <tr><td>LA drawdown rate</td><td id="s-rate-B">—</td></tr>
-      <tr><td>Discretionary portfolio balance</td><td id="s-disc-B">—</td></tr>
-      <tr><td>Discretionary base cost</td><td id="s-base-B">—</td></tr>
-      <tr><td>Annual discretionary withdrawal</td><td id="s-draw-B">—</td></tr>
-    </table>
-
-    <h3>Shared assumptions</h3>
-    <table class="summary-table">
-      <tr><td>Expected investment return (nominal, p.a.)</td><td id="s-return">—</td></tr>
-      <tr><td>General inflation (CPI)</td><td id="s-cpi">—</td></tr>
-      <tr><td>Projection horizon</td><td id="s-horizon">—</td></tr>
-    </table>
-
-    <h3 id="s-incomes-header" style="display: none;">Other taxable income streams</h3>
-    <table class="summary-table" id="s-incomes-table" style="display: none;">
-      <tbody id="s-incomes-body"></tbody>
-    </table>
-
-    <h3>Year 1 outcome</h3>
-    <table class="summary-table">
-      <tr><td>Household capital today</td><td id="s-cap">—</td></tr>
-      <tr><td>Gross drawdown (LA + discretionary)</td><td id="s-gross">—</td></tr>
-      <tr><td>Total income tax across household</td><td id="s-tax">—</td></tr>
-      <tr><td>After-tax household income</td><td id="s-net">—</td></tr>
-    </table>
-
-    <h3>Projected capital at youngest spouse's age 100</h3>
-    <table class="summary-table">
-      <tr><td>Nominal (future rands)</td><td id="s-end-nom">—</td></tr>
-      <tr><td>Real (today's money)</td><td id="s-end-real">—</td></tr>
-      <tr><td>Change from today, real terms</td><td id="s-end-change">—</td></tr>
-    </table>
-
-    <h3 id="s-events-header" style="display: none;">Expected capital events</h3>
-    <table class="summary-table" id="s-events-table" style="display: none;">
-      <tbody id="s-events-body"></tbody>
-    </table>
-
-    <div class="assumptions">
-      <strong style="color: var(--ink);">Notes on methodology.</strong>
-      Projections are annual. Year 1 living annuity income is calculated as the client's initial drawdown rate applied to the starting LA balance. In every subsequent year, the rand income escalates at the general inflation (CPI) rate, maintaining purchasing power. The resulting rand amount is expressed as a percentage of the LA balance at the start of that year and clamped to the legislated 2.5%–17.5% band if it falls outside. Draws that hit the 17.5% ceiling or are pushed up to the 2.5% floor are flagged in the projection table. LA income is fully taxable at marginal income-tax rates. Discretionary withdrawals are drawn down proportionally against the current balance, with the gain portion calculated as <em>draw × (1 − base cost / balance)</em>; base cost is reduced pro-rata as capital is drawn. Capital gains tax is calculated per individual at the 2026/27 SARS framework: annual exclusion of R50 000, 40% inclusion rate, assessed at the individual's marginal rate (maximum effective 18%). Income tax rebates applied: primary R17 820, secondary R9 765 (age 65+), tertiary R3 249 (age 75+). Tax brackets, rebates, and the CGT annual exclusion are assumed to grow at 3% p.a. (approximation of SARS fiscal drag relief). When the auto-top-up option is enabled, the projection applies each year in three phases: (1) draw LA income at the CPI-escalated target; (2) if there is an after-tax shortfall against the household expense target, draw from each spouse's discretionary portfolio in proportion to their current balance (CGT on gains included in the solve); (3) if discretionary is exhausted and the gap remains, boost each spouse's LA draw in proportion to their LA balance, up to the 17.5% legal ceiling. Any residual shortfall after LA draws reach the ceiling is surfaced as a negative gap in the projection table. Future capital events (property sales, inheritances, maturing policies) are entered in today's money and inflated to nominal at the CPI rate; each event lands in the specified spouse's discretionary portfolio at the end of its designated year, with the full amount added to base cost so no unrealised gain is assumed on arrival. Other taxable income streams (rental income, DB pensions, trust distributions, maintenance orders) are entered as annual rand amounts in today's money; streams flagged as CPI-escalating grow each year at the general inflation rate while active, while flat streams stay fixed in nominal terms (and erode in real terms). Each stream contributes fully to taxable income at the relevant spouse's marginal rate while the spouse's age lies within the stated window. Values labelled "real" are deflated by CPI to express future amounts in current purchasing power. No allowance has been made for platform fees, advice fees, dividend withholding tax, interest exemptions, or medical tax credits; where relevant these should be factored in separately.
-    </div>
-
-    <div class="disclaimer">
-      This projection is illustrative only and is based on the assumptions shown above as entered at the time of the meeting. Tax calculations use the 2026/27 SARS framework as announced in the February 2026 Budget and may be varied by subsequent legislation. Actual outcomes will differ, potentially materially, depending on investment performance, inflation, drawdown elections, tax changes, and individual circumstances. This document does not constitute financial advice in isolation and should be read together with a full financial plan and formal record of advice. Simple Wealth (Pty) Ltd is an authorised financial services provider, FSP no. 50637. Personal information has been processed in line with the Protection of Personal Information Act (POPIA).
-    </div>
-  </div>
-
   <div class="footer-meta">
     Simple Wealth &nbsp;·&nbsp; Retirement Drawdown Projection &nbsp;·&nbsp; <span id="footer-date">—</span>
   </div>
@@ -2269,14 +2261,14 @@
   var REBATE = { primary: 17820, secondary: 9765, tertiary: 3249 };
   var CGT = { inclusion: 0.40, exclusion: 50000 };
 
-  var mode = 'real';
+  var mode = 'nominal';
   var chartView = 'income';  // 'income' | 'capital' | 'table' — income is default in the editorial redesign
   var chart = null;
   var seriesVisible = { la: true, disc: true, rate: true };
 
   // ===== App state (three-state flow: empty → single → compare) =====
-  var appState = 'single';  // 'empty' | 'single' | 'compare' — Phase 3 flips default to 'empty'
-  var baseline = null;      // frozen snapshot for Compare; Phase 5 populates
+  var appState = 'empty';  // 'empty' | 'single' | 'compare' — refresh always starts at the setup view
+  var baseline = null;     // frozen snapshot for Compare; populated on Lock as baseline
   function setAppState(next){
     if (next === appState) return;
     var prev = appState;
@@ -2288,7 +2280,6 @@
       var match = el.getAttribute('data-state') === next;
       el.classList.toggle('is-hidden', !match);
     }
-    try { localStorage.setItem('drawdownAppState', next); } catch(e){}
     if (typeof refresh === 'function') refresh();
     return prev;
   }
@@ -3108,6 +3099,41 @@
   var incomeChart = null;
   var incomeSeriesVisible = { la: true, disc: true, other: true, target: true };
 
+  // Chart.js plugin: per-year dashed coral box outlines representing the income target.
+  // Each year gets a rectangle from y=0 to y=target[i], spanning the bar slot's width.
+  // The stacked income bars draw on top, so any unfilled portion of the box reads as a shortfall.
+  var targetBoxPlugin = {
+    id: 'targetBox',
+    afterDatasetsDraw: function(chart){
+      var ds = chart.data.datasets;
+      if (!ds || ds.length < 4) return;
+      var target = ds[3];
+      if (target.hidden) return;
+      var ctx = chart.ctx;
+      var yScale = chart.scales.y;
+      var xScale = chart.scales.x;
+      var N = chart.data.labels.length;
+      var y0 = yScale.getPixelForValue(0);
+      ctx.save();
+      ctx.strokeStyle = '#a04438';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      for (var i = 0; i < N; i++){
+        var need = target.data[i] || 0;
+        if (need <= 0) continue;
+        var x = xScale.getPixelForValue(i);
+        var xNext = (i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right;
+        var slot = xNext - x;
+        var pad = slot * 0.18;          // mirror the bar inset so box aligns with bar edges
+        var boxX = x - slot / 2 + pad;
+        var boxW = slot - 2 * pad;
+        var yTop = yScale.getPixelForValue(need);
+        ctx.strokeRect(boxX, yTop, boxW, y0 - yTop);
+      }
+      ctx.restore();
+    }
+  };
+
   // Chart.js plugin: coral wash over shortfall years + dashed vertical at first shortfall.
   var shortfallShadingPlugin = {
     id: 'shortfallShading',
@@ -3212,9 +3238,11 @@
           { type: 'bar', label: 'Other income', data: bars.other,
             backgroundColor: '#38495b', stack: 'income', borderWidth: 0, order: 1,
             hidden: !incomeSeriesVisible.other },
+          // Target dataset kept for legend toggle, tooltips, and plugin data access.
+          // Visible rendering is handled by targetBoxPlugin (per-year box outlines).
           { type: 'line', label: 'Target need', data: targetArr,
-            borderColor: '#a04438', backgroundColor: 'transparent',
-            borderDash: [5, 4], tension: 0, pointRadius: 0, borderWidth: 1.75, order: 0,
+            borderColor: 'transparent', backgroundColor: 'transparent',
+            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0, order: 0,
             hidden: !incomeSeriesVisible.target }
         ]
       },
@@ -3243,7 +3271,7 @@
           }
         }
       },
-      plugins: [shortfallShadingPlugin]
+      plugins: [targetBoxPlugin, shortfallShadingPlugin]
     });
   }
 
@@ -4212,32 +4240,6 @@
 
   // ===== Title-plate contenteditable bindings =====
   // `#hl-family` is free-text (editorial only; does not feed the engine).
-  // `#hl-monthly-empty` mirrors #needs-monthly; edits propagate both ways.
-  var hlMonthly = document.getElementById('hl-monthly-empty');
-  var needsMonthly = document.getElementById('needs-monthly');
-  function syncMonthlyFromHeadline(){
-    if (!hlMonthly || !needsMonthly) return;
-    var raw = (hlMonthly.textContent || '').replace(/[^0-9]/g, '');
-    if (raw.length === 0) return;
-    var n = parseInt(raw, 10);
-    if (!isFinite(n)) return;
-    needsMonthly.value = n.toLocaleString('en-ZA').replace(/,/g, ' ');
-    refresh();
-  }
-  function syncHeadlineFromMonthly(){
-    if (!hlMonthly || !needsMonthly) return;
-    var n = parseInt(String(needsMonthly.value).replace(/[^0-9]/g, ''), 10);
-    if (!isFinite(n)) return;
-    hlMonthly.textContent = 'R ' + n.toLocaleString('en-ZA').replace(/,/g, ' ');
-  }
-  if (hlMonthly) {
-    hlMonthly.addEventListener('blur', syncMonthlyFromHeadline);
-    hlMonthly.addEventListener('keydown', function(e){
-      if (e.key === 'Enter') { e.preventDefault(); hlMonthly.blur(); }
-    });
-  }
-  if (needsMonthly) needsMonthly.addEventListener('blur', syncHeadlineFromMonthly);
-  syncHeadlineFromMonthly();
 
   // Default body data-app-state so CSS rules that depend on it apply immediately.
   document.body.setAttribute('data-app-state', appState);
@@ -4254,12 +4256,6 @@
     if (_preprintState && _preprintState !== appState) setAppState(_preprintState);
     _preprintState = null;
   });
-
-  // Restore app state from localStorage (first visit stays on 'single' — current-users' workflow unchanged).
-  try {
-    var saved = localStorage.getItem('drawdownAppState');
-    if (saved === 'empty' || saved === 'compare') setAppState(saved);
-  } catch(e){}
 
   refresh();
 })();
