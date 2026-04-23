@@ -107,6 +107,27 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 6 — 2026-04-23 (feat/post-merge-iteration)
+
+**Built / changed** on branch `feat/post-merge-iteration`:
+- **Target-need line is now solid and bold.** `targetBoxPlugin` previously stroked the stepped path with `lineWidth: 1` + `setLineDash([3,3])`; both were too quiet for a 2m meeting-table read. Changed to `lineWidth: 2.5` with no dash (plus explicit `lineJoin: 'miter'` / `lineCap: 'butt'` to keep the step corners crisp). Path geometry is unchanged — still horizontal per-year segments spanning the full x-slot, joined by vertical steps only where the target changes. Same plugin is consumed by `buildIncomeChart` and both State-3 `buildCompareMiniChart` calls, so one edit covers State 2 + State 3 mini charts.
+- **Tax slice is now dusty-rose pink.** New `--pink: #d27a88` token in `:root`; three `backgroundColor` references swapped: the Income-chart Tax dataset (index 4), the Compare mini chart Tax dataset, and the HTML legend swatch. The mute grey `#7a8292` remains the `--mute` colour for axis ticks elsewhere (semantically "mute text", not "tax" — deliberately untouched).
+- **Return slider floor widened to 2%.** `#return` was `min="4" max="15"`; now `min="2" max="15"`. The 2% floor was the adviser's chosen realistic minimum for stress-testing (rejected 0% as too unrealistic).
+- **State 3 scenario levers — new Scenario-adjustments block in `#shared-chrome`.** Previously only per-spouse LA rate + disc draw were accessible from Compare; advisers had to bounce back to State 1 to change markets, needs, events. New block sits above "Drawdown levers" and contains: `#return-c` slider (range 2–15, mirrors `#return`), `#needs-monthly-c` + `#needs-lump-c` currency inputs, and two collapsible sub-sections housing `#incomes-list-c` / `#events-list-c` with dedicated `#incomes-add-c` / `#events-add-c` buttons. `@media print { .scenario-adjust { display: none !important; } }` keeps it off paper. The collapsible pattern in the stylesheet (`.section-header.collapsible` + `.collapsible-body`) was previously defined but unused — this is its first consumer.
+- **Bi-directional sync for scalar scenario inputs.** New `scenarioSyncPairs` array in the IIFE wires `#return ↔ #return-c`, `#needs-monthly ↔ #needs-monthly-c`, `#needs-lump ↔ #needs-lump-c`. Canonical → mirror on `input` (and `blur` for currency, to pick up post-`formatCurrencyInput` reformats). Mirror → canonical on `input` + `blur`, then `refresh()`. `updateLeverLabels()` also writes to `#return-c-out` so the mirror's val-span stays in sync. No engine change — `project()` continues reading only from the canonical IDs.
+- **Dual-render for the store-backed ledgers.** `renderEvents()` and `renderIncomes()` now paint BOTH `#events-list`/`#events-list-c` (and `#incomes-list`/`#incomes-list-c`) from the same in-memory store in a single pass. Delegated handlers (input/change/click/blur) are factored into named functions and attached to every host, so editing from either side mutates the same store. `setAppState()` was extended to call both renderers on every state transition — belt-and-braces against any desync while a hidden side held stale HTML.
+
+**Architectural decisions**
+- **Mirror over move.** Considered moving the setup inputs out of `#state-empty` into `#shared-chrome` (single source of truth). Rejected because Session 5 had just iterated on State 1's layout, and `#shared-chrome` is explicitly hidden in State 1. Two-way sync with `-c` suffixes keeps both layouts intact. `project()` reads from canonical IDs only — one engine contract, unchanged.
+- **Same store, dual host.** The in-memory `eventsStore` / `incomeStore` arrays are the authoritative source for the ledger rows. Both lists render from the same store; edits from either side mutate the same backing array. No duplication of state, only of DOM.
+- **No CPI mirror in the Scenario-adjustments block.** The adviser explicitly asked for Return only. CPI stays editable from State 1; a CPI mirror would add surface without a concrete meeting-time use case. Easy to add later if the brief changes.
+- **Engine still untouched.** 77/77 Python + 16/16 JS pass. Session 5 already validated the Option-B tax apportionment and `targetBoxPlugin` path geometry; those untouched.
+
+**Follow-ups**
+- Browser walkthrough: move sliders, type in currency fields, add/delete an income stream and a capital event from State 3, switch to State 1 — confirm both sides stay consistent. Print preview from State 2 to confirm the Scenario-adjustments block is hidden on paper.
+- Pre-existing income-legend-routing bug from Session 5 (LA/Disc/Other buttons in the income legend route through `CAPITAL_KEYS`) is still open — independent of this change.
+- The `.collapsible-body` CSS transitions `max-height` but doesn't set a numeric expanded max — it falls back to `none`, so expansion snaps open without animation. Could add an explicit max-height via JS for a smoother reveal, but the snap is acceptable and keeps the code minimal.
+
 ### Session 5 — 2026-04-23 (fix/state-2-3-charts)
 
 **Built / changed** on branch `fix/state-2-3-charts`:
