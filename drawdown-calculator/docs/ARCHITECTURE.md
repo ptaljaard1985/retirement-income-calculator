@@ -128,7 +128,6 @@ Returns `{ laDrawA, laDrawB, discA, discB, gainA, gainB, taxA, taxB, net, clampA
 
 Each of these reads the `project()` result and updates the DOM:
 
-- `updateHeadline()` — writes only the eyebrow above the outcome strip (State 2). The 44px headline and subtitle paragraph were removed in Session 8; the outcome strip carries the summary. Takes no arguments.
 - `updateCards(p)` — the four Y1 summary cards
 - `updateTaxPanel(p)` — per-spouse tax breakdown
 - `updateAlerts(p)` — the chart-alerts bar (LA cap, disc exhausted, real shortfall)

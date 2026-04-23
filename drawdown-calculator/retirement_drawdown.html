@@ -1386,6 +1386,7 @@
     gap: 8px;
     flex-wrap: wrap;
     justify-content: flex-end;
+    margin-left: auto;
   }
 
   /* Segmented toggle */
@@ -1473,11 +1474,11 @@
   }
   .outcome-cell {
     flex: 1;
-    padding: 18px 22px;
+    padding: 14px 20px;
     border-right: 1px solid var(--hairline);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
   .outcome-cell:last-child { border-right: none; }
   .outcome-cell.primary { background: var(--navy); color: var(--paper); }
@@ -1495,16 +1496,16 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-    font-size: 28px;
+    font-size: 22px;
     line-height: 1.05;
     color: var(--ink);
   }
   .outcome-cell.primary .oval { color: #fff; }
-  .outcome-cell .oval .num-italic { font-size: 34px; }
-  .outcome-cell .oval .unit { font-size: 14px; color: inherit; opacity: 0.85; }
-  .outcome-cell .oval.split { font-size: 18px; letter-spacing: 0.3px; }
+  .outcome-cell .oval .num-italic { font-size: 26px; }
+  .outcome-cell .oval .unit { font-size: 12px; color: inherit; opacity: 0.85; }
+  .outcome-cell .oval.split { font-size: 15px; letter-spacing: 0.3px; }
   .outcome-cell .osub {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--mute);
     font-style: italic;
     font-family: var(--serif);
@@ -1960,11 +1961,10 @@
     <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
   </div>
 
-  <!-- Canvas head -->
+  <!-- Canvas head: action cluster only. Eyebrow removed — mode is signalled
+       by the Real|Nominal toggle on the chart-controls row, and the outcome
+       strip below carries the summary. -->
   <div class="canvas-head">
-    <div class="canvas-head-left">
-      <div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">Sustainability projection &middot; today's money</div>
-    </div>
     <div class="canvas-head-actions">
       <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
         <span class="sw" aria-hidden="true"></span>
@@ -3774,14 +3774,6 @@
     };
   }
 
-  function updateHeadline(){
-    // Only the eyebrow remains above the outcome strip. The outcome strip
-    // (updateOutcomeStrip) carries the target-met-age / Y1-need / mix facts,
-    // and the chart alert chips carry any shortfall / LA-cap narration.
-    var eyebrowEl = document.getElementById('hl-eyebrow');
-    if (eyebrowEl) eyebrowEl.textContent = 'Sustainability projection · ' + (mode === 'real' ? "today's money" : 'future rands');
-  }
-
   function updateOutcomeStrip(p, an){
     var ageOut = document.getElementById('out-age');
     var yrOut = document.getElementById('out-years');
@@ -3989,7 +3981,6 @@
     updatePrintSummary(p);
     updatePlanBarLite(p);
     var an = analyseProjection(p);
-    updateHeadline();
     updateOutcomeStrip(p, an);
     updateCanvasFoot();
     syncTopupPill();

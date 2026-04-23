@@ -24,10 +24,10 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 **Why:** Adding the per-spouse `Other` column pushed each spouse group to 6 sub-columns (12 + 5 household = 17, plus Year). Existing `.year-table-wrap` has `overflow-x: auto` so it scrolls, but print-preview gets tight on A4 portrait.
 **Cleanup:** If print ever wraps ugly, consider landscape `@page` for the print summary's table section, or a "print-compressed" CSS that hides `LA bal` / `Disc bal` (draws are the useful numbers on paper).
 
-### Dead `.narrative-*` and `.headline-sub` CSS after chrome removals
-**Where:** `retirement_drawdown.html` — `.narrative-*` selectors around lines 931, 1531, 1541, 1550, 1551 (Session 7); `.headline-sub` selectors around lines 96 and 1382 (Session 8).
-**Why:** Session 7 removed the "Is this sustainable?" narrative card and Session 8 removed the State-2 editorial headline + subtitle paragraph. Both left their CSS behind because the "don't reformat the whole file" rule discouraged a broad sweep in the same pass. State 3's compact headline at line 2107 still uses `.headline` (no `-sub`), so only `.headline-sub` is unreferenced.
-**Cleanup:** Grep-and-delete all `.narrative*` and `.headline-sub` selectors in a future pass. Low risk — confirmed no HTML references.
+### Dead `.narrative-*`, `.headline-sub`, and State-2 canvas-head-eyebrow print CSS
+**Where:** `retirement_drawdown.html` — `.narrative-*` selectors around lines 931, 1531, 1541, 1550, 1551 (Session 7); `.headline-sub` selectors around lines 96 and 1382 (Session 8); print rules `.canvas-head .headline { font-size: 28px; ... }` and `.canvas-head-eyebrow { margin-bottom: 6px; }` around lines 915, 917 (Session 9).
+**Why:** Successive UI passes removed the "Is this sustainable?" narrative card (S7), the State-2 editorial headline + subtitle (S8), and the State-2 eyebrow (S9). Each left its CSS behind because the "don't reformat the whole file" rule discouraged a broad sweep in the same pass. State 3 still uses `.headline` (no `-sub`) and `.canvas-head-left`, so those selectors are NOT dead — only the ones listed above.
+**Cleanup:** Grep-and-delete unreferenced `.narrative*`, `.headline-sub`, and the canvas-head-eyebrow print rule in a future pass. Low risk — confirmed no HTML references.
 
 ### `.collapsible-body` has no explicit expanded max-height
 **Where:** `retirement_drawdown.html` — `.collapsible-body` CSS
