@@ -193,7 +193,7 @@ There is no caching, no debouncing, no animation. The whole projection re-runs i
 
 ## Things worth knowing
 
-- The LA clamp flag can be `'ok' | 'floor' | 'cap' | 'empty'`. Only `'cap'` is used for the visual cap markers in the table — the floor case fires green, the empty case fires nothing.
+- The LA clamp flag can be `'ok' | 'floor' | 'cap' | 'empty'`. Only `'cap'` is used for the visual cap markers in the table — the floor case fires green, the empty case fires nothing. **Authoritative source of the flag depends on mode**: in auto-top-up mode `project()` reads `topup.clampA` / `topup.clampB` from `solveTopUp()`, because `stepPerson`'s strict `target > laCeil` check never fires when the solver has pre-clamped the target to `=== laCeil` (Phase 1) or boosted it to exactly the ceiling (Phase 3). In non-auto-top-up mode the CPI-escalated user-fixed target can exceed `laCeil` strictly as balance depletes, so `stepPerson.laClamp` is authoritative instead. This selection happens in the year loop at the `var clampA = autoTopup ? topup.clampA : rA.laClamp;` line.
 - `updateCards` and `updateTaxPanel` both read from `p.taxA`/`p.taxB`. These are the same objects built inside the first iteration of the year loop, so they're guaranteed to match the Y1 entry in any series.
 - The event delegation on `#events-list` uses capture phase for `blur` because `blur` doesn't bubble.
 - The print summary is a single div nested **inside `#state-single`** so it only renders on screen in single mode. `@media print` forces `#state-single` visible regardless of on-screen state, so printing still works from any state.

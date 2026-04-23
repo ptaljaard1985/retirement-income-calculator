@@ -37,6 +37,7 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 ## Closed (session 8)
 
 - **Income-bar colored stack overshot true net-to-bank.** `incomeBarSeries()` excluded Disc from the tax apportionment and pushed it at gross. Because household tax already includes CGT on disc gains, the colored stack was `gross − tax + discShare` (too high by the disc CGT). Real shortfall years under-reported the gap. Fixed by apportioning tax across all three sources proportionally. Bar total now equals gross exactly; colored sum equals true net.
+- **17.5% LA-cap flag never fired when auto-top-up was on.** `stepPerson` uses strict `target > laCeil` to flag `'cap'`. `solveTopUp` pre-clamps the target to `=== laCeil` (Phase 1) or boosts LA up to `=== laCeil` (Phase 3); `project()` then passed that value to `stepPerson` whose strict `>` missed the equality and flagged `'ok'`. The `"Both LAs at 17.5% ceiling"` chart alert and the ▲ year-table marker therefore never surfaced in auto-top-up mode. Fixed by threading `solveTopUp`'s own authoritative `clampA` / `clampB` into the series when auto-top-up is on; non-auto-top-up mode still uses `stepPerson`'s strict semantic. Regression covered by `tests/python/test_cap_flag_propagation.py`.
 
 ## Closed (session 7)
 

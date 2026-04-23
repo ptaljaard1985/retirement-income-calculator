@@ -357,6 +357,7 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
             sA['otherIncome'] = other_income_for_year(incomes, 'A', age_this_A, y, cpi)
             sB['otherIncome'] = other_income_for_year(incomes, 'B', age_this_B, y, cpi)
 
+        topup = None
         if auto_topup:
             topup = solve_topup(sA, sB, target_A, target_B,
                                 age_this_A, age_this_B, y, year_target_nom)
@@ -372,6 +373,14 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
 
         rA = step_person(sA, r_nom, final_A)
         rB = step_person(sB, r_nom, final_B)
+
+        # Authoritative clamp flag: solver knows when it pre-clamped to ceil
+        # (Phase 1) or boosted to ceil (Phase 3); step_person's strict `>`
+        # check misses the equal-to-ceiling case. Fall back to step_person's
+        # flag in non-auto-top-up mode, where the CPI-escalated target can
+        # genuinely exceed ceil strictly.
+        clamp_A_year = topup['clamp_A'] if auto_topup else rA['la_clamp']
+        clamp_B_year = topup['clamp_B'] if auto_topup else rB['la_clamp']
 
         # Tax
         excl_y = cgt_exclusion_year(y)
@@ -413,8 +422,8 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         series['otherB'].append(sB['otherIncome'])
         series['tax_A'].append(tax_Y_A)
         series['tax_B'].append(tax_Y_B)
-        series['clamp_A'].append(rA['la_clamp'])
-        series['clamp_B'].append(rB['la_clamp'])
+        series['clamp_A'].append(clamp_A_year)
+        series['clamp_B'].append(clamp_B_year)
         series['draw_rate_pct'].append((year_draw / cap_start * 100) if cap_start > 0 else 0)
 
         # Apply capital events at year-end

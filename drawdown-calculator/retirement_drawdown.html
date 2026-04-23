@@ -2831,9 +2831,10 @@
       // Decide LA & disc draws for this year
       var finalTargetA = targetA;
       var finalTargetB = targetB;
+      var topup = null;
       if (autoTopup){
-        var topup = solveTopUp(sA, sB, targetA, targetB,
-                                ageThisYearA, ageThisYearB, y, yearTargetNom);
+        topup = solveTopUp(sA, sB, targetA, targetB,
+                            ageThisYearA, ageThisYearB, y, yearTargetNom);
         finalTargetA = topup.laDrawA;
         finalTargetB = topup.laDrawB;
         sA.discDraw = topup.discA;
@@ -2846,6 +2847,14 @@
       // Apply the step: draw at start of year, then grow the remainder
       var rA = stepPerson(sA, rNom, finalTargetA);
       var rB = stepPerson(sB, rNom, finalTargetB);
+
+      // Pick the authoritative clamp flag. In auto-top-up mode solveTopUp
+      // pre-clamps the LA target to the 17.5% ceiling exactly (Phase 1) or
+      // boosts it up to the ceiling (Phase 3). stepPerson's strict `>` check
+      // then never fires because target === ceil. The solver already knows
+      // the correct flag; use it. Fallback to stepPerson's flag otherwise.
+      var clampA = autoTopup ? topup.clampA : rA.laClamp;
+      var clampB = autoTopup ? topup.clampB : rB.laClamp;
 
       // Tax for this year (at this spouse's then-current age, brackets inflated
       // by y years; y=0 is year 1 which uses 2026/27 SARS tables unscaled)
@@ -2878,8 +2887,8 @@
       otherB_series.push(sB.otherIncome);
       taxA_series.push(taxY_A);
       taxB_series.push(taxY_B);
-      clampA_series.push(rA.laClamp);
-      clampB_series.push(rB.laClamp);
+      clampA_series.push(clampA);
+      clampB_series.push(clampB);
       laSeriesNom.push(laA_start + laB_start);
       discSeriesNom.push(discA_start + discB_start);
       totalNom.push(capAtStart);
