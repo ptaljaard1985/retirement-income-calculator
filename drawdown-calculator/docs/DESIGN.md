@@ -102,7 +102,9 @@ Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-
 ## Component conventions
 
 ### Title plate (State 1)
-Centred. Eyebrow above a Fraunces 44px headline reading *"A retirement income plan for [the ___ family]"*. The bracketed family name is a single `contenteditable` span (`#hl-family`); dashed underline when empty, `--paper-2` background on focus. The monthly figure does not appear in the headline — it lives only in the household-needs strip below (`#needs-monthly`). Monospace "Prepared DD Month YYYY" sits beneath the headline.
+Centred. Eyebrow above a Fraunces 44px headline reading *"A retirement income plan for the [surname] family."* Only the surname span (`#hl-family`) is `contenteditable`; the surrounding "A retirement income plan for the" / "family." is plain static text. The span loads empty so the `.editable:empty::before` placeholder (em-dashes) reads as "the ——— family" on cold load. Dashed underline under the editable region when empty, `--paper-2` background on focus. The monthly figure does not appear in the headline — it lives only in the household-needs strip below (`#needs-monthly`). Monospace "Prepared DD Month YYYY" sits beneath the headline.
+
+Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder="Spouse B"`. `getName('A')` / `getName('B')` in JS fall back to the same strings when the input is blank, so every downstream label reads "Spouse A" / "Spouse B" until the adviser types a real name. This avoids planting "Marilyn" / "James" as suggestive example names in client meetings.
 
 ### Plan-bar
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
@@ -126,12 +128,18 @@ Grid `1fr 1fr`, 22px gap.
 
 Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered for the Income chart:
 
-- **Income chart (default)**: stacked bars (teal LA + gold Disc + navy-soft Other) drawn inside per-year **dashed coral box outlines** representing the target need. Each box runs from y=0 to y=`series.target[i]`, sized to the bar slot's width minus an 0.18 inset so it aligns with the bar edges. Years where the bar stack falls short of the box top read visually as an unfilled box.
-  - `targetBoxPlugin` (afterDatasetsDraw) draws the per-year box outlines.
-  - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between bar-top and need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label.
-  - The "Target need" `line` dataset is retained for legend/tooltip semantics but rendered with `borderColor: 'transparent'` and `borderWidth: 0` — its data values feed both plugins.
+- **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`:
+  1. **LA (net)** — teal `#2a6b6b`, LA rand draw minus its share of household tax.
+  2. **Disc** — gold `#b8893c`, disc draw at gross (CGT is a small fraction, lumped into the household total).
+  3. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
+  4. **Target need** — invisible `line` dataset (transparent border/fill) retained as the per-year data carrier for both plugins and as the legend toggle target.
+  5. **Tax** — mute grey `#7a8292`, stacks on top of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; grey cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops.
+  - Tax apportionment (per year): `laTax = tax × la/(la + other)`, `otherTax = tax × other/(la + other)`. Disc is treated as tax-free at the bar level. Bar total = gross. See `incomeBarSeries()` in the engine.
+  - `targetBoxPlugin` (afterDatasetsDraw) draws the target as a **stepped top line**: per-year horizontal segments spanning the full x-slot (adjacent years touch at the slot boundary) joined by vertical step segments only where `target[i+1] !== target[i]`. No left/right sides, no bottom edge, no hairlines falling to the x-axis. Real mode → flat line; Nominal mode → staircase.
+  - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between the colored-bar-top and the need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label. Shortfall is detected by `net < target`, correctly now that bars represent net.
 - **Capital chart**: stacked LA + Disc bars with a secondary-axis dashed coral withdrawal-rate line. New tokens applied (teal unchanged, gold shifts to `#b8893c`, coral shifts to `#a04438`).
 - **Table view**: the existing year-by-year table, with per-spouse clamp flags in coral (▲ cap) / green (▼ floor).
+- **State 3 mini charts**: `buildCompareMiniChart(which, p)` renders a 180px-tall Chart.js instance inside each `.compare-mini-chart` wrapper (`#cmp-chart-baseline` + `#cmp-chart-scenario`). Same 5-dataset layout and both plugins as the main chart, but tooltips off, y-ticks off, fewer x-ticks. Baseline wrapper sits at `opacity: 0.55` so the locked snapshot reads as muted against the vivid scenario.
 
 ### Alerts bar
 Above the chart body, populated when the plan hits constraints. Hidden entirely when quiet. Variants: `.chart-alert.cap` (LA ceiling), `.chart-alert.disc` (discretionary exhausted), `.chart-alert.shortfall` (real shortfall vs target).
