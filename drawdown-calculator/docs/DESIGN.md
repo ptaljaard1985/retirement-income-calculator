@@ -111,12 +111,14 @@ Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
 
 ### Canvas head (State 2)
-Left: eyebrow + editorial headline + sub-paragraph. The headline is a two-sentence declarative: *"Your desired lifestyle is projected to cost R X per month. Based on current assumptions, this is sustainable until age N."* — "sustainable" is italicised (`<em>`), "age N" carries the gold underline. Copy is unconditional: the headline states the projected sustainable age whether that reaches the horizon or falls short; the client decides what to make of it. No verdict-based word-swap.
+Minimal by design. Left: eyebrow only (`SUSTAINABILITY PROJECTION · TODAY'S MONEY | FUTURE RANDS` depending on mode). The editorial 44px headline and subtitle paragraph were removed in Session 8 — the outcome strip directly below carries the summary (target-met age, Y1 need, income mix), and the chart's alert chips carry any shortfall / LA-cap narration. `updateHeadline()` is now a single-line function that only writes the eyebrow.
 
 Right action cluster:
 - `.toggle-pill` (Auto-top-up) — default OFF
 - Ghost `Export report →` button (canonical client-PDF path; opens `retirement_drawdown_report.html` in a new tab via `localStorage` snapshot)
 - Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
+
+`.canvas-head` is `display: flex; align-items: flex-end; justify-content: space-between;` — with only the eyebrow on the left, the action cluster aligns neatly to the bottom of the eyebrow row without any CSS change.
 
 The `.seg.mini` (Real | Nominal) toggle lives one row down on the chart-controls row — see the Chart section. The in-page Print button and the canvas-foot One-page summary button were removed in Session 7; Cmd+P still works through the `@media print` rules.
 
@@ -136,11 +138,11 @@ Chart.js only — no plugins from npm, no other libraries. Two inline plugins ar
 
 - **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`. **No explicit `order:` values** — stacking follows array index, so the visual top-to-bottom is Tax → Other → Disc → LA (and the transparent Target line is behind them):
   1. **LA (net)** — teal `#2a6b6b`, LA rand draw minus its share of household tax.
-  2. **Disc** — gold `#b8893c`, disc draw at gross (CGT is a small fraction, lumped into the household total).
+  2. **Disc (net)** — gold `#b8893c`, disc draw minus its share of household tax (which is mostly the CGT on the realised gain for that draw, but is apportioned from the single household tax total).
   3. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
   4. **Target need** — invisible `line` dataset (transparent border/fill) retained as the per-year data carrier for both plugins and as the legend toggle target.
-  5. **Tax** — dusty rose `--pink` `#d27a88`, stacks **on top** of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
-  - Tax apportionment (per year): `laTax = tax × la/(la + other)`, `otherTax = tax × other/(la + other)`. Disc is treated as tax-free at the bar level. Bar total = gross. See `incomeBarSeries()` in the engine.
+  5. **Tax** — dusty rose `--pink` `#d27a88`, stacks **on top** of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. On-target years: colored sum lands exactly on the target line. Shortfall years: the gap between colored top and target line is the actual shortfall. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
+  - Tax apportionment (per year): `laTax = tax × la/gross`, `discTax = tax × disc/gross`, `otherTax = tax × other/gross`, where `gross = la + disc + other`. All three sources bear their proportional share of the household tax total (which already includes CGT on disc gains). Bar total = gross; colored sum = gross − tax = net to bank. See `incomeBarSeries()` in the engine.
   - `targetBoxPlugin` (afterDatasetsDraw) draws the target as a **solid bold stepped top line** (coral `#a04438`, 2.5px, no dash): per-year horizontal segments spanning the full x-slot (adjacent years touch at the slot boundary) joined by vertical step segments only where `target[i+1] !== target[i]`. No left/right sides, no bottom edge, no hairlines falling to the x-axis. Real mode → flat line; Nominal mode → staircase. Previously dashed + 1px — bumped for legibility from 2m across a meeting table.
   - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between the colored-bar-top and the need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label. Shortfall is detected by `net < target`, correctly now that bars represent net.
 - **Capital chart**: stacked LA + Disc bars with a secondary-axis dashed coral withdrawal-rate line. New tokens applied (teal unchanged, gold shifts to `#b8893c`, coral shifts to `#a04438`).
@@ -202,6 +204,7 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 - Don't reintroduce a localStorage-restored app state. Refresh always lands on State 1 — that's the adviser's reset between client meetings.
 - Don't hide the shared chrome outside of State 1.
 - Don't move `#print-summary` back outside `#state-single`. It needs to be a child of state-single so it only shows in single mode on screen; print still works because `@media print` forces state-single visible.
+- Don't reintroduce an editorial headline or subtitle paragraph above the outcome strip on State 2. The strip is the answer; a prose overlay duplicates it, eats vertical real estate, and pushes the chart and levers below the fold. Removed in Session 8.
 - Don't add a charting library to `retirement_drawdown_report.html`. Its three chart renderers are inline SVG by design — print fidelity at A4 is the reason. Chart.js is the calculator's dep, not the report's.
 
 ## The export-report sibling

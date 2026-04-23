@@ -107,6 +107,24 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 8 — 2026-04-23 (fix/income-bar-apportionment)
+
+**Built / changed** on branch `fix/income-bar-apportionment` — two correctness fixes:
+
+1. **Income-bar tax apportionment now includes Disc.** The adviser spotted that in shortfall years the chart's coral gap between bar-top and target line was smaller than the real shortfall. Root cause: `incomeBarSeries()` computed `taxableBase = laDisp + otherDisp` and pushed `disc.push(discDisp)` at gross — meaning the full household tax (which already includes CGT on disc gains) was apportioned only across LA and Other, and Disc carried zero share. The colored stack therefore equalled `laGross + discGross + otherGross − (laShare + otherShare)` = `gross − tax + discShare`, sitting ABOVE the true net-to-bank by the disc CGT contribution. Fixed by changing `taxableBase` to `laDisp + discDisp + otherDisp` and subtracting each source's proportional share. Bar total now equals gross exactly; colored sum equals true net; on-target years land the colored top on the target line; shortfall years show the real shortfall in the coral wash.
+
+2. **Trimmed the above-the-chart area on State 2.** The editorial 44px headline and the subtitle paragraph duplicated what the outcome strip already shows (target-met age, Y1 need, funded-by mix) and what the chart alert chips say about shortfalls / LA cap. Deleted both from the HTML at `retirement_drawdown.html:1964–1987`; `updateHeadline()` trimmed to only write the eyebrow (the monthly / age / sub branches are gone). Eyebrow + outcome strip + action cluster now carry the summary in one compact band. Saves ~200px of vertical real estate — on a 13" laptop the income chart lands above the fold and the Financial-levers block is a short scroll instead of a long one. The canvas-head's `display: flex; align-items: flex-end;` collapses gracefully as the left side shrinks to just the eyebrow; no CSS change needed.
+
+3. **17.5% LA-cap flag now fires when auto-top-up is on.** Audit finding: `stepPerson`'s cap detection uses strict `target > laCeil`. In auto-top-up mode, `solveTopUp` pre-clamps the target to `ceil` exactly (Phase 1) or boosts LA up to `ceil` (Phase 3). `project()` was then calling `stepPerson(sA, rNom, topup.laDrawA)` with `target === ceil`; the strict `>` check missed the equality → flag stayed `'ok'`. Result: the `"Both LAs at 17.5% ceiling from age X"` alert and the ▲ markers in the year-table **never fired when auto-top-up was on**, regardless of how pinned the household was to the cap. `solveTopUp`'s own Phase-1 clampLA helper and Phase-3 boost tracker both set `clampA = 'cap'` correctly — those flags were being computed and discarded. Fix: thread `topup.clampA` / `topup.clampB` into `clampA_series` when auto-top-up is on; fall back to `stepPerson`'s flag otherwise. Non-auto-top-up mode still catches strict-`>` cases (CPI-escalated user-fixed rate pushing above 17.5% as balance depletes). Mirrored in the Python port (`conftest.project()`) + a new `tests/python/test_cap_flag_propagation.py` (4 tests) guards the Phase-1 cap, the Phase-3 cap, and the non-auto-top-up path.
+
+**Architectural decisions**
+- **Three-way apportionment over CGT-specific attribution.** Considered splitting the household tax into income-tax and CGT components and attributing CGT specifically to Disc, but `project()` only exposes a single `nominal.tax[i]` / `real.tax[i]` scalar per year. Breaking that apart would widen the engine's contract for a presentation concern. Proportional three-way apportionment is a ~3-line change in `incomeBarSeries()` with the correct visual invariants (colored = net = target when on-target).
+- **Solver-authoritative clamp flag (auto-top-up mode).** Considered loosening `stepPerson` to `target >= ceil` (one-char diff) but rejected: the "at-cap-by-user-choice" case (non-auto-top-up, user sets rate=17.5% directly) should still flag correctly, and `stepPerson`'s strict semantic means "I was forced down". The solver already distinguishes "pre-clamped to ceil" (Phase 1, forced) from "boosted to ceil" (Phase 3, pinned). Using its flag keeps the semantic precise and leaves stepPerson's contract intact.
+- **Engine untouched.** 81/81 Python + 16/16 JS pass. No projection, tax, solver, or clamp-math change; only the flag that feeds alerts/table markers is now authoritative.
+
+**Follow-ups**
+- The Y1 summary card and tax panel already read from `p.taxA` / `p.taxB` directly (not the bar series), so they're unaffected by either fix.
+
 ### Session 7 — 2026-04-23 (feat/next-iteration)
 
 **Built / changed** on branch `feat/next-iteration` — all UI / copy, no engine changes:

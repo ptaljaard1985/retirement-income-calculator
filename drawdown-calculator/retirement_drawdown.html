@@ -1964,12 +1964,6 @@
   <div class="canvas-head">
     <div class="canvas-head-left">
       <div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">Sustainability projection &middot; today's money</div>
-      <h1 class="headline">
-        Your desired lifestyle is projected to cost <span id="hl-monthly" class="num">R 50 000</span> per month.
-        Based on current assumptions, this is <em>sustainable</em> until
-        <span class="gold-under">age <span id="hl-age" class="num-italic">—</span></span>.
-      </h1>
-      <p class="headline-sub" id="hl-sub">Across the youngest spouse's horizon, living-annuity income (escalating with CPI) and discretionary drawdowns together cover the household target.</p>
     </div>
     <div class="canvas-head-actions">
       <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
@@ -2831,9 +2825,10 @@
       // Decide LA & disc draws for this year
       var finalTargetA = targetA;
       var finalTargetB = targetB;
+      var topup = null;
       if (autoTopup){
-        var topup = solveTopUp(sA, sB, targetA, targetB,
-                                ageThisYearA, ageThisYearB, y, yearTargetNom);
+        topup = solveTopUp(sA, sB, targetA, targetB,
+                            ageThisYearA, ageThisYearB, y, yearTargetNom);
         finalTargetA = topup.laDrawA;
         finalTargetB = topup.laDrawB;
         sA.discDraw = topup.discA;
@@ -2846,6 +2841,14 @@
       // Apply the step: draw at start of year, then grow the remainder
       var rA = stepPerson(sA, rNom, finalTargetA);
       var rB = stepPerson(sB, rNom, finalTargetB);
+
+      // Pick the authoritative clamp flag. In auto-top-up mode solveTopUp
+      // pre-clamps the LA target to the 17.5% ceiling exactly (Phase 1) or
+      // boosts it up to the ceiling (Phase 3). stepPerson's strict `>` check
+      // then never fires because target === ceil. The solver already knows
+      // the correct flag; use it. Fallback to stepPerson's flag otherwise.
+      var clampA = autoTopup ? topup.clampA : rA.laClamp;
+      var clampB = autoTopup ? topup.clampB : rB.laClamp;
 
       // Tax for this year (at this spouse's then-current age, brackets inflated
       // by y years; y=0 is year 1 which uses 2026/27 SARS tables unscaled)
@@ -2878,8 +2881,8 @@
       otherB_series.push(sB.otherIncome);
       taxA_series.push(taxY_A);
       taxB_series.push(taxY_B);
-      clampA_series.push(rA.laClamp);
-      clampB_series.push(rB.laClamp);
+      clampA_series.push(clampA);
+      clampB_series.push(clampB);
       laSeriesNom.push(laA_start + laB_start);
       discSeriesNom.push(discA_start + discB_start);
       totalNom.push(capAtStart);
@@ -3382,14 +3385,21 @@
       var otherDisp = otherNom / d;
       var taxDisp = taxSeries[i] || 0;
 
-      var taxableBase = laDisp + otherDisp;
-      var laShare = 0, otherShare = 0;
-      if (taxableBase > 0){
-        laShare = taxDisp * (laDisp / taxableBase);
-        otherShare = taxDisp * (otherDisp / taxableBase);
+      // Apportion household tax (income tax + CGT) across all three sources in
+      // proportion to their gross share. Colored bar sum then equals true
+      // net-to-bank (gross − tax); the Tax cap restores the stack to gross.
+      // On-target years: colored sum meets the target line exactly. Shortfall
+      // years: the gap between colored top and target line equals the real
+      // shortfall.
+      var grossBase = laDisp + discDisp + otherDisp;
+      var laShare = 0, discShare = 0, otherShare = 0;
+      if (grossBase > 0){
+        laShare = taxDisp * (laDisp / grossBase);
+        discShare = taxDisp * (discDisp / grossBase);
+        otherShare = taxDisp * (otherDisp / grossBase);
       }
       la.push(Math.max(0, laDisp - laShare));
-      disc.push(discDisp);
+      disc.push(Math.max(0, discDisp - discShare));
       other.push(Math.max(0, otherDisp - otherShare));
       tax.push(taxDisp);
     }
@@ -3764,23 +3774,12 @@
     };
   }
 
-  function updateHeadline(p, an){
-    var monthlyEl = document.getElementById('hl-monthly');
-    var ageEl = document.getElementById('hl-age');
-    var subEl = document.getElementById('hl-sub');
+  function updateHeadline(){
+    // Only the eyebrow remains above the outcome strip. The outcome strip
+    // (updateOutcomeStrip) carries the target-met-age / Y1-need / mix facts,
+    // and the chart alert chips carry any shortfall / LA-cap narration.
     var eyebrowEl = document.getElementById('hl-eyebrow');
-    if (monthlyEl) monthlyEl.textContent = fmtR((p.targetPVAnnual || 0) / 12);
-    if (ageEl) ageEl.textContent = an.sustainableAge;
     if (eyebrowEl) eyebrowEl.textContent = 'Sustainability projection · ' + (mode === 'real' ? "today's money" : 'future rands');
-    if (subEl){
-      if (an.verdict){
-        subEl.textContent = 'Across the youngest spouse’s horizon, living-annuity income (escalating with CPI) together with discretionary drawdowns covers the household target without depleting either pot.';
-      } else if (an.shortfallAge){
-        subEl.textContent = 'Income starts to fall short of the target around age ' + an.shortfallAge + '. Below, the chart shows where discretionary exhausts and where the 17.5% LA ceiling begins to bite.';
-      } else {
-        subEl.textContent = 'Capital runs down before the horizon. The chart shows the crossover where income can no longer meet the target.';
-      }
-    }
   }
 
   function updateOutcomeStrip(p, an){
@@ -3990,7 +3989,7 @@
     updatePrintSummary(p);
     updatePlanBarLite(p);
     var an = analyseProjection(p);
-    updateHeadline(p, an);
+    updateHeadline();
     updateOutcomeStrip(p, an);
     updateCanvasFoot();
     syncTopupPill();

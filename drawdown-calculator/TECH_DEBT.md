@@ -24,15 +24,20 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 **Why:** Adding the per-spouse `Other` column pushed each spouse group to 6 sub-columns (12 + 5 household = 17, plus Year). Existing `.year-table-wrap` has `overflow-x: auto` so it scrolls, but print-preview gets tight on A4 portrait.
 **Cleanup:** If print ever wraps ugly, consider landscape `@page` for the print summary's table section, or a "print-compressed" CSS that hides `LA bal` / `Disc bal` (draws are the useful numbers on paper).
 
-### Dead `.narrative-*` CSS after narrative block removal
-**Where:** `retirement_drawdown.html` — CSS selectors around lines 931, 1531, 1541, 1550, 1551
-**Why:** Session 7 removed the "Is this sustainable?" narrative card, its `updateNarrative()` function, and the `refresh()` call. The `.narrative`, `.narrative-eyebrow`, `.narrative-body` selectors are no longer referenced by any HTML but remain in the stylesheet. CLAUDE.md's "don't reformat the whole file" rule discouraged a broad sweep in the same pass.
-**Cleanup:** Grep-and-delete all `.narrative*` selectors in a future pass. Low risk — confirmed no HTML references.
+### Dead `.narrative-*` and `.headline-sub` CSS after chrome removals
+**Where:** `retirement_drawdown.html` — `.narrative-*` selectors around lines 931, 1531, 1541, 1550, 1551 (Session 7); `.headline-sub` selectors around lines 96 and 1382 (Session 8).
+**Why:** Session 7 removed the "Is this sustainable?" narrative card and Session 8 removed the State-2 editorial headline + subtitle paragraph. Both left their CSS behind because the "don't reformat the whole file" rule discouraged a broad sweep in the same pass. State 3's compact headline at line 2107 still uses `.headline` (no `-sub`), so only `.headline-sub` is unreferenced.
+**Cleanup:** Grep-and-delete all `.narrative*` and `.headline-sub` selectors in a future pass. Low risk — confirmed no HTML references.
 
 ### `.collapsible-body` has no explicit expanded max-height
 **Where:** `retirement_drawdown.html` — `.collapsible-body` CSS
 **Why:** The rule transitions `max-height` between `0` (collapsed) and effectively `none` (open). CSS cannot interpolate from `0` to `none`, so the Scenario-adjustments sub-sections snap open instead of sliding. Cosmetic only — the feature works.
 **Cleanup:** Either (a) set an explicit numeric max-height like `1200px` on the open class, or (b) measure `scrollHeight` in JS and set `max-height: {N}px` on toggle. Option (b) is nicer but adds ~10 lines of JS.
+
+## Closed (session 8)
+
+- **Income-bar colored stack overshot true net-to-bank.** `incomeBarSeries()` excluded Disc from the tax apportionment and pushed it at gross. Because household tax already includes CGT on disc gains, the colored stack was `gross − tax + discShare` (too high by the disc CGT). Real shortfall years under-reported the gap. Fixed by apportioning tax across all three sources proportionally. Bar total now equals gross exactly; colored sum equals true net.
+- **17.5% LA-cap flag never fired when auto-top-up was on.** `stepPerson` uses strict `target > laCeil` to flag `'cap'`. `solveTopUp` pre-clamps the target to `=== laCeil` (Phase 1) or boosts LA up to `=== laCeil` (Phase 3); `project()` then passed that value to `stepPerson` whose strict `>` missed the equality and flagged `'ok'`. The `"Both LAs at 17.5% ceiling"` chart alert and the ▲ year-table marker therefore never surfaced in auto-top-up mode. Fixed by threading `solveTopUp`'s own authoritative `clampA` / `clampB` into the series when auto-top-up is on; non-auto-top-up mode still uses `stepPerson`'s strict semantic. Regression covered by `tests/python/test_cap_flag_propagation.py`.
 
 ## Closed (session 7)
 
