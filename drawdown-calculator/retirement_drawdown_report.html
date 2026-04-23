@@ -1,0 +1,2458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple Wealth · Retirement Drawdown Report</title>
+<meta name="viewport" content="width=1588">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================================
+   TOKENS — match the calculator's palette so the two artefacts feel like
+   siblings. If the calculator's :root drifts, mirror those changes here.
+   ============================================================================ */
+:root {
+  --paper:     #faf7f0;
+  --paper-2:   #f2ede2;
+  --paper-3:   #ebe4d3;
+  --surface:   #ffffff;
+
+  --ink:       #1a1f26;
+  --ink-2:     #3a4250;
+  --mute:      #7a8292;
+  --faint:     #b4bac4;
+
+  --hairline:  #e4e1d8;
+  --line:      #d4cfc2;
+
+  --navy:      #1f2d3d;
+  --navy-2:    #2d3e50;
+  --navy-soft: #38495b;
+
+  --gold:      #b8893c;
+  --gold-2:    #9c7226;
+  --gold-soft: #e3c987;
+  --gold-pale: #f5ebd1;
+
+  --pos:       #2f6b3a;
+  --neg:       #a64236;
+
+  --teal:      #3f7e7e;
+  --teal-soft: #a3c4bf;
+  --coral:     #c9704f;
+  --coral-pale:#f2d5c6;
+
+  --serif: 'Fraunces', Georgia, serif;
+  --sans:  'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: #2a2a2a;
+  font-family: var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#deck { display: block; padding: 32px 0; }
+
+/* ============================================================================
+   SLIDE FRAME — A4 landscape at 1588 × 1123 px. One slide per printed page.
+   ============================================================================ */
+.slide {
+  width: 1588px;
+  height: 1123px;
+  margin: 0 auto 24px;
+  background: var(--paper);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+  font-family: var(--sans);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
+
+.slide-top {
+  padding: 38px 80px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+.slide-top .logo {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+.slide-top .logo .mark {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  font-size: 19px;
+}
+.slide-top .logo em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-2);
+}
+.slide-top .meta {
+  display: flex; gap: 22px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+}
+.slide-top .meta .sep { color: var(--faint); }
+.slide-top .meta .num {
+  font-family: var(--mono);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.slide-body {
+  padding: 44px 80px 24px;
+  position: relative;
+  min-height: 0;
+}
+
+.slide-foot {
+  padding: 18px 80px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+}
+.slide-foot .rn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.slide-foot .page {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-2);
+}
+.slide-foot .firm { font-size: 10px; }
+
+.eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2.4px;
+  color: var(--mute);
+  margin: 0 0 22px;
+}
+.eyebrow .rn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 14px;
+}
+
+.h1-editorial {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 92px;
+  line-height: 1.0;
+  letter-spacing: -1.8px;
+  color: var(--ink);
+  margin: 0;
+}
+.h1-editorial em { font-style: italic; font-weight: 300; }
+.h1-editorial .num {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.78em;
+  letter-spacing: -1.5px;
+}
+
+.h2-slide {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 52px;
+  line-height: 1.05;
+  letter-spacing: -0.6px;
+  color: var(--ink);
+  margin: 0 0 28px;
+}
+.h2-slide em { font-style: italic; font-weight: 300; }
+
+.answer-headline {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 64px;
+  line-height: 1.02;
+  letter-spacing: -1.2px;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+.answer-headline em { font-style: italic; font-weight: 300; }
+.answer-headline .num {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.78em;
+  letter-spacing: -1.5px;
+  margin-right: 2px;
+  font-feature-settings: 'tnum', 'cv11';
+}
+
+/* gold underline — once per slide, on the word that carries the meaning */
+.gold-under {
+  position: relative;
+  white-space: nowrap;
+}
+.gold-under::after {
+  content: '';
+  position: absolute;
+  left: -2px; right: -2px;
+  bottom: 6px;
+  height: 0.42em;
+  background: var(--gold-soft);
+  opacity: 0.52;
+  z-index: -1;
+}
+
+.prose {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+.prose .num {
+  font-family: var(--mono);
+  font-weight: 400;
+  color: var(--ink);
+  font-size: 0.95em;
+}
+.prose strong { font-weight: 500; color: var(--ink); }
+.prose em { font-style: italic; }
+
+.num, .figure {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ============================================================================
+   OUTCOME STRIP (3-cell, slide II)
+   ============================================================================ */
+.outcome-strip {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
+}
+.outcome-cell {
+  padding: 26px 28px;
+  border-left: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.outcome-cell:first-child { border-left: none; }
+.outcome-cell.primary {
+  background: var(--navy);
+  color: var(--paper);
+}
+.outcome-cell .label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+}
+.outcome-cell.primary .label { color: var(--gold-soft); }
+.outcome-cell .value {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.outcome-cell .value em { font-style: italic; font-weight: 300; }
+.outcome-cell.primary .value { color: var(--paper); }
+.outcome-cell .note {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+.outcome-cell.primary .note { color: var(--gold-soft); opacity: 0.85; }
+
+/* ============================================================================
+   EDITORIAL TABLES (assumptions, year-by-year)
+   ============================================================================ */
+.etable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.etable th, .etable td {
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.etable th {
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  border-bottom: 1px solid var(--line);
+  padding-top: 0;
+}
+.etable td.num {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.etable td.note {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.etable tr.milestone { background: var(--paper-2); }
+.etable tr.milestone td { font-weight: 500; }
+.etable tr.end td {
+  background: var(--navy);
+  color: var(--paper);
+  border-bottom: none;
+}
+.etable tr.end td.num { color: var(--paper); }
+.etable tr.end td.note { color: var(--gold-soft); }
+
+/* ============================================================================
+   CHART CARD
+   ============================================================================ */
+.chart-card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 20px 24px 24px;
+}
+.chart-card.full { padding: 22px 24px 26px; }
+.chart-legend-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.chart-caption {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+}
+.chart-well { width: 100%; }
+.legend {
+  display: flex;
+  gap: 22px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+  align-items: center;
+}
+.legend .sw {
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-right: 7px;
+  vertical-align: -2px;
+  border-radius: 2px;
+}
+.legend .sw.line {
+  height: 3px; border-radius: 2px; margin-top: 6px;
+}
+
+/* ============================================================================
+   COVER (I + XIV)
+   ============================================================================ */
+.slide.cover { grid-template-rows: 1fr; background: var(--paper); }
+.cover-body {
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+.cover-mark {
+  padding: 60px 96px 0;
+  display: flex; align-items: baseline; gap: 14px;
+}
+.cover-mark-glyph {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.cover-mark-firm {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2.4px;
+  color: var(--ink-2);
+}
+.cover-stack {
+  padding: 0 96px;
+  align-self: center;
+  max-width: 1300px;
+}
+.cover-foot {
+  padding: 28px 0 72px;
+  margin: 0 96px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 36px;
+  border-top: 1px solid var(--hairline);
+}
+.cover-foot-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  margin-bottom: 8px;
+}
+.cover-foot-value {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+.slide.cover.close .h1-editorial { font-size: 86px; }
+
+/* ============================================================================
+   ANSWER (II)
+   ============================================================================ */
+.answer-foot {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+/* ============================================================================
+   HOUSEHOLD (III)
+   ============================================================================ */
+.household-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 8px;
+}
+.spouse-card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 28px 32px;
+}
+.spouse-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--line);
+}
+.spouse-name {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.5px;
+}
+.spouse-age {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+}
+.spouse-age .num { font-family: var(--mono); color: var(--ink); }
+.spouse-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--line);
+  align-items: baseline;
+}
+.spouse-row:last-of-type { border-bottom: none; }
+.spouse-row-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+}
+.spouse-row-label .hint {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--faint);
+  font-size: 13px;
+  margin-left: 8px;
+}
+.spouse-row-val {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.spouse-subhead {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold-2);
+  margin: 20px 0 8px;
+}
+.spouse-other {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  align-items: baseline;
+}
+.spouse-other-kind { font-family: var(--serif); font-weight: 300; font-size: 14.5px; }
+.spouse-other-val { font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.spouse-other.empty { color: var(--faint); font-style: italic; }
+.household-foot {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* ============================================================================
+   ASSUMPTIONS (IV)
+   ============================================================================ */
+.assumptions-table { margin-top: 6px; }
+.assumptions-table td:nth-child(2).num {
+  font-size: 22px;
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--ink);
+  padding-top: 10px;
+}
+
+/* ============================================================================
+   LEVERS (V)
+   ============================================================================ */
+.levers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 28px 48px;
+  margin-top: 14px;
+}
+.lever {
+  padding: 18px 0 6px;
+  border-top: 1px solid var(--hairline);
+}
+.lever-head {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: -0.3px;
+  margin-bottom: 10px;
+  display: flex; align-items: baseline; gap: 12px;
+}
+.lever-head .rn-i {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  font-size: 18px;
+  letter-spacing: 0;
+}
+.lever-body { max-width: 56ch; font-size: 16px; line-height: 1.6; }
+
+/* ============================================================================
+   PROJECTION (VI)
+   ============================================================================ */
+.projection-foot {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
+}
+.foot-cell {
+  padding: 18px 22px;
+  border-left: 1px solid var(--hairline);
+}
+.foot-cell:first-child { border-left: none; }
+.foot-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+.foot-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================================
+   CAPITAL (VII)
+   ============================================================================ */
+.capital-foot { margin-top: 22px; }
+
+/* ============================================================================
+   TAX (VIII)
+   ============================================================================ */
+.tax-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 6px;
+}
+.tax-card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 26px 28px;
+}
+.tax-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px dashed var(--line);
+}
+.tax-name {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: -0.3px;
+}
+.tax-rate-chip {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-2);
+  background: var(--gold-pale);
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+.tax-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+  align-items: baseline;
+}
+.tax-row:last-of-type { border-bottom: none; }
+.tax-row.total {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: none;
+}
+.tax-row-label {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.tax-row-val {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.tax-row.total .tax-row-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  font-weight: 600;
+}
+.tax-row.total .tax-row-val { font-size: 22px; font-weight: 500; }
+.tax-foot {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tax-foot-row {
+  padding: 16px 22px;
+  border-left: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--paper);
+}
+.tax-foot-row:first-child { border-left: none; }
+.tax-foot-row.primary { background: var(--navy); color: var(--paper); }
+.tax-foot-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+}
+.tax-foot-row.primary .tax-foot-label { color: var(--gold-soft); }
+.tax-foot-value {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.tax-foot-row.primary .tax-foot-value { color: var(--paper); }
+
+/* ============================================================================
+   EVENTS (IX, conditional)
+   ============================================================================ */
+.events-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 32px;
+  margin-top: 6px;
+}
+.events-timeline, .events-ledger {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 24px 26px;
+}
+.events-timeline-svg { height: 400px; }
+.card-title {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2.4px;
+  color: var(--mute);
+  margin: 0 0 14px;
+  display: flex; align-items: baseline; gap: 10px;
+}
+.card-title .rn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold-2);
+  font-size: 14px;
+  letter-spacing: 0; text-transform: none;
+}
+.events-ledger .etable td.event-amt.pos { color: var(--pos); }
+.events-ledger .etable td.event-amt.neg { color: var(--neg); }
+.events-note { margin-top: 22px; }
+
+/* ============================================================================
+   COMPARE (X, conditional)
+   ============================================================================ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+.chip.neg { background: rgba(166,66,54,0.12); color: var(--neg); }
+.chip.pos { background: rgba(47,107,58,0.12); color: var(--pos); }
+.chip.navy { background: var(--navy); color: var(--paper); }
+.chip.gold { background: var(--gold-pale); color: var(--gold-2); }
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 6px;
+}
+.compare-card {
+  border-radius: 10px;
+  padding: 26px 28px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+}
+.compare-card.baseline { background: var(--paper-2); }
+.compare-card.scenario { border: 2px solid var(--navy); background: var(--paper); }
+.compare-tag { display: flex; gap: 8px; margin-bottom: 14px; }
+.compare-hero { margin-bottom: 18px; }
+.compare-hero-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  margin-bottom: 4px;
+}
+.compare-hero-value {
+  font-family: var(--serif);
+  font-size: 64px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -1.2px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.compare-hero-value em { font-style: italic; font-weight: 300; }
+.compare-card.baseline .compare-hero-value { color: var(--ink-2); }
+.compare-hero-note {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 15px;
+  color: var(--mute);
+  margin-top: 4px;
+}
+.compare-chart { height: 180px; margin: 14px 0 18px; }
+.compare-card.baseline .compare-chart { opacity: 0.42; }
+.compare-meta { width: 100%; border-collapse: collapse; }
+.compare-meta td {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.compare-meta td:first-child {
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  font-weight: 600;
+  font-size: 10.5px;
+  color: var(--mute);
+}
+.compare-meta td:last-child {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 13px;
+  color: var(--ink);
+}
+.compare-meta td:last-child .delta {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  margin-left: 8px;
+}
+.delta.pos { color: var(--pos); }
+.delta.neg { color: var(--neg); }
+
+/* ============================================================================
+   YEAR TABLE (XI)
+   ============================================================================ */
+.year-table { font-size: 12.5px; margin-top: 6px; }
+.year-table th { font-size: 9.5px; padding: 10px 12px; }
+.year-table td { padding: 10px 12px; }
+.year-table td.num { font-family: var(--mono); font-size: 12.5px; }
+.year-table td.note {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12.5px;
+  color: var(--gold-2);
+}
+
+/* ============================================================================
+   METHODOLOGY (XII)
+   ============================================================================ */
+.methodology-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  margin-top: 6px;
+}
+.method-h {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 22px;
+  letter-spacing: -0.2px;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+.method-h + .prose {
+  margin-top: 0;
+  margin-bottom: 22px;
+  max-width: none;
+  font-size: 16px;
+}
+
+/* ============================================================================
+   COMPLIANCE (XIII)
+   ============================================================================ */
+.compliance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px 48px;
+  margin-top: 6px;
+}
+.comp-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--gold-2);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--hairline);
+}
+.comp-block .prose {
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: none;
+}
+
+/* ============================================================================
+   EMPTY-STATE banner (when snapshot is missing)
+   ============================================================================ */
+.empty-banner {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-family: var(--serif);
+  text-align: center;
+  padding: 48px;
+}
+.empty-banner .inner { max-width: 640px; }
+.empty-banner h1 {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 48px;
+  letter-spacing: -1px;
+  margin: 0 0 16px;
+}
+.empty-banner p {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0 0 14px;
+}
+.empty-banner code {
+  font-family: var(--mono);
+  font-size: 14px;
+  background: var(--paper-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ============================================================================
+   PRINT — A4 landscape, one slide per page, no shadows, exact colours.
+   ============================================================================ */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { background: white; }
+  #deck { padding: 0; }
+  .slide {
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  .empty-banner { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- =========================================================================
+     I. COVER
+     ========================================================================= -->
+<section class="slide cover" data-slide="cover">
+  <div class="slide-body cover-body">
+    <div class="cover-mark">
+      <span class="cover-mark-glyph">sw</span>
+      <span class="cover-mark-firm">Simple Wealth</span>
+    </div>
+
+    <div class="cover-stack">
+      <div class="eyebrow" style="margin:0 0 28px">
+        <span class="rn">I.</span> Retirement drawdown · client report
+      </div>
+      <h1 class="h1-editorial">
+        A plan for the<br>
+        <em>&nbsp;<span data-field="familyName">Client</span>&nbsp;</em> family,<br>
+        living off <span class="num gold-under" data-field="monthlyNeedCover">R 0</span> a month.
+      </h1>
+    </div>
+
+    <div class="cover-foot">
+      <div><div class="cover-foot-label">Prepared for</div><div class="cover-foot-value" data-field="preparedFor">—</div></div>
+      <div><div class="cover-foot-label">Prepared on</div><div class="cover-foot-value" data-field="preparedOn">—</div></div>
+      <div><div class="cover-foot-label">By</div><div class="cover-foot-value" data-field="adviser">—</div></div>
+      <div><div class="cover-foot-label">FSP</div><div class="cover-foot-value">No. 50637</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     II. THE ANSWER
+     ========================================================================= -->
+<section class="slide" data-slide="answer">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">02</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">II.</span> The answer · sustainability horizon</div>
+    <h2 class="answer-headline">
+      <span class="num" data-field="monthlyNeedInline">R 0</span> a month is <em data-field="verdictWord">sustainable</em><br>
+      until <span class="gold-under" data-field="horizonInline">age —</span>.
+    </h2>
+
+    <div class="chart-card" style="margin-top: 18px;">
+      <div class="chart-legend-row">
+        <div class="legend">
+          <span><span class="sw" style="background:var(--teal)"></span>Living annuity draw</span>
+          <span><span class="sw" style="background:var(--gold)"></span>Discretionary draw</span>
+          <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
+          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+        </div>
+        <div class="chart-caption">household income · today's money</div>
+      </div>
+      <div id="chart-answer" class="chart-well" style="height: 300px"></div>
+    </div>
+
+    <div class="answer-foot">
+      <p class="prose" style="max-width: 66ch">
+        Across <span class="num" data-field="horizonYearsInline">—</span> years of retirement,
+        the plan draws first from your living annuities, tops up any shortfall from discretionary capital,
+        and is supplemented by other income of
+        <span class="num" data-field="otherMonthlyInline">R 0</span> a month.
+        The <em>discretionary pot</em> exhausts around <span class="num" data-field="discExhaustsInline">never</span>,
+        and the LA ceiling binds from <span class="num" data-field="laCapInline">never</span> onward.
+      </p>
+      <div class="outcome-strip">
+        <div class="outcome-cell primary">
+          <div class="label">Sustainable until</div>
+          <div class="value"><em data-field="horizonAge">age —</em></div>
+          <div class="note"><span data-field="horizonYears">—</span> years · lifestyle held</div>
+        </div>
+        <div class="outcome-cell">
+          <div class="label">Year-1 income need</div>
+          <div class="value" data-field="year1Need">R 0</div>
+          <div class="note">today's money · gross of tax</div>
+        </div>
+        <div class="outcome-cell">
+          <div class="label">Funded by</div>
+          <div class="value" data-field="funded">—</div>
+          <div class="note">year-1 income mix, %</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">II.</span></div>
+    <div class="page"><span data-field="pageNum">02</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     III. HOUSEHOLD
+     ========================================================================= -->
+<section class="slide" data-slide="household">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">03</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">III.</span> The household · who this plan is for</div>
+    <h2 class="h2-slide">The <em data-field="familyNamePoss">—</em>, at the edge of retirement.</h2>
+
+    <div class="household-grid" id="household-grid"></div>
+
+    <div class="household-foot">
+      <div class="prose" style="max-width: 78ch; font-size: 16px;">
+        The household carries a combined <span class="num" data-field="totalLA">R 0</span> in living annuities,
+        <span class="num" data-field="totalDisc">R 0</span> in discretionary capital, and
+        <span class="num" data-field="totalOtherMonthly">R 0</span> a month in other income. The plan's job is
+        to convert that into a household income of <span class="num" data-field="monthlyNeedInline">R 0</span>
+        a month, indexed to inflation, for as long as the rands last.
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">III.</span></div>
+    <div class="page"><span data-field="pageNum">03</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     IV. ASSUMPTIONS
+     ========================================================================= -->
+<section class="slide" data-slide="assumptions">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">04</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">IV.</span> Assumptions · what the projection rests on</div>
+    <h2 class="h2-slide">The <em>rules</em> of this projection.</h2>
+
+    <table class="etable assumptions-table">
+      <thead>
+        <tr>
+          <th style="width: 22%">Parameter</th>
+          <th style="width: 20%; text-align: right">Value</th>
+          <th>What this means, and why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Expected return</td>
+          <td class="num" data-field="returnPct">—</td>
+          <td class="note">Nominal total return on both the living annuities and the discretionary portfolios, net of platform and advice fees. Reflects a moderate-risk, equity-tilted mandate held through retirement.</td>
+        </tr>
+        <tr>
+          <td>Inflation (CPI)</td>
+          <td class="num" data-field="cpiPct">—</td>
+          <td class="note">Your monthly need and annual lump sums escalate with CPI each year. This is the SARB's mid-range target — results assume a stable macro environment, not the tails.</td>
+        </tr>
+        <tr>
+          <td>Living annuity draw band</td>
+          <td class="num">2.5 – 17.5%</td>
+          <td class="note">The FAIS-mandated range. Draws below 2.5% are not possible; above 17.5%, legislation caps you. The projection raises the draw rate as needed, and flags the age the ceiling binds.</td>
+        </tr>
+        <tr>
+          <td>Auto top-up</td>
+          <td class="num" data-field="autoTopUp">—</td>
+          <td class="note">When the living-annuity draw alone won't meet the target need, the plan draws the shortfall from discretionary capital. Turning this off forces you to live on the LA band plus other income — useful to see where the shortfall begins.</td>
+        </tr>
+        <tr>
+          <td>Tax year</td>
+          <td class="num">2026 / 27</td>
+          <td class="note">Income tax modelled on the current SARS tables, including the over-65 and over-75 rebates. Bracket creep of 3% per year is applied to brackets, base amounts, rebates and the CGT exclusion to reflect Treasury's stated intent of partial fiscal-drag relief.</td>
+        </tr>
+        <tr>
+          <td>Longevity horizon</td>
+          <td class="num">100</td>
+          <td class="note">The projection runs to age 100 for the younger spouse. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">IV.</span></div>
+    <div class="page"><span data-field="pageNum">04</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     V. THE FOUR LEVERS
+     ========================================================================= -->
+<section class="slide" data-slide="levers">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">05</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">V.</span> The four levers · what you can change</div>
+    <h2 class="h2-slide">If the horizon shortens, there are <em>four ways</em> to lengthen it.</h2>
+
+    <div class="levers-grid">
+      <div class="lever">
+        <div class="lever-head"><span class="rn-i">i.</span> Expenses</div>
+        <div class="lever-body prose">
+          Lower the monthly target. A small reduction stretches the horizon meaningfully — the
+          most durable lever, because every saved rand compounds for the rest of your life.
+        </div>
+      </div>
+      <div class="lever">
+        <div class="lever-head"><span class="rn-i">ii.</span> Returns</div>
+        <div class="lever-body prose">
+          Hold more equity; accept more volatility. Each extra percent of real return buys
+          several years of horizon — but a bad sequence early in retirement can erase more
+          than the upside ever gives back.
+        </div>
+      </div>
+      <div class="lever">
+        <div class="lever-head"><span class="rn-i">iii.</span> Retirement age</div>
+        <div class="lever-body prose">
+          Work one more year and two things improve: capital compounds untouched, and the
+          drawdown window shortens. A single extra year at the peak of earnings typically adds
+          two to three years to the horizon.
+        </div>
+      </div>
+      <div class="lever">
+        <div class="lever-head"><span class="rn-i">iv.</span> Income</div>
+        <div class="lever-body prose">
+          Add a durable stream: a rental, a part-time consulting book, a deferred pension.
+          Even a modest non-portfolio income materially changes the shape of the plan — it
+          protects capital from sequence risk in the early years.
+        </div>
+      </div>
+    </div>
+
+    <p class="prose" style="margin-top: 24px; max-width: 88ch; font-size: 16px;">
+      The levers are not independent — pulling one almost always relieves pressure on the others.
+      The purpose of the compare view in the calculator is to try them in combination, not in isolation.
+    </p>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">V.</span></div>
+    <div class="page"><span data-field="pageNum">05</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     VI. SUSTAINABILITY PROJECTION
+     ========================================================================= -->
+<section class="slide" data-slide="projection">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">06</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">VI.</span> Sustainability projection · household income</div>
+    <h2 class="h2-slide">Year by year, <em>where the income comes from</em>.</h2>
+
+    <div class="chart-card full">
+      <div class="chart-legend-row">
+        <div class="legend">
+          <span><span class="sw" style="background:var(--teal)"></span>Living annuity</span>
+          <span><span class="sw" style="background:var(--gold)"></span>Discretionary</span>
+          <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
+          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+        </div>
+        <div class="chart-caption" data-field="projectionCaption">stacked · today's money</div>
+      </div>
+      <div id="chart-projection" class="chart-well" style="height: 480px"></div>
+    </div>
+
+    <div class="projection-foot">
+      <div class="foot-cell"><div class="foot-label">Year-1 income</div><div class="foot-value num" data-field="year1Total">R 0</div></div>
+      <div class="foot-cell"><div class="foot-label">Mid-horizon</div><div class="foot-value num" data-field="midHorizonTotal">R 0</div></div>
+      <div class="foot-cell"><div class="foot-label">Final sustained year</div><div class="foot-value num" data-field="finalYearTotal">R 0</div></div>
+      <div class="foot-cell"><div class="foot-label">Shortfall first appears</div><div class="foot-value num" data-field="shortfallFrom">—</div></div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">VI.</span></div>
+    <div class="page"><span data-field="pageNum">06</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     VII. CAPITAL TRAJECTORY
+     ========================================================================= -->
+<section class="slide" data-slide="capital">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">07</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">VII.</span> Capital trajectory · why the horizon ends where it does</div>
+    <h2 class="h2-slide">The <em>capital</em> behind the income.</h2>
+
+    <div class="chart-card full">
+      <div class="chart-legend-row">
+        <div class="legend">
+          <span><span class="sw" style="background:var(--teal)"></span>Living annuity balance</span>
+          <span><span class="sw" style="background:var(--gold)"></span>Discretionary balance</span>
+          <span><span class="sw line" style="background:var(--coral)"></span>Withdrawal rate · right axis</span>
+        </div>
+        <div class="chart-caption">nominal · left axis capital · right axis draw %</div>
+      </div>
+      <div id="chart-capital" class="chart-well" style="height: 440px"></div>
+    </div>
+
+    <div class="capital-foot">
+      <p class="prose" style="max-width: 84ch">
+        Early years favour <em>discretionary</em> capital — drawing from it defers tax and
+        keeps the LA compounding. As the disc pot exhausts (around
+        <span class="num" data-field="discExhaustsInline">never</span>), the plan leans
+        harder on the LAs and the withdrawal rate climbs toward the
+        <span class="num gold-under">17.5% ceiling</span>. Once the ceiling binds, income
+        can't rise further without lifting the underlying capital — which is when the horizon
+        starts to shorten.
+      </p>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">VII.</span></div>
+    <div class="page"><span data-field="pageNum">07</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     VIII. YEAR-1 TAX
+     ========================================================================= -->
+<section class="slide" data-slide="tax">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">08</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">VIII.</span> Year-1 income &amp; tax · SARS 2026/27 tables</div>
+    <h2 class="h2-slide">What <em>actually</em> lands in the bank, year one.</h2>
+
+    <div class="tax-grid" id="tax-grid"></div>
+
+    <div class="tax-foot">
+      <div class="tax-foot-row"><div class="tax-foot-label">Household gross income</div><div class="tax-foot-value num" data-field="hhGross">R 0</div></div>
+      <div class="tax-foot-row"><div class="tax-foot-label">Total tax payable</div><div class="tax-foot-value num" data-field="hhTax">R 0</div></div>
+      <div class="tax-foot-row primary"><div class="tax-foot-label">Net income · to the bank</div><div class="tax-foot-value num" data-field="hhNet">R 0</div></div>
+      <div class="tax-foot-row"><div class="tax-foot-label">Effective household rate</div><div class="tax-foot-value num" data-field="hhEff">—</div></div>
+    </div>
+
+    <p class="prose" style="margin-top: 18px; max-width: 92ch; font-size: 15px;">
+      Discretionary draws do not attract income tax — they are returns of capital, taxed only
+      on the embedded gain at capital-gains rates when realised. Other income streams
+      (DB pension, rental) are taxed at each spouse's marginal rate, alongside the LA draw.
+    </p>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">VIII.</span></div>
+    <div class="page"><span data-field="pageNum">08</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     IX. CAPITAL EVENTS — conditional
+     ========================================================================= -->
+<section class="slide" data-slide="events" data-conditional="events">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">09</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">IX.</span> Family capital events · the one-offs along the way</div>
+    <h2 class="h2-slide">Inflows and outflows that <em>shape</em> the horizon.</h2>
+
+    <div class="events-grid">
+      <div class="events-timeline">
+        <div class="card-title"><span class="rn">i.</span> Timeline</div>
+        <div id="events-timeline" class="events-timeline-svg"></div>
+      </div>
+      <div class="events-ledger">
+        <div class="card-title"><span class="rn">ii.</span> Ledger</div>
+        <table class="etable">
+          <thead>
+            <tr>
+              <th style="width: 14%">When</th>
+              <th>Event</th>
+              <th>For whom</th>
+              <th style="text-align: right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="prose events-note" style="max-width: 92ch; font-size: 15px;">
+      Inflows reduce the pressure on drawdown in the years after they arrive; outflows raise
+      it. The projection bakes each event in on the year it lands, then lets the math
+      re-balance from that new base.
+    </p>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">IX.</span></div>
+    <div class="page"><span data-field="pageNum">09</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     X. COMPARE — conditional
+     ========================================================================= -->
+<section class="slide" data-slide="compare" data-conditional="compare">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">10</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">X.</span> Compare · baseline vs current plan</div>
+    <h2 class="h2-slide">What <em>changes</em>, and what it buys you.</h2>
+
+    <div class="compare-grid">
+      <div class="compare-card baseline">
+        <div class="compare-tag">
+          <span class="chip">Baseline</span>
+          <span class="chip gold">Locked</span>
+        </div>
+        <div class="compare-hero">
+          <div class="compare-hero-label">Sustainable until</div>
+          <div class="compare-hero-value"><em>age <span data-field="baselineAge">—</span></em></div>
+          <div class="compare-hero-note"><span data-field="baselineNote">—</span></div>
+        </div>
+        <div class="compare-chart" id="compare-baseline"></div>
+        <table class="compare-meta">
+          <tr><td>Monthly need</td><td class="num" data-field="baselineNeed">—</td></tr>
+          <tr><td>Return · CPI</td><td class="num" data-field="baselineMkt">—</td></tr>
+        </table>
+      </div>
+
+      <div class="compare-card scenario">
+        <div class="compare-tag">
+          <span class="chip navy">Current plan</span>
+          <span class="chip" data-field="compareChip">—</span>
+        </div>
+        <div class="compare-hero">
+          <div class="compare-hero-label">Sustainable until</div>
+          <div class="compare-hero-value"><em>age <span data-field="scenarioAge">—</span></em></div>
+          <div class="compare-hero-note"><span data-field="scenarioNote">—</span></div>
+        </div>
+        <div class="compare-chart" id="compare-scenario"></div>
+        <table class="compare-meta">
+          <tr><td>Monthly need</td><td class="num" data-field="scenarioNeed">—</td></tr>
+          <tr><td>Return · CPI</td><td class="num" data-field="scenarioMkt">—</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">X.</span></div>
+    <div class="page"><span data-field="pageNum">10</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     XI. YEAR-BY-YEAR TABLE
+     ========================================================================= -->
+<section class="slide" data-slide="year-table">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">11</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">XI.</span> Year-by-year · milestones and five-year checkpoints</div>
+    <h2 class="h2-slide">The plan in <em>numbers</em>.</h2>
+
+    <table class="etable year-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Age</th>
+          <th style="text-align: right">LA draw</th>
+          <th style="text-align: right">Disc draw</th>
+          <th style="text-align: right">Other income</th>
+          <th style="text-align: right">Total income</th>
+          <th style="text-align: right">LA balance</th>
+          <th style="text-align: right">Disc balance</th>
+          <th style="text-align: right">Total capital</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="year-tbody"></tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">XI.</span></div>
+    <div class="page"><span data-field="pageNum">11</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     XII. METHODOLOGY
+     ========================================================================= -->
+<section class="slide" data-slide="methodology">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">12</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">XII.</span> Methodology · how the projection is built</div>
+    <h2 class="h2-slide">What the <em>numbers</em> mean, and don't.</h2>
+
+    <div class="methodology-grid">
+      <div class="method-col">
+        <h3 class="method-h">What we model</h3>
+        <p class="prose">
+          For each year from retirement to age 100 of the younger spouse, the projection
+          computes the household's required income in <em>today's money</em>, converts it to
+          nominal rands at the year's CPI-adjusted level, then fills it from three sources:
+          other income, a living-annuity draw inside the <span class="num">2.5–17.5%</span>
+          band, and (if auto top-up is on) a discretionary draw to cover any shortfall. Both
+          pots grow at the expected return, applied to the post-draw balance.
+        </p>
+        <h3 class="method-h">Sustainability, precisely</h3>
+        <p class="prose">
+          The horizon is the <em>last age</em> at which the three sources combined fully meet
+          the target need. At that age plus one, the plan either depletes the living annuity,
+          hits the draw ceiling, or runs the discretionary pot dry — the annotations on the
+          charts mark which happens when.
+        </p>
+      </div>
+      <div class="method-col">
+        <h3 class="method-h">What we don't model</h3>
+        <p class="prose">
+          Sequence-of-returns risk (early bad years carry outsized impact and are not captured
+          by a single expected return). Estate duty, executors' fees, section 7C trust loans.
+          Medical-aid step-ups above CPI. Once-off events other than those captured on the
+          capital events ledger. Platform / advice fees beyond what's already netted off the
+          return assumption.
+        </p>
+        <h3 class="method-h">What this report is, and isn't</h3>
+        <p class="prose">
+          It's a <em>decision aid</em> — a way to see whether a lifestyle and a capital base
+          meet each other, and which lever to pull if they don't. It's not advice for your
+          specific circumstances, and it's not a guarantee of outcomes. Markets, tax law, and
+          life all move; the plan should be revisited at least annually.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">XII.</span></div>
+    <div class="page"><span data-field="pageNum">12</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     XIII. COMPLIANCE
+     ========================================================================= -->
+<section class="slide" data-slide="compliance">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">13</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">XIII.</span> Compliance · scope, disclosure, and risk</div>
+    <h2 class="h2-slide">The <em>fine</em> print.</h2>
+
+    <div class="compliance-grid">
+      <div class="comp-block">
+        <div class="comp-label">Authorisation</div>
+        <p class="prose">
+          Simple Wealth (Pty) Ltd is an authorised financial services provider under the
+          Financial Advisory and Intermediary Services Act (FAIS), FSP No.
+          <span class="num">50637</span>. Advice is given within the categories reflected on
+          our licence; products beyond that scope fall outside this report.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Illustrative only</div>
+        <p class="prose">
+          This document is a projection, not a forecast. All values are based on the
+          assumptions set out on page <span class="rn">IV</span>. Actual returns, inflation,
+          tax, and life events will differ. No figure in this report should be relied upon as
+          a guaranteed outcome.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Tax &amp; regulation</div>
+        <p class="prose">
+          Tax computations use the <span class="num">2026/27</span> SARS tables, including
+          age-based rebates. Changes to the Income Tax Act, retirement-fund reform, or the
+          FAIS Act may affect outcomes materially. Living annuities remain bound by
+          Regulation 28 at the fund level, and by the statutory draw range of
+          <span class="num">2.5%–17.5%</span>.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Risk</div>
+        <p class="prose">
+          Market, inflation, longevity, and regulatory risks can each shorten the horizon
+          shown here. The <em>sequence</em> of returns — particularly in the first decade of
+          retirement — carries outsized weight and is not captured by a single
+          expected-return assumption. We recommend revisiting the plan annually, and sooner on
+          material change.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Scope of advice</div>
+        <p class="prose">
+          This report addresses retirement drawdown only. It does not constitute estate
+          planning, medical-aid advice, short-term insurance advice, or employment-related
+          benefits advice. Where those intersect, a separate engagement is required.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Conflicts</div>
+        <p class="prose">
+          Material conflicts of interest, if any, are disclosed in your Record of Advice and
+          in the Simple Wealth Conflict of Interest Management Policy, available on request.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">XIII.</span></div>
+    <div class="page"><span data-field="pageNum">13</span> / <span data-field="pageTotal">12</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     XIV. NEXT STEPS / CLOSING
+     ========================================================================= -->
+<section class="slide cover close" data-slide="next">
+  <div class="slide-body cover-body">
+    <div class="cover-mark">
+      <span class="cover-mark-glyph">sw</span>
+      <span class="cover-mark-firm">Simple Wealth</span>
+    </div>
+
+    <div class="cover-stack">
+      <div class="eyebrow" style="margin:0 0 28px">
+        <span class="rn">XIV.</span> Next steps · keeping the plan honest
+      </div>
+      <h1 class="h1-editorial">
+        <em>Revisit</em> the plan<br>
+        every year &mdash;<br>
+        sooner if the <span class="gold-under">numbers move</span>.
+      </h1>
+    </div>
+
+    <div class="cover-foot">
+      <div><div class="cover-foot-label">Next review</div><div class="cover-foot-value" data-field="nextReview">—</div></div>
+      <div><div class="cover-foot-label">Adviser</div><div class="cover-foot-value" data-field="adviser">—</div></div>
+      <div><div class="cover-foot-label">Contact</div><div class="cover-foot-value">advice@simplewealth.co.za</div></div>
+      <div><div class="cover-foot-label">FSP</div><div class="cover-foot-value">No. 50637</div></div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /#deck -->
+
+<!-- Empty-state banner shown when no snapshot is loaded. -->
+<div id="empty-banner" class="empty-banner" style="display:none">
+  <div class="inner">
+    <h1>No client snapshot loaded.</h1>
+    <p>Open the calculator (<code>retirement_drawdown.html</code>), enter a scenario, then click <strong>Export report</strong> to populate this view.</p>
+    <p style="font-size:14px; color: var(--mute)">This page reads from <code>localStorage['sw-drawdown-snapshot']</code>.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   REPORT BINDER — single IIFE, no external dependencies.
+
+   Reads {plan, projection} from localStorage['sw-drawdown-snapshot'] (or
+   ?data=<base64-JSON> for ad-hoc shares), writes every [data-field],
+   builds spouse / tax / events / year-table rows, draws three SVG charts,
+   then renumbers slides + page totals after dropping conditional slides.
+
+   The math is done by the calculator's engine before serialisation. This
+   file does NO projection logic — only formatting and rendering. If a
+   number looks wrong, fix the calculator's project(), not here.
+   ============================================================================ */
+(function () {
+  'use strict';
+
+  // ---- Snapshot loader ----------------------------------------------------
+  function loadSnapshot() {
+    try {
+      var q = new URLSearchParams(location.search).get('data');
+      if (q) return JSON.parse(decodeURIComponent(escape(atob(q))));
+    } catch (e) { /* fall through to localStorage */ }
+    try {
+      var s = localStorage.getItem('sw-drawdown-snapshot');
+      if (s) return JSON.parse(s);
+    } catch (e) { /* fall through to null */ }
+    return null;
+  }
+
+  var snap = loadSnapshot();
+  if (!snap || !snap.plan || !snap.projection) {
+    document.getElementById('empty-banner').style.display = 'flex';
+    return;
+  }
+
+  var plan = snap.plan;
+  var proj = snap.projection;
+
+  // ---- Formatters ---------------------------------------------------------
+  var NBSP = ' ';
+
+  function fmtR(n, opts) {
+    opts = opts || {};
+    if (n == null || isNaN(n)) return '—';
+    var compact = !!opts.compact;
+    var decimals = opts.decimals != null ? opts.decimals : 0;
+    var sign = !!opts.sign;
+    var abs = Math.abs(n);
+    var s;
+    if (compact && abs >= 1000000) {
+      s = 'R' + NBSP + (n / 1000000).toFixed(abs % 1000000 === 0 ? 1 : 2) + 'm';
+    } else if (compact && abs >= 1000) {
+      s = 'R' + NBSP + Math.round(n / 1000) + 'k';
+    } else {
+      s = 'R' + NBSP + Math.round(n).toLocaleString('en-ZA').replace(/,/g, NBSP);
+      if (decimals > 0) {
+        s = 'R' + NBSP + n.toLocaleString('en-ZA', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        }).replace(/,/g, NBSP);
+      }
+    }
+    if (sign && n > 0) s = '+ ' + s;
+    return s;
+  }
+
+  function fmtPct(n, decimals) {
+    if (n == null || isNaN(n)) return '—';
+    return (n * 100).toFixed(decimals != null ? decimals : 1) + '%';
+  }
+
+  function fmtAge(n) { return n != null ? 'age' + NBSP + n : 'never'; }
+
+  // ---- DOM helpers --------------------------------------------------------
+  function setField(name, value) {
+    var nodes = document.querySelectorAll('[data-field="' + name + '"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = value;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---- 1. Drop conditional slides ----------------------------------------
+  var hideEvents = !(plan.capitalEvents && plan.capitalEvents.length);
+  var hideCompare = !plan.baseline;
+  if (hideEvents) {
+    var ev = document.querySelector('[data-slide="events"]');
+    if (ev) ev.remove();
+  }
+  if (hideCompare) {
+    var cp = document.querySelector('[data-slide="compare"]');
+    if (cp) cp.remove();
+  }
+
+  // ---- 2. Renumber slides + page totals ----------------------------------
+  var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI'];
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  slides.forEach(function (s, i) {
+    var pn = String(i + 1).padStart(2, '0');
+    s.querySelectorAll('[data-field="pageNum"]').forEach(function (n) { n.textContent = pn; });
+    var rn = ROMAN[i] || String(i + 1);
+    var footRN = s.querySelector('.slide-foot .rn');
+    if (footRN) footRN.textContent = rn + '.';
+    var eyebrowRN = s.querySelector('.eyebrow .rn');
+    if (eyebrowRN) eyebrowRN.textContent = rn + '.';
+  });
+  document.querySelectorAll('[data-field="pageTotal"]').forEach(function (n) {
+    n.textContent = String(slides.length).padStart(2, '0');
+  });
+
+  // ---- 3. Top-level cover + meta fields ----------------------------------
+  var horizon = proj.sustainableTo;
+  var horizonYears = horizon != null ? Math.max(0, horizon - proj.startAge + 1) : 0;
+  var totalLA = plan.spouses.reduce(function (a, s) { return a + (s.laBalance || 0); }, 0);
+  var totalDisc = plan.spouses.reduce(function (a, s) { return a + (s.discretionary || 0); }, 0);
+  var otherMonthly = plan.spouses.reduce(function (a, s) {
+    return a + (s.otherIncome || []).reduce(function (b, x) { return b + (x.monthly || 0); }, 0);
+  }, 0);
+
+  var verdict = horizonYears >= 30
+    ? 'sustainable'
+    : (horizonYears >= 20 ? 'workable' : 'stretched');
+
+  setField('familyName', plan.familyName || 'Client');
+  setField('familyNamePoss', plan.familyName ? plan.familyName + 's' : 'household');
+  setField('preparedFor', plan.preparedFor || '—');
+  setField('preparedOn', plan.preparedOn || '—');
+  setField('adviser', plan.adviser || 'Simple Wealth');
+  setField('monthlyNeedCover', fmtR(plan.monthlyNeed));
+  setField('monthlyNeedInline', fmtR(plan.monthlyNeed));
+  setField('verdictWord', verdict);
+  setField('horizonInline', horizon != null ? fmtAge(horizon) : 'further than the projection runs');
+  setField('horizonAge', horizon != null ? fmtAge(horizon) : '—');
+  setField('horizonYears', String(horizonYears));
+  setField('horizonYearsInline', String(horizonYears));
+  setField('otherMonthlyInline', fmtR(otherMonthly));
+  setField('discExhaustsInline', proj.discExhaustsAt != null ? fmtAge(proj.discExhaustsAt) : 'never');
+  setField('laCapInline', proj.laCapHitAt != null ? fmtAge(proj.laCapHitAt) : 'never');
+  setField('totalLA', fmtR(totalLA, { compact: true }));
+  setField('totalDisc', fmtR(totalDisc, { compact: true }));
+  setField('totalOtherMonthly', fmtR(otherMonthly));
+
+  setField('returnPct', fmtPct(plan.returnPct, 2));
+  setField('cpiPct', fmtPct(plan.cpiPct, 2));
+  setField('autoTopUp', plan.autoTopUp ? 'On' : 'Off');
+
+  // Next-review default = preparedOn + 1 year
+  function nextReviewLabel() {
+    var d = plan.preparedOn ? new Date(plan.preparedOn) : new Date();
+    if (isNaN(d.getTime())) d = new Date();
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return months[d.getMonth()] + ' ' + (d.getFullYear() + 1);
+  }
+  setField('nextReview', nextReviewLabel());
+
+  // ---- 4. Year-1 funding mix + outcome strip -----------------------------
+  var y1 = proj.year1 || (proj.rows && proj.rows[0]) || {};
+  var y1Total = Math.max(1, (y1.laDraw || 0) + (y1.discDraw || 0) + (y1.otherIncome || 0));
+  function pct(n) { return Math.round((n / y1Total) * 100); }
+  setField('year1Need', fmtR((plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)));
+  setField('funded', 'LA ' + pct(y1.laDraw || 0) + ' · Disc ' + pct(y1.discDraw || 0) + ' · Other ' + pct(y1.otherIncome || 0));
+
+  // ---- 5. Household spouse cards -----------------------------------------
+  var grid = document.getElementById('household-grid');
+  if (grid) {
+    grid.innerHTML = plan.spouses.map(function (s) {
+      var oi = (s.otherIncome || []).filter(function (x) { return (x.monthly || 0) > 0; });
+      return '' +
+        '<div class="spouse-card">' +
+          '<div class="spouse-head">' +
+            '<div class="spouse-name">' + esc(s.name || 'Spouse') + '</div>' +
+            '<div class="spouse-age">age <span class="num">' + (s.age || '—') + '</span></div>' +
+          '</div>' +
+          '<div class="spouse-row">' +
+            '<div class="spouse-row-label">Living annuity</div>' +
+            '<div class="spouse-row-val">' + fmtR(s.laBalance || 0) + '</div>' +
+          '</div>' +
+          '<div class="spouse-row">' +
+            '<div class="spouse-row-label">Discretionary <span class="hint">base cost ' + fmtR(s.discBaseCost || 0, { compact: true }) + '</span></div>' +
+            '<div class="spouse-row-val">' + fmtR(s.discretionary || 0) + '</div>' +
+          '</div>' +
+          '<div class="spouse-subhead">Other income · monthly</div>' +
+          (oi.length
+            ? oi.map(function (x) {
+                return '<div class="spouse-other"><div class="spouse-other-kind">' + esc(x.kind || 'Other income') + '</div><div class="spouse-other-val">' + fmtR(x.monthly) + '</div></div>';
+              }).join('')
+            : '<div class="spouse-other empty"><div class="spouse-other-kind">No additional income at year 1</div><div></div></div>') +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- 6. Year-1 tax cards (numbers come from the calc, not re-derived) -
+  var taxGrid = document.getElementById('tax-grid');
+  if (taxGrid) {
+    var taxByPerson = (proj.taxByPerson || []).slice();
+    if (!taxByPerson.length) {
+      // Fallback: build from proj.taxA / proj.taxB if older snapshot shape.
+      if (proj.taxA) taxByPerson.push(Object.assign({ name: plan.spouses[0] && plan.spouses[0].name, age: plan.spouses[0] && plan.spouses[0].age }, proj.taxA));
+      if (proj.taxB) taxByPerson.push(Object.assign({ name: plan.spouses[1] && plan.spouses[1].name, age: plan.spouses[1] && plan.spouses[1].age }, proj.taxB));
+    }
+    taxGrid.innerHTML = taxByPerson.map(function (t) {
+      var gross = t.grossIncome != null ? t.grossIncome : (t.laDraw || 0) + (t.otherIncome || 0);
+      var tax = t.tax || 0;
+      var eff = gross > 0 ? tax / gross : 0;
+      return '' +
+        '<div class="tax-card">' +
+          '<div class="tax-head">' +
+            '<div class="tax-name">' + esc(t.name || 'Spouse') + '</div>' +
+            '<div class="tax-rate-chip">age ' + (t.age || '—') + ' · eff ' + (eff * 100).toFixed(1) + '%</div>' +
+          '</div>' +
+          '<div class="tax-row"><div class="tax-row-label">Living annuity draw</div><div class="tax-row-val">' + fmtR(t.laDraw || 0) + '</div></div>' +
+          '<div class="tax-row"><div class="tax-row-label">Other taxable income</div><div class="tax-row-val">' + fmtR(t.otherIncome || 0) + '</div></div>' +
+          '<div class="tax-row"><div class="tax-row-label">Discretionary draw <span style="color:var(--mute)">(after-tax)</span></div><div class="tax-row-val">' + fmtR(t.discDraw || 0) + '</div></div>' +
+          '<div class="tax-row total"><div class="tax-row-label">Gross taxable income</div><div class="tax-row-val">' + fmtR(gross) + '</div></div>' +
+          '<div class="tax-row"><div class="tax-row-label">Income tax (SARS 2026/27)</div><div class="tax-row-val">' + fmtR(tax) + '</div></div>' +
+          '<div class="tax-row total"><div class="tax-row-label">Net to bank</div><div class="tax-row-val">' + fmtR(gross - tax + (t.discDraw || 0)) + '</div></div>' +
+        '</div>';
+    }).join('');
+  }
+  setField('hhGross', fmtR(proj.hhGross || 0));
+  setField('hhTax', fmtR(proj.hhTax || 0));
+  setField('hhNet', fmtR(proj.hhNet || 0));
+  setField('hhEff', proj.hhGross > 0 ? fmtPct(proj.hhTax / proj.hhGross, 1) : '—');
+
+  // ---- 7. Projection foot -----------------------------------------------
+  var rows = proj.rows || [];
+  if (rows.length) {
+    setField('year1Total', fmtR(y1.totalIncome || 0));
+    var midIdx = Math.min(15, rows.length - 1);
+    setField('midHorizonTotal', fmtR(rows[midIdx].totalIncome));
+    var lastSustainedIdx = horizon != null
+      ? Math.max(0, Math.min(rows.length - 1, horizon - proj.startAge))
+      : rows.length - 1;
+    setField('finalYearTotal', fmtR(rows[lastSustainedIdx].totalIncome));
+    var firstShortfall = rows.find(function (r) { return r.shortfall; });
+    setField('shortfallFrom', firstShortfall ? fmtAge(firstShortfall.age) : 'never');
+  }
+
+  // ---- 8. Capital-events slide -------------------------------------------
+  if (!hideEvents) {
+    var events = (plan.capitalEvents || []).slice().sort(function (a, b) { return a.year - b.year; });
+    var tbody = document.getElementById('events-tbody');
+    if (tbody) {
+      tbody.innerHTML = events.map(function (e) {
+        var pos = (e.amount || 0) >= 0;
+        return '<tr>' +
+          '<td class="num">' + esc(e.year) + '</td>' +
+          '<td>' + esc(e.label || 'Capital event') + '</td>' +
+          '<td>' + esc(e.forWhom || 'Household') + '</td>' +
+          '<td class="num event-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+ ' : '− ') + fmtR(Math.abs(e.amount || 0), { compact: true }) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+    var tl = document.getElementById('events-timeline');
+    if (tl && events.length) renderTimeline(tl, events);
+  }
+
+  // ---- 9. Compare slide --------------------------------------------------
+  if (!hideCompare && plan.baseline) {
+    var b = plan.baseline;
+    setField('baselineAge', b.sustainableTo != null ? String(b.sustainableTo) : '—');
+    setField('baselineNote', b.note || '');
+    setField('baselineNeed', fmtR(b.monthlyNeed != null ? b.monthlyNeed : plan.monthlyNeed));
+    setField('baselineMkt', fmtPct(b.returnPct != null ? b.returnPct : plan.returnPct, 1) + ' · ' + fmtPct(b.cpiPct != null ? b.cpiPct : plan.cpiPct, 1));
+    setField('scenarioAge', horizon != null ? String(horizon) : '—');
+    setField('scenarioNote', fmtR(plan.monthlyNeed) + '/mo · auto top-up ' + (plan.autoTopUp ? 'on' : 'off'));
+    setField('scenarioNeed', fmtR(plan.monthlyNeed));
+    setField('scenarioMkt', fmtPct(plan.returnPct, 1) + ' · ' + fmtPct(plan.cpiPct, 1));
+
+    var delta = (horizon != null && b.sustainableTo != null) ? (horizon - b.sustainableTo) : 0;
+    var chip = document.querySelector('[data-field="compareChip"]');
+    if (chip) {
+      chip.textContent = (delta >= 0 ? '+ ' : '− ') + Math.abs(delta) + ' years' + (proj.depletesAt != null ? ' · depletes at ' + proj.depletesAt : '');
+      chip.classList.remove('neg', 'pos');
+      chip.classList.add(delta >= 0 ? 'pos' : 'neg');
+    }
+  }
+
+  // ---- 10. Year-by-year table -------------------------------------------
+  var keyAges = new Set([proj.startAge, proj.discExhaustsAt, proj.laCapHitAt, horizon, proj.depletesAt].filter(function (x) { return x != null; }));
+  var tableRows = rows.filter(function (r) {
+    var offset = r.age - proj.startAge;
+    return offset % 5 === 0 || keyAges.has(r.age);
+  });
+  var yearTbody = document.getElementById('year-tbody');
+  if (yearTbody) {
+    yearTbody.innerHTML = tableRows.map(function (r) {
+      var notes = [];
+      if (r.age === proj.startAge) notes.push('retirement starts');
+      if (r.age === proj.discExhaustsAt) notes.push('disc exhausts');
+      if (r.age === proj.laCapHitAt) notes.push('LA ceiling');
+      if (r.age === horizon) notes.push('horizon');
+      if (r.age === proj.depletesAt) notes.push('depletes');
+      var cls = (r.age === horizon) ? 'end' : (notes.length ? 'milestone' : '');
+      return '<tr class="' + cls + '">' +
+        '<td class="num">' + r.year + '</td>' +
+        '<td class="num">' + r.age + '</td>' +
+        '<td class="num">' + fmtR(r.laDraw, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.discDraw, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.otherIncome, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.totalIncome, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.laBalance, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.discBalance, { compact: true }) + '</td>' +
+        '<td class="num">' + fmtR(r.totalCapital, { compact: true }) + '</td>' +
+        '<td class="note">' + notes.join(' · ') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // ---- 11. Charts (inline SVG) ------------------------------------------
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  var COLORS = {
+    la: 'var(--teal)',
+    disc: 'var(--gold)',
+    other: 'var(--navy-soft)',
+    need: 'var(--coral)',
+    shortfall: 'var(--coral-pale)',
+    grid: 'rgba(0,0,0,0.055)',
+    tick: '#7a8292',
+    line: '#d4cfc2'
+  };
+  // SVG can't resolve CSS variables in attribute values inside Safari reliably,
+  // so resolve at draw time. The :root variables are queried via getComputedStyle.
+  var rs = getComputedStyle(document.documentElement);
+  function tok(name, fallback) {
+    var v = rs.getPropertyValue(name);
+    return v ? v.trim() : (fallback || '#000');
+  }
+  COLORS.la = tok('--teal', '#3f7e7e');
+  COLORS.disc = tok('--gold', '#b8893c');
+  COLORS.other = tok('--navy-soft', '#38495b');
+  COLORS.need = tok('--coral', '#c9704f');
+  COLORS.shortfall = tok('--coral-pale', '#f2d5c6');
+  COLORS.line = tok('--line', '#d4cfc2');
+
+  function rTickLabel(v) {
+    if (v >= 1000000) return 'R' + (v / 1000000).toFixed(1) + 'm';
+    return 'R' + Math.round(v / 1000) + 'k';
+  }
+
+  function renderIncomeChart(container, rows, opts) {
+    opts = opts || {};
+    if (!container || !rows || !rows.length) return;
+    var W = opts.width || 1428;
+    var H = opts.height || 340;
+    var pad = { top: 28, right: 60, bottom: 36, left: 70 };
+    var innerW = W - pad.left - pad.right;
+    var innerH = H - pad.top - pad.bottom;
+    var n = rows.length;
+    var slot = innerW / n;
+    var bw = slot * 0.68;
+    var startAge = rows[0].age;
+
+    var needBase = opts.needBase || rows[0].requiredReal || 0;
+    var maxVal = 0;
+    rows.forEach(function (r) {
+      maxVal = Math.max(maxVal, r.totalIncome || 0, r.requiredReal || 0);
+    });
+    maxVal = Math.max(maxVal, needBase) * 1.08;
+    if (maxVal <= 0) maxVal = 1;
+
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H, style: 'display:block' });
+
+    // gridlines + y-axis ticks
+    var ticks = 5;
+    for (var i = 0; i <= ticks; i++) {
+      var y = pad.top + innerH * (i / ticks);
+      svg.appendChild(el('line', { x1: pad.left, x2: W - pad.right, y1: y, y2: y, stroke: COLORS.grid, 'stroke-width': 1 }));
+      var v = Math.round(maxVal * (1 - i / ticks));
+      var t = el('text', {
+        x: pad.left - 10, y: y + 4, 'text-anchor': 'end',
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 10.5, fill: COLORS.tick
+      });
+      t.textContent = rTickLabel(v);
+      svg.appendChild(t);
+    }
+
+    // need line — drawn behind bars
+    var needY = pad.top + innerH * (1 - (needBase / maxVal));
+    if (needBase > 0) {
+      svg.appendChild(el('line', {
+        x1: pad.left, x2: W - pad.right, y1: needY, y2: needY,
+        stroke: COLORS.need, 'stroke-width': 1.5, 'stroke-dasharray': '5 4'
+      }));
+      var nl = el('text', {
+        x: W - pad.right + 6, y: needY + 4,
+        'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: COLORS.need,
+        'font-weight': 600, 'letter-spacing': '1.4px'
+      });
+      nl.textContent = 'TARGET NEED';
+      svg.appendChild(nl);
+    }
+
+    // bars
+    rows.forEach(function (r, i) {
+      var x = pad.left + slot * i + (slot - bw) / 2;
+      var scale = function (v) { return (Math.max(0, v) / maxVal) * innerH; };
+      var laH = scale(r.laDraw || 0);
+      var dH = scale(r.discDraw || 0);
+      var oH = scale(r.otherIncome || 0);
+      var totalH = laH + dH + oH;
+
+      // shortfall wash above the bar up to the need line
+      if (needBase > 0 && (r.totalIncome || 0) < needBase) {
+        var shortTop = needY;
+        var shortBot = pad.top + innerH - totalH;
+        svg.appendChild(el('rect', {
+          x: x, y: shortTop, width: bw, height: Math.max(0, shortBot - shortTop),
+          fill: COLORS.shortfall, opacity: 0.7
+        }));
+      }
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH, width: bw, height: laH, fill: COLORS.la, opacity: 0.92 }));
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH - oH, width: bw, height: oH, fill: COLORS.other, opacity: 0.92 }));
+    });
+
+    // x-axis ticks
+    var xCount = Math.min(8, n);
+    for (var k = 0; k < xCount; k++) {
+      var idx = Math.round((n - 1) * (k / Math.max(1, xCount - 1)));
+      var age = startAge + idx;
+      var xt = pad.left + slot * idx + slot / 2;
+      var tx = el('text', {
+        x: xt, y: H - 12, 'text-anchor': 'middle',
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 10.5, fill: COLORS.tick
+      });
+      tx.textContent = 'age ' + age;
+      svg.appendChild(tx);
+    }
+    svg.appendChild(el('line', {
+      x1: pad.left, x2: W - pad.right, y1: pad.top + innerH, y2: pad.top + innerH,
+      stroke: COLORS.line, 'stroke-width': 1
+    }));
+
+    container.innerHTML = '';
+    container.appendChild(svg);
+  }
+
+  function renderCapitalChart(container, rows, opts) {
+    opts = opts || {};
+    if (!container || !rows || !rows.length) return;
+    var W = opts.width || 1428;
+    var H = opts.height || 340;
+    var pad = { top: 28, right: 70, bottom: 36, left: 72 };
+    var innerW = W - pad.left - pad.right;
+    var innerH = H - pad.top - pad.bottom;
+    var n = rows.length;
+    var slot = innerW / n;
+    var bw = slot * 0.68;
+    var startAge = rows[0].age;
+
+    var maxCapital = 0;
+    rows.forEach(function (r) { maxCapital = Math.max(maxCapital, r.totalCapital || 0); });
+    maxCapital *= 1.08;
+    if (maxCapital <= 0) maxCapital = 1;
+
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H, style: 'display:block' });
+
+    var ticks = 5;
+    for (var i = 0; i <= ticks; i++) {
+      var y = pad.top + innerH * (i / ticks);
+      svg.appendChild(el('line', { x1: pad.left, x2: W - pad.right, y1: y, y2: y, stroke: COLORS.grid, 'stroke-width': 1 }));
+      var v = Math.round(maxCapital * (1 - i / ticks));
+      var t = el('text', {
+        x: pad.left - 10, y: y + 4, 'text-anchor': 'end',
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 10.5, fill: COLORS.tick
+      });
+      t.textContent = rTickLabel(v);
+      svg.appendChild(t);
+    }
+
+    rows.forEach(function (r, i) {
+      var x = pad.left + slot * i + (slot - bw) / 2;
+      var scale = function (v) { return (Math.max(0, v) / maxCapital) * innerH; };
+      var laH = scale(r.laBalance || 0);
+      var dH = scale(r.discBalance || 0);
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH, width: bw, height: laH, fill: COLORS.la, opacity: 0.92 }));
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
+    });
+
+    // withdrawal-rate polyline (right axis 0–20%)
+    if (opts.withdrawalRate !== false) {
+      var wrMax = 0.20;
+      var pts = rows.map(function (r, i) {
+        var rate = (r.laBalance + r.laDraw) > 0 ? (r.laDraw / (r.laBalance + r.laDraw)) : 0;
+        var x = pad.left + slot * i + slot / 2;
+        var y = pad.top + innerH * (1 - Math.min(rate, wrMax) / wrMax);
+        return x + ',' + y;
+      }).join(' ');
+      svg.appendChild(el('polyline', {
+        points: pts, fill: 'none', stroke: COLORS.need, 'stroke-width': 1.4, 'stroke-dasharray': '4 4'
+      }));
+      for (var j = 0; j <= 4; j++) {
+        var ry = pad.top + innerH * (j / 4);
+        var rpct = Math.round(wrMax * (1 - j / 4) * 100);
+        var rt = el('text', {
+          x: W - pad.right + 10, y: ry + 4,
+          'font-family': "'JetBrains Mono', monospace", 'font-size': 10.5, fill: COLORS.need
+        });
+        rt.textContent = rpct + '%';
+        svg.appendChild(rt);
+      }
+    }
+
+    // LA-ceiling marker
+    if (opts.laCapAt != null) {
+      var idx = opts.laCapAt - startAge;
+      if (idx >= 0 && idx < n) {
+        var lx = pad.left + slot * idx + slot / 2;
+        svg.appendChild(el('line', {
+          x1: lx, x2: lx, y1: pad.top, y2: pad.top + innerH,
+          stroke: COLORS.need, 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.65
+        }));
+        var lt = el('text', {
+          x: lx + 6, y: pad.top + 14,
+          'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: COLORS.need,
+          'font-weight': 600, 'letter-spacing': '1.4px'
+        });
+        lt.textContent = 'LA CEILING · AGE ' + opts.laCapAt;
+        svg.appendChild(lt);
+      }
+    }
+
+    // Depletion wash
+    if (opts.depleteAt != null) {
+      var didx = opts.depleteAt - startAge;
+      if (didx >= 0 && didx < n) {
+        var dx = pad.left + slot * didx + slot / 2;
+        svg.appendChild(el('rect', {
+          x: dx, y: pad.top, width: (n - didx) * slot, height: innerH,
+          fill: COLORS.shortfall, opacity: 0.55
+        }));
+        var dt = el('text', {
+          x: dx + 8, y: pad.top + innerH - 12,
+          'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: COLORS.need,
+          'font-weight': 600, 'letter-spacing': '1.4px'
+        });
+        dt.textContent = 'DEPLETES · AGE ' + opts.depleteAt;
+        svg.appendChild(dt);
+      }
+    }
+
+    var xCount = Math.min(8, n);
+    for (var k = 0; k < xCount; k++) {
+      var idx2 = Math.round((n - 1) * (k / Math.max(1, xCount - 1)));
+      var age = startAge + idx2;
+      var xt = pad.left + slot * idx2 + slot / 2;
+      var tx = el('text', {
+        x: xt, y: H - 12, 'text-anchor': 'middle',
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 10.5, fill: COLORS.tick
+      });
+      tx.textContent = 'age ' + age;
+      svg.appendChild(tx);
+    }
+    svg.appendChild(el('line', {
+      x1: pad.left, x2: W - pad.right, y1: pad.top + innerH, y2: pad.top + innerH,
+      stroke: COLORS.line, 'stroke-width': 1
+    }));
+
+    container.innerHTML = '';
+    container.appendChild(svg);
+  }
+
+  function renderTimeline(container, events) {
+    var W = 500;
+    var H = 400;
+    var pad = { top: 32, right: 36, bottom: 32, left: 56 };
+    var innerH = H - pad.top - pad.bottom;
+    if (!events || !events.length) { container.innerHTML = ''; return; }
+    var minY = Math.min.apply(null, events.map(function (e) { return e.year; })) - 1;
+    var maxY = Math.max.apply(null, events.map(function (e) { return e.year; })) + 1;
+    var span = Math.max(1, maxY - minY);
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H, style: 'display:block' });
+
+    var spineX = pad.left + 40;
+    svg.appendChild(el('line', {
+      x1: spineX, x2: spineX, y1: pad.top, y2: pad.top + innerH,
+      stroke: COLORS.line, 'stroke-width': 1
+    }));
+
+    events.forEach(function (e) {
+      var frac = (e.year - minY) / span;
+      var y = pad.top + innerH * frac;
+      var pos = (e.amount || 0) >= 0;
+      svg.appendChild(el('circle', {
+        cx: spineX, cy: y, r: 4.5,
+        fill: pos ? tok('--pos', '#2f6b3a') : tok('--neg', '#a64236'),
+        opacity: 0.95
+      }));
+      var yt = el('text', {
+        x: spineX - 14, y: y + 4, 'text-anchor': 'end',
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 11, fill: tok('--ink', '#1a1f26')
+      });
+      yt.textContent = e.year;
+      svg.appendChild(yt);
+      var lt = el('text', {
+        x: spineX + 14, y: y - 2,
+        'font-family': "'Fraunces', serif", 'font-size': 16, 'font-weight': 300, fill: tok('--ink', '#1a1f26')
+      });
+      lt.textContent = e.label || 'Capital event';
+      svg.appendChild(lt);
+      var sign = (e.amount || 0) > 0 ? '+' : '−';
+      var abs = Math.abs(e.amount || 0);
+      var v = abs >= 1000000 ? 'R ' + (abs / 1000000).toFixed(2) + 'm' : 'R ' + Math.round(abs / 1000) + 'k';
+      var at = el('text', {
+        x: spineX + 14, y: y + 15,
+        'font-family': "'JetBrains Mono', monospace", 'font-size': 11.5,
+        fill: pos ? tok('--pos', '#2f6b3a') : tok('--neg', '#a64236')
+      });
+      at.textContent = sign + ' ' + v + ' · ' + (e.forWhom || 'Household');
+      svg.appendChild(at);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(svg);
+  }
+
+  // Slice rows for each chart so we don't paint empty depleted years past the horizon.
+  function chartSlice(extraYears) {
+    if (!horizon || !rows.length) return rows;
+    var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
+    return rows.filter(function (r) { return r.age <= endAge; });
+  }
+
+  var ans = document.getElementById('chart-answer');
+  if (ans) renderIncomeChart(ans, chartSlice(3), {
+    width: 1428, height: 300,
+    needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
+  });
+
+  var pc = document.getElementById('chart-projection');
+  if (pc) renderIncomeChart(pc, chartSlice(6), {
+    width: 1428, height: 480,
+    needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
+  });
+
+  var cap = document.getElementById('chart-capital');
+  if (cap) renderCapitalChart(cap, chartSlice(6), {
+    width: 1428, height: 440,
+    laCapAt: proj.laCapHitAt,
+    depleteAt: proj.depletesAt,
+    withdrawalRate: true
+  });
+
+  if (!hideCompare && plan.baseline) {
+    var bel = document.getElementById('compare-baseline');
+    if (bel) renderIncomeChart(bel, chartSlice(3), {
+      width: 700, height: 180,
+      needBase: ((plan.baseline.monthlyNeed != null ? plan.baseline.monthlyNeed : plan.monthlyNeed) || 0) * 12 + (plan.annualLumpSums || 0)
+    });
+    var sel = document.getElementById('compare-scenario');
+    if (sel) renderIncomeChart(sel, chartSlice(3), {
+      width: 700, height: 180,
+      needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
+    });
+  }
+
+  // ---- 12. Auto-print after first paint ---------------------------------
+  // Suppressed when the URL carries ?noprint, useful while iterating.
+  if (!new URLSearchParams(location.search).has('noprint')) {
+    window.addEventListener('load', function () {
+      setTimeout(function () { try { window.print(); } catch (e) {} }, 600);
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

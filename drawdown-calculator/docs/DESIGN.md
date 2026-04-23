@@ -1,6 +1,6 @@
 # Design
 
-The visual system for the drawdown calculator. These choices are deliberate — don't drift from them without a conversation.
+The visual system for the drawdown calculator. These choices are deliberate — don't drift from them without a conversation. The sibling `retirement_drawdown_report.html` (the editorial client-report export) shares this token system; if you change a token in one file, mirror it in the other.
 
 ## Philosophy
 
@@ -189,6 +189,15 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 - Don't reintroduce a localStorage-restored app state. Refresh always lands on State 1 — that's the adviser's reset between client meetings.
 - Don't hide the shared chrome outside of State 1.
 - Don't move `#print-summary` back outside `#state-single`. It needs to be a child of state-single so it only shows in single mode on screen; print still works because `@media print` forces state-single visible.
+- Don't add a charting library to `retirement_drawdown_report.html`. Its three chart renderers are inline SVG by design — print fidelity at A4 is the reason. Chart.js is the calculator's dep, not the report's.
+
+## The export-report sibling
+
+`retirement_drawdown_report.html` is a separate single-file deliverable that produces the editorial client PDF. It mirrors this calculator's `:root` tokens and uses the same Fraunces / Inter Tight / JetBrains Mono families. Slide layout is fixed (12 always + 2 conditional), 1588 × 1123 px design size, A4 landscape, one slide per printed page.
+
+The slide vocabulary — eyebrow + Roman numeral, Fraunces 52–92px headlines with italic emphasis, gold-underline once per slide, navy outcome cells, paper-warm cards with hairline borders, tabular mono figures everywhere — is identical to the calculator's State 2 and 3. If you reach for a new visual primitive in either file, check the other to see whether it already exists.
+
+See `docs/ARCHITECTURE.md` for the snapshot contract that flows between the two files, the binder pipeline, and the SVG chart renderers.
 
 ## References
 

@@ -6,6 +6,8 @@ This file is read first by Claude Code on every session. It tells you what this 
 
 A standalone HTML retirement drawdown calculator for Simple Wealth (Pty) Ltd, a South African authorised financial services provider (FSP 50637). One file, `retirement_drawdown.html`, opens by double-click, prints to PDF cleanly, and is used by the adviser (Pierre) with clients in real meetings.
 
+A second file, `retirement_drawdown_report.html`, is the **editorial client-report export** — a 12-slide A4-landscape PDF the adviser hands the client after the meeting. The calculator's "Export report" button serialises plan + projection into `localStorage['sw-drawdown-snapshot']` and opens the report file in a new tab; the report does NO math, only formatting and rendering.
+
 The calculator models a two-spouse South African household with living annuities plus discretionary (taxable) portfolios. It projects year-by-year to the youngest spouse's age 100, applying SARS 2026/27 income tax with bracket creep, CGT on discretionary gains, and the legislated 2.5%–17.5% LA withdrawal band. It supports auto-top-up from discretionary, LA boosting to the ceiling, and one-off capital inflows (property sales, inheritances).
 
 The target audience for this code is whoever (adviser or Claude) needs to update it in February each year when SARS tables change, or add a feature the adviser decides is worth having. Anything not strictly necessary to that goal has been resisted by design.
@@ -77,7 +79,8 @@ Both must pass before any change ships. See `tests/README.md`.
 
 ## File inventory
 
-- `retirement_drawdown.html` — the deliverable. This is the product.
+- `retirement_drawdown.html` — the calculator. Live tool used in client meetings.
+- `retirement_drawdown_report.html` — the editorial client-report export. Single self-contained file, opens via the calculator's "Export report" button. Reads `localStorage['sw-drawdown-snapshot']`, renders 12 A4-landscape slides, auto-prints. No math — purely presentational.
 - `README.md` — human-readable project overview, for GitHub.
 - `CLAUDE.md` — this file.
 - `docs/ARCHITECTURE.md` — code structure in detail.
@@ -103,6 +106,29 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 ## Session log
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
+
+### Session 4 — 2026-04-23 (export-report-redesign)
+
+**Built / changed** on branch `export-report-redesign`:
+- **New deliverable: `retirement_drawdown_report.html`.** Single self-contained file (~2000 lines, no build, no external runtime deps beyond Google Fonts). 12 fixed slides (cover, answer, household, assumptions, four levers, projection, capital, Y1 tax, year-table, methodology, compliance, next steps) plus 2 conditional slides (capital events when `plan.capitalEvents.length > 0`; compare when `plan.baseline != null`). A4 landscape, 1588 × 1123 px design size, one slide per printed page via `@page { size: A4 landscape; margin: 0 }`.
+- **Three inline-SVG chart renderers** in the report file: `renderIncomeChart` (stacked bars LA + disc + other vs dashed coral need line + coral-pale shortfall wash), `renderCapitalChart` (stacked balances + dashed withdrawal-rate polyline on right axis 0–20% + LA-ceiling dashed vertical + depletion wash), `renderTimeline` (vertical spine for the events slide). Vanilla SVG, no Chart.js — keeps print output crisp and avoids dragging the calculator's chart dependency into the report.
+- **Snapshot serialisation in the calculator.** New `buildReportSnapshot()` reads inputs + runs `project()` and emits `{schemaVersion, plan, projection}`. The plan side carries `{familyName, preparedFor, preparedOn, adviser, spouses, monthlyNeed, annualLumpSums, returnPct, cpiPct, autoTopUp, capitalEvents, baseline}`. The projection side carries pre-computed `rows[]` in the report's expected shape, plus derived milestones `{sustainableTo, depletesAt, laCapHitAt, discExhaustsAt}` and per-spouse Y1 tax. Per-spouse "other income" is filtered to streams active in year 1 (`spouseAge ∈ [startAge, startAge+duration)`) and converted to today's-money monthly. Capital events: `year (years-from-now) → year (absolute = currentYear + ev.year - 1)`, amount in today's money.
+- **Export report button** in State 2's canvas-head action cluster (between the Real|Nominal segmented and the existing Print button). On click: `localStorage.setItem('sw-drawdown-snapshot', ...)`, `window.open('retirement_drawdown_report.html', '_blank')`. The report auto-prints on load (suppressed with `?noprint` for iteration). Empty-state banner shows if the snapshot is missing.
+
+**Architectural decisions**
+- **Report does NO math.** The calculator's `project()` is the single source of truth — its output is serialised verbatim into the snapshot, and the report formats and renders. This honours the "math is auditable" rule (one engine, one test suite) and means SARS-table updates only need to touch the calculator. The prototype's `data.js` shipped a simplified projection; we deliberately do not use it.
+- **Two single files, not a build.** Both deliverables stay double-clickable, offline, no bundler. The report's only external resource is Google Fonts (with system-font fallback) and the calculator's only external resource remains Chart.js from CDN. The prototype's split into `report.css` + `slides.css` + `binder.js` + `charts.js` + `deck-stage.js` was inlined into one HTML file.
+- **No `deck-stage` web component.** The prototype shipped a keyboard-nav + scaling component for dev preview. Pierre's workflow is open → print → close, so the report ships with a simple vertical scroll instead. Removed ~620 lines of optional chrome.
+- **localStorage is the snapshot transport.** Same pattern as the prototype's design intent. Survives the new-tab open. Stale snapshots from prior exports get overwritten on each Export click. No persistence across browser profile clears (acceptable — the calculator can always re-export).
+- **Engine untouched.** `project()`, `solveTopUp`, `stepPerson`, tax helpers, `solveLARate`: all unchanged. Tests confirm 77/77 Python + 16/16 JS still pass.
+
+**Follow-ups**
+- Browser walkthrough across Chrome / Safari / Firefox: verify all 12 slides render correctly with realistic numbers, conditional slides drop when absent, and Cmd+P print preview produces clean A4 landscape pages. Safari is documented as misreporting `@page size: A4 landscape` — Chrome/Edge are the supported export targets.
+- Capital-event labels: the calculator's `eventsStore` items have no `label` field. Snapshot synthesises a generic "Capital event" string. If Pierre wants editable labels, add a label input next to the existing year/amount/spouse on the events ledger.
+- Outflow events: the calculator only supports positive `amountPV`. The report's events ledger / timeline already handles negative amounts (signed colour, `−` prefix), so adding outflows is a one-line tweak in the calc's events form if desired.
+- "Other income" labels on the household slide: comes through from `incomeStore[i].label`. Already user-editable.
+- The prototype's compare slide showed extra meta rows (LA draw rate · yr 1, Disc draw · yr 1) with inline italic deltas. Trimmed to monthly need + return·CPI to keep the slide honest with what the snapshot carries (the calc only stores a deep-clone of `project()` for the baseline, no intermediate aggregates). Could be re-introduced by enriching the baseline payload.
+- Auto-print fires 600 ms after load to give the SVG charts time to paint. If clients on slower machines see blank charts in the print preview, bump the delay or wait on `requestAnimationFrame`.
 
 ### Session 3 — 2026-04-23 (PR 3)
 
