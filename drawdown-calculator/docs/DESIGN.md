@@ -45,6 +45,7 @@ All colours, radii, and typography are CSS variables in `:root`. Change the pale
   --amber-pale:#f5ebd1;     /* Warn callout wash */
   --pos:       #2f6b3a;
   --neg:       #a64236;
+  --pink:      #d27a88;     /* Tax slice on the income chart */
 }
 ```
 
@@ -87,7 +88,7 @@ The app is a single HTML file; state is driven by a `data-app-state` attribute o
 | Single | `#state-single` | Plan-bar (collapsed summary), canvas head (editorial headline + action cluster), chart card, outcome strip, narrative, canvas footer |
 | Compare | `#state-compare` | Compact head, baseline vs scenario two-up cards with delta chips |
 
-A **shared chrome** block (`#shared-chrome`) holds the per-spouse drawdown levers and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`).
+A **shared chrome** block (`#shared-chrome`) holds the Scenario-adjustments block (Return slider, monthly need, annual lump sums, collapsible Other-income and Capital-events ledgers), the per-spouse drawdown levers, and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`). Scenario-adjustments inputs are `-c`-suffixed mirrors of State 1's setup inputs; a two-way sync in the IIFE keeps both sides aligned. `project()` reads from the canonical IDs only — the mirror is purely a UX affordance so an adviser can strategise from Compare without bouncing back to Empty.
 
 Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-hidden`. The `setAppState(next)` helper does **not** persist — every page refresh resets to State 1 (`appState = 'empty'`), so an adviser opening the calculator at the start of a meeting always lands on the blank setup view.
 
@@ -133,9 +134,9 @@ Chart.js only — no plugins from npm, no other libraries. Two inline plugins ar
   2. **Disc** — gold `#b8893c`, disc draw at gross (CGT is a small fraction, lumped into the household total).
   3. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
   4. **Target need** — invisible `line` dataset (transparent border/fill) retained as the per-year data carrier for both plugins and as the legend toggle target.
-  5. **Tax** — mute grey `#7a8292`, stacks on top of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; grey cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops.
+  5. **Tax** — dusty rose `--pink` `#d27a88`, stacks on top of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
   - Tax apportionment (per year): `laTax = tax × la/(la + other)`, `otherTax = tax × other/(la + other)`. Disc is treated as tax-free at the bar level. Bar total = gross. See `incomeBarSeries()` in the engine.
-  - `targetBoxPlugin` (afterDatasetsDraw) draws the target as a **stepped top line**: per-year horizontal segments spanning the full x-slot (adjacent years touch at the slot boundary) joined by vertical step segments only where `target[i+1] !== target[i]`. No left/right sides, no bottom edge, no hairlines falling to the x-axis. Real mode → flat line; Nominal mode → staircase.
+  - `targetBoxPlugin` (afterDatasetsDraw) draws the target as a **solid bold stepped top line** (coral `#a04438`, 2.5px, no dash): per-year horizontal segments spanning the full x-slot (adjacent years touch at the slot boundary) joined by vertical step segments only where `target[i+1] !== target[i]`. No left/right sides, no bottom edge, no hairlines falling to the x-axis. Real mode → flat line; Nominal mode → staircase. Previously dashed + 1px — bumped for legibility from 2m across a meeting table.
   - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between the colored-bar-top and the need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label. Shortfall is detected by `net < target`, correctly now that bars represent net.
 - **Capital chart**: stacked LA + Disc bars with a secondary-axis dashed coral withdrawal-rate line. New tokens applied (teal unchanged, gold shifts to `#b8893c`, coral shifts to `#a04438`).
 - **Table view**: the existing year-by-year table, with per-spouse clamp flags in coral (▲ cap) / green (▼ floor).
