@@ -1596,6 +1596,16 @@
     font-family: var(--serif);
     font-weight: 300;
   }
+  /* Wrapper for the per-card mini income chart in State 3. Fixed height so
+     both cards line up; the canvas inside is responsive width. */
+  .compare-mini-chart {
+    height: 180px;
+    margin: 14px 0 16px;
+    position: relative;
+  }
+  .compare-mini-chart canvas { display: block; width: 100% !important; height: 180px !important; }
+  .compare-card.baseline .compare-mini-chart { opacity: 0.55; }
+
   .compare-meta {
     display: flex;
     flex-direction: column;
@@ -1723,13 +1733,14 @@
     <div class="empty-titleplate">
       <div class="eyebrow">Simple Wealth &middot; Retirement Drawdown</div>
       <h1 class="headline empty-title">
-        A retirement income plan for
+        A retirement income plan for the
         <span id="hl-family"
               class="editable"
               contenteditable="true"
               role="textbox"
-              aria-label="Family name"
-              data-placeholder="the &mdash;&mdash;&mdash; family">the Mitchell family</span>
+              aria-label="Family surname"
+              data-placeholder="&mdash;&mdash;&mdash;"></span>
+        family.
       </h1>
       <div class="empty-date num">Prepared <span id="empty-date-val">—</span></div>
     </div>
@@ -1739,7 +1750,7 @@
       <div class="empty-spouse">
         <div class="empty-steplabel"><span class="rom">I.</span> Spouse A</div>
         <div class="empty-nameage">
-          <input type="text" id="hp-name-A" class="empty-name-input" value="Marilyn" placeholder="First name" maxlength="40" aria-label="Spouse A name">
+          <input type="text" id="hp-name-A" class="empty-name-input" value="" placeholder="Spouse A" maxlength="40" aria-label="Spouse A name">
           <span class="empty-age-wrap">
             age <input type="number" id="hp-age-A" class="empty-age-input" value="65" min="55" max="100" step="1" aria-label="Spouse A age">
           </span>
@@ -1764,7 +1775,7 @@
       <div class="empty-spouse">
         <div class="empty-steplabel"><span class="rom">II.</span> Spouse B</div>
         <div class="empty-nameage">
-          <input type="text" id="hp-name-B" class="empty-name-input" value="James" placeholder="First name" maxlength="40" aria-label="Spouse B name">
+          <input type="text" id="hp-name-B" class="empty-name-input" value="" placeholder="Spouse B" maxlength="40" aria-label="Spouse B name">
           <span class="empty-age-wrap">
             age <input type="number" id="hp-age-B" class="empty-age-input" value="65" min="55" max="100" step="1" aria-label="Spouse B age">
           </span>
@@ -1985,6 +1996,9 @@
       <button type="button" class="series-toggle" id="tog-inc-other" data-series="other" aria-pressed="true">
         <span class="swatch" style="background:#38495b;"></span>Other income
       </button>
+      <button type="button" class="series-toggle" id="tog-inc-tax" data-series="tax" aria-pressed="true">
+        <span class="swatch" style="background:#7a8292;"></span>Tax
+      </button>
       <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#a04438;">
         <span class="swatch line" style="color:#a04438;"></span>Target need
       </button>
@@ -2067,6 +2081,7 @@
         </div>
         <div class="compare-bigval">age <span id="base-age" class="num-italic">—</span> <span class="unit">&middot; <span id="base-years" class="num">—</span> years</span></div>
         <div class="compare-sub" id="base-sub">—</div>
+        <div class="compare-mini-chart"><canvas id="cmp-chart-baseline" role="img" aria-label="Baseline income projection chart."></canvas></div>
         <div class="compare-meta" id="base-meta"></div>
       </div>
       <div class="compare-card scenario" id="compare-scenario">
@@ -2076,6 +2091,7 @@
         </div>
         <div class="compare-bigval">age <span id="cmp-age" class="num-italic">—</span> <span class="unit">&middot; <span id="cmp-years" class="num">—</span> years</span></div>
         <div class="compare-sub" id="cmp-sub">—</div>
+        <div class="compare-mini-chart"><canvas id="cmp-chart-scenario" role="img" aria-label="Scenario income projection chart."></canvas></div>
         <div class="compare-meta" id="cmp-meta"></div>
       </div>
     </div>
@@ -3109,11 +3125,20 @@
 
   // ===== Income chart state & builder =====
   var incomeChart = null;
-  var incomeSeriesVisible = { la: true, disc: true, other: true, target: true };
+  // State 3 Compare: one mini income chart per card. Same tax apportionment
+  // and stepped target line as the main chart; no tooltips, no y-ticks.
+  var cmpChartBaseline = null;
+  var cmpChartScenario = null;
+  var incomeSeriesVisible = { la: true, disc: true, other: true, tax: true, target: true };
 
   // Chart.js plugin: per-year dashed coral box outlines representing the income target.
-  // Each year gets a rectangle from y=0 to y=target[i], spanning the bar slot's width.
-  // The stacked income bars draw on top, so any unfilled portion of the box reads as a shortfall.
+  // Stepped target line: a single dashed coral polyline along the TOPS of each
+  // year's target level. Each year's horizontal segment spans its full x-slot
+  // (no inset) so adjacent years touch at the slot boundary; vertical step
+  // segments appear only where target[i+1] differs from target[i]. No left/
+  // right sides, no bottom edge — the line reads as a continuous staircase
+  // running along the top of the would-be target boxes. In real mode the
+  // target is flat so the staircase collapses to a single horizontal line.
   var targetBoxPlugin = {
     id: 'targetBox',
     afterDatasetsDraw: function(chart){
@@ -3125,23 +3150,40 @@
       var yScale = chart.scales.y;
       var xScale = chart.scales.x;
       var N = chart.data.labels.length;
-      var y0 = yScale.getPixelForValue(0);
       ctx.save();
       ctx.strokeStyle = '#a04438';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
+
+      var prevYTop = null;                // pixel y of the previous step's top
+      ctx.beginPath();
       for (var i = 0; i < N; i++){
         var need = target.data[i] || 0;
-        if (need <= 0) continue;
+        if (need <= 0){
+          // Zero-target year — break the path so we don't draw across a gap.
+          prevYTop = null;
+          continue;
+        }
         var x = xScale.getPixelForValue(i);
         var xNext = (i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right;
         var slot = xNext - x;
-        var pad = slot * 0.18;          // mirror the bar inset so box aligns with bar edges
-        var boxX = x - slot / 2 + pad;
-        var boxW = slot - 2 * pad;
+        var left = x - slot / 2;          // full-slot edges so adjacent years touch
+        var right = x + slot / 2;
         var yTop = yScale.getPixelForValue(need);
-        ctx.strokeRect(boxX, yTop, boxW, y0 - yTop);
+
+        if (prevYTop !== null){
+          // Adjacent step: vertical segment at the slot boundary if level changed,
+          // then horizontal along the new top. If yTop === prevYTop the lineTo
+          // is a no-op visually but keeps the path continuous.
+          ctx.lineTo(left, yTop);
+          ctx.lineTo(right, yTop);
+        } else {
+          ctx.moveTo(left, yTop);
+          ctx.lineTo(right, yTop);
+        }
+        prevYTop = yTop;
       }
+      ctx.stroke();
       ctx.restore();
     }
   };
@@ -3196,24 +3238,44 @@
     }
   };
 
-  // Aggregate household LA/Disc/Other draws per year in the active display mode.
+  // Aggregate household LA/Disc/Other draws per year, in display mode, with the
+  // household tax bite carved out of LA + Other so the colored stack reads as
+  // NET-to-bank and the Tax slice on top fills the bar back up to gross.
+  //
+  // Tax apportionment: household tax is attributed to LA + Other in proportion
+  // to their gross share. Disc draws are largely tax-free at marginal rates
+  // (only the embedded CGT inclusion contributes), so we leave Disc at gross.
+  // The small CGT-attribution slip lands on LA + Other; the bar TOTAL still
+  // equals gross income, and the target line still meets the top of the
+  // colored portion when the auto-top-up solver is on-target.
   function incomeBarSeries(p){
     var years = p.years;
     var cpi = p.cpi;
     var realMode = (mode === 'real');
-    var la = [], disc = [], other = [];
+    var taxSeries = (realMode ? p.real.tax : p.nominal.tax) || [];
+    var la = [], disc = [], other = [], tax = [];
     for (var i = 0; i < years; i++){
       var laNom = (p.table.laA_draw[i] || 0) + (p.table.laB_draw[i] || 0);
       var discNom = (p.table.discA_draw[i] || 0) + (p.table.discB_draw[i] || 0);
       var otherNom = (p.table.otherA[i] || 0) + (p.table.otherB[i] || 0);
-      if (realMode){
-        var d = Math.pow(1 + cpi, i);
-        la.push(laNom / d); disc.push(discNom / d); other.push(otherNom / d);
-      } else {
-        la.push(laNom); disc.push(discNom); other.push(otherNom);
+      var d = realMode ? Math.pow(1 + cpi, i) : 1;
+      var laDisp = laNom / d;
+      var discDisp = discNom / d;
+      var otherDisp = otherNom / d;
+      var taxDisp = taxSeries[i] || 0;
+
+      var taxableBase = laDisp + otherDisp;
+      var laShare = 0, otherShare = 0;
+      if (taxableBase > 0){
+        laShare = taxDisp * (laDisp / taxableBase);
+        otherShare = taxDisp * (otherDisp / taxableBase);
       }
+      la.push(Math.max(0, laDisp - laShare));
+      disc.push(discDisp);
+      other.push(Math.max(0, otherDisp - otherShare));
+      tax.push(taxDisp);
     }
-    return { la: la, disc: disc, other: other };
+    return { la: la, disc: disc, other: other, tax: tax };
   }
 
   function buildIncomeChart(p){
@@ -3228,10 +3290,12 @@
       incomeChart.data.datasets[1].data = bars.disc;
       incomeChart.data.datasets[2].data = bars.other;
       incomeChart.data.datasets[3].data = targetArr;
+      incomeChart.data.datasets[4].data = bars.tax;
       incomeChart.data.datasets[0].hidden = !incomeSeriesVisible.la;
       incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.disc;
       incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.other;
       incomeChart.data.datasets[3].hidden = !incomeSeriesVisible.target;
+      incomeChart.data.datasets[4].hidden = !incomeSeriesVisible.tax;
       incomeChart.update('none');
       return;
     }
@@ -3255,7 +3319,13 @@
           { type: 'line', label: 'Target need', data: targetArr,
             borderColor: 'transparent', backgroundColor: 'transparent',
             tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0, order: 0,
-            hidden: !incomeSeriesVisible.target }
+            hidden: !incomeSeriesVisible.target },
+          // Tax slice: stacks on top of LA/Disc/Other so colored portion = net to bank,
+          // tax cap = household tax. Bar TOTAL = gross income. Mute gray reads as
+          // "this isn't yours" without competing with the source palette.
+          { type: 'bar', label: 'Tax', data: bars.tax,
+            backgroundColor: '#7a8292', stack: 'income', borderWidth: 0, order: -1,
+            hidden: !incomeSeriesVisible.tax }
         ]
       },
       options: {
@@ -3285,6 +3355,82 @@
       },
       plugins: [targetBoxPlugin, shortfallShadingPlugin]
     });
+  }
+
+  // State 3 Compare: mini income chart per card. Same stacked-bar +
+  // tax-slice + stepped target line vocabulary as the main chart, but
+  // smaller, tooltipless, and without y-ticks. `which` is 'baseline' or
+  // 'scenario'; `p` is the projection for that side (the locked baseline
+  // snapshot for 'baseline', the live project() for 'scenario').
+  function buildCompareMiniChart(which, p){
+    var canvasId = (which === 'baseline') ? 'cmp-chart-baseline' : 'cmp-chart-scenario';
+    var ctx = document.getElementById(canvasId);
+    if (!ctx || !p || !p.years) return;
+    var ref = (which === 'baseline') ? cmpChartBaseline : cmpChartScenario;
+
+    var series = (mode === 'real') ? p.real : p.nominal;
+    var bars = incomeBarSeries(p);
+    var targetArr = series.target.slice();
+
+    if (ref){
+      ref.data.labels = p.labels;
+      ref.data.datasets[0].data = bars.la;
+      ref.data.datasets[1].data = bars.disc;
+      ref.data.datasets[2].data = bars.other;
+      ref.data.datasets[3].data = targetArr;
+      ref.data.datasets[4].data = bars.tax;
+      ref.update('none');
+      return;
+    }
+
+    var newChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: p.labels,
+        datasets: [
+          { type: 'bar', label: 'LA', data: bars.la, backgroundColor: '#2a6b6b',
+            stack: 'cmp', borderWidth: 0, order: 3 },
+          { type: 'bar', label: 'Disc', data: bars.disc, backgroundColor: '#b8893c',
+            stack: 'cmp', borderWidth: 0, order: 2 },
+          { type: 'bar', label: 'Other', data: bars.other, backgroundColor: '#38495b',
+            stack: 'cmp', borderWidth: 0, order: 1 },
+          { type: 'line', label: 'Target', data: targetArr,
+            borderColor: 'transparent', backgroundColor: 'transparent',
+            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0, order: 0 },
+          { type: 'bar', label: 'Tax', data: bars.tax, backgroundColor: '#7a8292',
+            stack: 'cmp', borderWidth: 0, order: -1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        },
+        scales: {
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { display: false },
+            grid: { display: false },
+            border: { display: false }
+          },
+          x: {
+            stacked: true,
+            ticks: {
+              font: { size: 9, family: 'JetBrains Mono, monospace' },
+              color: '#7a8292', maxTicksLimit: 6
+            },
+            grid: { display: false }
+          }
+        }
+      },
+      plugins: [targetBoxPlugin, shortfallShadingPlugin]
+    });
+
+    if (which === 'baseline') cmpChartBaseline = newChart;
+    else cmpChartScenario = newChart;
   }
 
   // ===== Year-by-year table =====
@@ -3756,7 +3902,12 @@
     updateNarrative(p, an);
     updateCanvasFoot();
     syncTopupPill();
-    if (appState === 'compare') updateCompareCards(p);
+    if (appState === 'compare'){
+      updateCompareCards(p);
+      // Both sides: baseline reads from the locked snapshot, scenario from the live run.
+      if (baseline) buildCompareMiniChart('baseline', baseline);
+      buildCompareMiniChart('scenario', p);
+    }
   }
 
   // ===== Solve LA rates for target after-tax income =====
