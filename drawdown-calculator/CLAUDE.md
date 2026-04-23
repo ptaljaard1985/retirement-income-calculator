@@ -107,6 +107,19 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 8 — 2026-04-23 (fix/income-bar-apportionment)
+
+**Built / changed** on branch `fix/income-bar-apportionment` — presentation-only fix in `incomeBarSeries()`:
+- **Income-bar tax apportionment now includes Disc.** The adviser spotted that in shortfall years the chart's coral gap between bar-top and target line was smaller than the real shortfall. Root cause: `incomeBarSeries()` computed `taxableBase = laDisp + otherDisp` and pushed `disc.push(discDisp)` at gross — meaning the full household tax (which already includes CGT on disc gains) was apportioned only across LA and Other, and Disc carried zero share. The colored stack therefore equalled `laGross + discGross + otherGross − (laShare + otherShare)` = `gross − tax + discShare`, sitting ABOVE the true net-to-bank by the disc CGT contribution. Fixed by changing `taxableBase` to `laDisp + discDisp + otherDisp` and subtracting each source's proportional share. Bar total now equals gross exactly; colored sum equals true net; on-target years land the colored top on the target line; shortfall years show the real shortfall in the coral wash.
+- **Docs updated** to describe the three-way apportionment: ARCHITECTURE.md (Tax apportionment bullet), DESIGN.md (Income chart dataset 2 renamed "Disc (net)" + apportionment formula in the tokens section).
+
+**Architectural decisions**
+- **Three-way apportionment over CGT-specific attribution.** Considered splitting the household tax into income-tax and CGT components and attributing CGT specifically to Disc, but `project()` only exposes a single `nominal.tax[i]` / `real.tax[i]` scalar per year. Breaking that apart would widen the engine's contract for a presentation concern. Proportional three-way apportionment is a ~3-line change in `incomeBarSeries()` with the correct visual invariants (colored = net = target when on-target).
+- **Engine untouched.** 77/77 Python + 16/16 JS pass. The projection, tax, and solver code are unchanged; this is a presentation bug in a chart helper.
+
+**Follow-ups**
+- The Y1 summary card and tax panel already read from `p.taxA` / `p.taxB` directly (not the bar series), so they're unaffected by this fix. No check needed there.
+
 ### Session 7 — 2026-04-23 (feat/next-iteration)
 
 **Built / changed** on branch `feat/next-iteration` — all UI / copy, no engine changes:

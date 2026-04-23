@@ -3382,14 +3382,21 @@
       var otherDisp = otherNom / d;
       var taxDisp = taxSeries[i] || 0;
 
-      var taxableBase = laDisp + otherDisp;
-      var laShare = 0, otherShare = 0;
-      if (taxableBase > 0){
-        laShare = taxDisp * (laDisp / taxableBase);
-        otherShare = taxDisp * (otherDisp / taxableBase);
+      // Apportion household tax (income tax + CGT) across all three sources in
+      // proportion to their gross share. Colored bar sum then equals true
+      // net-to-bank (gross − tax); the Tax cap restores the stack to gross.
+      // On-target years: colored sum meets the target line exactly. Shortfall
+      // years: the gap between colored top and target line equals the real
+      // shortfall.
+      var grossBase = laDisp + discDisp + otherDisp;
+      var laShare = 0, discShare = 0, otherShare = 0;
+      if (grossBase > 0){
+        laShare = taxDisp * (laDisp / grossBase);
+        discShare = taxDisp * (discDisp / grossBase);
+        otherShare = taxDisp * (otherDisp / grossBase);
       }
       la.push(Math.max(0, laDisp - laShare));
-      disc.push(discDisp);
+      disc.push(Math.max(0, discDisp - discShare));
       other.push(Math.max(0, otherDisp - otherShare));
       tax.push(taxDisp);
     }

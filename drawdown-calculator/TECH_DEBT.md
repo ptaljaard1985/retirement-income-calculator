@@ -34,6 +34,10 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 **Why:** The rule transitions `max-height` between `0` (collapsed) and effectively `none` (open). CSS cannot interpolate from `0` to `none`, so the Scenario-adjustments sub-sections snap open instead of sliding. Cosmetic only — the feature works.
 **Cleanup:** Either (a) set an explicit numeric max-height like `1200px` on the open class, or (b) measure `scrollHeight` in JS and set `max-height: {N}px` on toggle. Option (b) is nicer but adds ~10 lines of JS.
 
+## Closed (session 8)
+
+- **Income-bar colored stack overshot true net-to-bank.** `incomeBarSeries()` excluded Disc from the tax apportionment and pushed it at gross. Because household tax already includes CGT on disc gains, the colored stack was `gross − tax + discShare` (too high by the disc CGT). Real shortfall years under-reported the gap. Fixed by apportioning tax across all three sources proportionally. Bar total now equals gross exactly; colored sum equals true net.
+
 ## Closed (session 7)
 
 - **Income-legend routing bug** (Session 5 follow-up): `LA draw` / `Discretionary` / `Other income` pills in the income legend were silently routed through `CAPITAL_KEYS` because of overlapping `data-series` values. Fixed by discriminating on the parent legend container (`btn.closest('#legend-income')`) in the `.series-toggle` click handler at `retirement_drawdown.html:4462+`.
