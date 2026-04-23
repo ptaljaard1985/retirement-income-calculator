@@ -1895,6 +1895,7 @@
         <button id="btn-real" role="tab" aria-selected="false">Real</button>
         <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
       </div>
+      <button type="button" class="btn ghost no-print" id="btn-export-report" title="Open the editorial client report in a new tab">Export report &rarr;</button>
       <button type="button" class="btn ghost no-print" onclick="window.print()">Print &darr;</button>
       <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
@@ -4191,6 +4192,212 @@
   });
   var btnEditPlanCompare = document.getElementById('btn-edit-plan-compare');
   if (btnEditPlanCompare) btnEditPlanCompare.addEventListener('click', function(){ setAppState('empty'); });
+
+  // ===== Export report =====
+  // Serialise the current plan + projection into the shape the editorial
+  // client report (retirement_drawdown_report.html) consumes. The report
+  // does NO math — every figure on every slide is computed here from
+  // project()'s output and written verbatim. If a number looks wrong in the
+  // PDF, fix it in the calculator's project(), not in the report binder.
+  function buildReportSnapshot(){
+    var p = project();
+    var startYear = (new Date()).getFullYear();
+    var ageA = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
+    var ageB = parseInt(document.getElementById('hp-age-B').value, 10) || 65;
+
+    // Per-spouse "other income" active in year 1, in today's-money monthly terms.
+    function otherStreamsForSpouse(suffix, ageY1){
+      var store = (typeof readIncomes === 'function') ? readIncomes() : [];
+      return store.filter(function(it){
+        return it.spouse === suffix
+          && ageY1 >= it.startAge
+          && ageY1 < (it.startAge + it.duration);
+      }).map(function(it){
+        return { kind: it.label || 'Other income', monthly: (it.amountPV || 0) / 12 };
+      });
+    }
+
+    var spouses = [
+      {
+        name: getName('A'),
+        age: ageA,
+        laBalance: parseCurrency('hp-la-A'),
+        discretionary: parseCurrency('hp-disc-A'),
+        discBaseCost: parseCurrency('hp-base-A'),
+        otherIncome: otherStreamsForSpouse('A', ageA)
+      },
+      {
+        name: getName('B'),
+        age: ageB,
+        laBalance: parseCurrency('hp-la-B'),
+        discretionary: parseCurrency('hp-disc-B'),
+        discBaseCost: parseCurrency('hp-base-B'),
+        otherIncome: otherStreamsForSpouse('B', ageB)
+      }
+    ];
+
+    // Capital events: convert {year (years from now), amountPV, spouse} →
+    // {year (absolute), label, forWhom, amount (today's money)}.
+    var rawEvents = (typeof readEvents === 'function') ? readEvents() : [];
+    var capitalEvents = rawEvents.slice().sort(function(a, b){ return a.year - b.year; }).map(function(ev){
+      return {
+        year: startYear + ev.year - 1,
+        label: 'Capital event',
+        forWhom: getName(ev.spouse),
+        amount: ev.amountPV || 0
+      };
+    });
+
+    // Derive horizon / depletion / cap / exhaust ages from any projection.
+    function deriveMilestones(pp){
+      var rs = pp.nominal && pp.nominal.total ? pp.nominal.total : [];
+      var ts = pp.nominal && pp.nominal.target ? pp.nominal.target : [];
+      var laBal = pp.table || {};
+      var sustainableTo = null, depletesAt = null, laCapHitAt = null, discExhaustsAt = null;
+      var n = rs.length;
+      for (var i = 0; i < n; i++){
+        var age = pp.startAge + i;
+        var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;
+        if (!shortfall) sustainableTo = age;
+        var laTotal = (laBal.laA_bal && laBal.laA_bal[i] || 0) + (laBal.laB_bal && laBal.laB_bal[i] || 0);
+        var dTotal = (laBal.discA_bal && laBal.discA_bal[i] || 0) + (laBal.discB_bal && laBal.discB_bal[i] || 0);
+        if (depletesAt === null && (laTotal + dTotal) <= 1) depletesAt = age;
+        if (discExhaustsAt === null && dTotal <= 1) discExhaustsAt = age;
+        if (laCapHitAt === null && ((laBal.clampA && laBal.clampA[i] === 'cap') || (laBal.clampB && laBal.clampB[i] === 'cap'))) laCapHitAt = age;
+      }
+      return { sustainableTo: sustainableTo, depletesAt: depletesAt, laCapHitAt: laCapHitAt, discExhaustsAt: discExhaustsAt };
+    }
+
+    var ms = deriveMilestones(p);
+
+    // Year-by-year rows in the report's expected shape.
+    var t = p.table;
+    var rows = [];
+    for (var i = 0; i < p.years; i++){
+      var laDraw = (t.laA_draw[i] || 0) + (t.laB_draw[i] || 0);
+      var discDraw = (t.discA_draw[i] || 0) + (t.discB_draw[i] || 0);
+      var otherInc = (t.otherA[i] || 0) + (t.otherB[i] || 0);
+      var totalIncome = (p.nominal.total[i] || 0);
+      var laBalance = (t.laA_bal[i] || 0) + (t.laB_bal[i] || 0);
+      var discBalance = (t.discA_bal[i] || 0) + (t.discB_bal[i] || 0);
+      var requiredReal = p.targetPVAnnual;
+      var rowEvents = capitalEvents.filter(function(e){ return e.year === startYear + i; });
+      rows.push({
+        year: startYear + i,
+        age: p.startAge + i,
+        laDraw: laDraw,
+        discDraw: discDraw,
+        otherIncome: otherInc,
+        totalIncome: totalIncome,
+        requiredReal: requiredReal,
+        laBalance: laBalance,
+        discBalance: discBalance,
+        totalCapital: laBalance + discBalance,
+        shortfall: totalIncome < (p.nominal.target[i] || 0) - 1,
+        events: rowEvents
+      });
+    }
+
+    // Per-spouse Y1 tax — use the calc's already-computed tax objects.
+    function taxRow(t, name, age, suffix){
+      return {
+        name: name, age: age,
+        laDraw: t.laDraw || 0,
+        otherIncome: t.otherIncome || 0,
+        discDraw: (suffix === 'A' ? (p.table.discA_draw[0] || 0) : (p.table.discB_draw[0] || 0)),
+        gain: t.gain || 0,
+        inclusion: t.inclusion || 0,
+        taxable: t.taxable || 0,
+        grossIncome: t.grossIncome || 0,
+        tax: t.tax || 0,
+        effRate: t.effRate || 0
+      };
+    }
+    var taxByPerson = [
+      taxRow(p.taxA, getName('A'), ageA, 'A'),
+      taxRow(p.taxB, getName('B'), ageB, 'B')
+    ];
+    var hhGross = (p.taxA.grossIncome || 0) + (p.taxB.grossIncome || 0);
+    var hhTax = (p.taxA.tax || 0) + (p.taxB.tax || 0);
+
+    // Baseline (if locked) — derive its own milestones; only carry the
+    // delta-relevant fields the report needs.
+    var baselinePayload = null;
+    if (baseline){
+      var bms = deriveMilestones(baseline);
+      baselinePayload = {
+        sustainableTo: bms.sustainableTo,
+        monthlyNeed: (baseline.targetPVAnnual ? baseline.targetPVAnnual / 12 : null),
+        returnPct: baseline.rNom,
+        cpiPct: baseline.cpi,
+        note: 'Locked baseline · ' + (bms.sustainableTo != null ? 'age ' + bms.sustainableTo : '—')
+      };
+    }
+
+    // Format meeting date as the cover's "Prepared on" line.
+    function preparedOnLabel(){
+      var raw = (document.getElementById('client-date') || {}).value;
+      if (raw && raw.trim()) return raw.trim();
+      var d = new Date();
+      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    var familySpan = document.getElementById('hl-family');
+    var familyName = (familySpan && (familySpan.textContent || '').trim()) || (document.getElementById('client-name') || {}).value || 'Client';
+    var preparedFor = (document.getElementById('client-name') || {}).value || (getName('A') + ' & ' + getName('B'));
+    var adviser = (document.getElementById('adviser-name') || {}).value || 'Simple Wealth (Pty) Ltd';
+
+    return {
+      schemaVersion: 1,
+      plan: {
+        familyName: familyName,
+        preparedFor: preparedFor,
+        preparedOn: preparedOnLabel(),
+        adviser: adviser,
+        spouses: spouses,
+        monthlyNeed: parseCurrency('needs-monthly'),
+        annualLumpSums: parseCurrency('needs-lump'),
+        returnPct: read('return') / 100,
+        cpiPct: read('cpi') / 100,
+        autoTopUp: !!document.getElementById('needs-topup').checked,
+        capitalEvents: capitalEvents,
+        baseline: baselinePayload
+      },
+      projection: {
+        startAge: p.startAge,
+        horizonAge: p.horizonAge,
+        years: p.years,
+        rNom: p.rNom,
+        cpi: p.cpi,
+        rows: rows,
+        sustainableTo: ms.sustainableTo,
+        depletesAt: ms.depletesAt,
+        laCapHitAt: ms.laCapHitAt,
+        discExhaustsAt: ms.discExhaustsAt,
+        year1: rows[0],
+        taxA: p.taxA,
+        taxB: p.taxB,
+        taxByPerson: taxByPerson,
+        hhGross: hhGross,
+        hhTax: hhTax,
+        hhNet: hhGross - hhTax,
+        hhEff: hhGross > 0 ? hhTax / hhGross : 0
+      }
+    };
+  }
+
+  var btnExport = document.getElementById('btn-export-report');
+  if (btnExport) btnExport.addEventListener('click', function(){
+    try {
+      var snap = buildReportSnapshot();
+      localStorage.setItem('sw-drawdown-snapshot', JSON.stringify(snap));
+      window.open('retirement_drawdown_report.html', '_blank');
+    } catch (e) {
+      alert('Could not build the report snapshot: ' + (e && e.message ? e.message : e));
+    }
+  });
+
   // Compare-view Real/Nominal + topup pill share the main toggles.
   var realC = document.getElementById('btn-real-c');
   var nomC = document.getElementById('btn-nom-c');

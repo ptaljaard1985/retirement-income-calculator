@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the internal structure of `retirement_drawdown.html`. Read this if you're about to modify the code. Math and tax conventions are in `CALCULATIONS.md`; visual choices are in `DESIGN.md`.
+This document describes the internal structure of `retirement_drawdown.html`. Read this if you're about to modify the code. Math and tax conventions are in `CALCULATIONS.md`; visual choices are in `DESIGN.md`. The sibling `retirement_drawdown_report.html` (the editorial client-report export) is described in its own section at the bottom of this file.
 
 ## The one-file principle
 
@@ -196,3 +196,105 @@ There is no caching, no debouncing, no animation. The whole projection re-runs i
 - Chart.js dataset visibility (via the series-toggle buttons) is managed by mutating `dataset.hidden`, not by filtering the dataset list. This preserves order and colour assignments.
 - The Income chart registers two inline plugins in order: `targetBoxPlugin` draws per-year dashed coral box outlines for the target need; `shortfallShadingPlugin` paints a coral wash + dashed vertical at the first shortfall age. Both read `chart.data.datasets[3].data[i]` for the target value, so the (otherwise invisible) "Target need" `line` dataset is retained as a data carrier and for legend/tooltip semantics.
 - `setAppState(next)` no longer persists to `localStorage`. Refresh always lands on the default `appState = 'empty'`. The `beforeprint` listener still snapshots the current state, forces `'single'` for paper, and `afterprint` restores.
+- The "Export report" button (State 2 canvas-head, between the Real|Nominal segmented and Print) calls `buildReportSnapshot()`, writes the result to `localStorage['sw-drawdown-snapshot']`, and opens `retirement_drawdown_report.html` in a new tab. The snapshot is the single contract between the two files — see the report-architecture section below.
+
+## The export-report sibling (`retirement_drawdown_report.html`)
+
+A second self-contained HTML file in this directory. It produces the editorial A4-landscape PDF the adviser hands the client after a meeting. **It does not run any projection math.** The calculator computes everything in `project()`, serialises it into a snapshot, and the report file formats and renders.
+
+### The contract: `localStorage['sw-drawdown-snapshot']`
+
+```ts
+{
+  schemaVersion: 1,
+  plan: {
+    familyName, preparedFor, preparedOn, adviser,
+    spouses: [{ name, age, laBalance, discretionary, discBaseCost,
+                otherIncome: [{ kind, monthly }] }, ...],   // monthly = today's-money rand
+    monthlyNeed, annualLumpSums, returnPct, cpiPct, autoTopUp,
+    capitalEvents: [{ year, label, forWhom, amount }],     // year = absolute, amount = today's-money
+    baseline: null | { sustainableTo, monthlyNeed, returnPct, cpiPct, note }
+  },
+  projection: {
+    startAge, horizonAge, years, rNom, cpi,
+    rows: [{ year, age, laDraw, discDraw, otherIncome, totalIncome,
+             requiredReal, laBalance, discBalance, totalCapital, shortfall, events }],
+    sustainableTo, depletesAt, laCapHitAt, discExhaustsAt,
+    year1, taxA, taxB, taxByPerson, hhGross, hhTax, hhNet, hhEff
+  }
+}
+```
+
+- `plan.spouses[i].otherIncome` is the **year-1 active streams only**, derived from `incomeStore` filtered by `spouseAge ∈ [startAge, startAge + duration)`. Streams that kick in later (deferred DB pension) do not appear on the household slide.
+- `plan.capitalEvents[i].year` is the **absolute calendar year** (`new Date().getFullYear() + ev.year - 1`); the calculator stores year-from-now.
+- `plan.baseline` mirrors only the delta-relevant fields the report needs, derived from the calculator's `baseline` global (which is itself a deep clone of `project()`).
+- `projection.rows[i]` is shaped to the report binder's expectations exactly — no further transformation is done at render time.
+- `projection.taxByPerson` is a 2-element array `[{name, age, laDraw, otherIncome, discDraw, gain, inclusion, taxable, grossIncome, tax, effRate}]` built from `p.taxA` / `p.taxB` for the Y1 tax slide.
+
+If the schema needs to evolve, bump `schemaVersion` and add a back-compat read in the report's binder. The current binder reads schema 1 only.
+
+### Top-to-bottom structure
+
+```
+<head>          design tokens (mirrors calculator's :root) + ~700 lines of CSS
+<body>
+  <div id="deck">  fixed sequence of 14 <section class="slide"> nodes
+    [I.   cover]                              always
+    [II.  answer]    income chart + outcome   always
+    [III. household] spouse cards             always
+    [IV.  assumptions] editorial table        always
+    [V.   levers]    four lever blocks        always
+    [VI.  projection] full-width income chart always
+    [VII. capital]   full-width capital chart always
+    [VIII.tax]       per-spouse Y1 tax cards  always
+    [IX.  events]    timeline + ledger        if plan.capitalEvents.length > 0
+    [X.   compare]   baseline vs scenario     if plan.baseline != null
+    [XI.  year-table] every 5 years + key ages always
+    [XII. methodology] two-column prose       always
+    [XIII.compliance]  six blocks             always
+    [XIV. next steps] cover-style closing     always
+  <div id="empty-banner">  shown when no snapshot in localStorage
+<script>  one IIFE, ~670 lines
+```
+
+Slide content is driven by `[data-field="..."]` placeholders that the binder writes via `setField()`. Spouse, tax, events, and year-table rows are injected with `innerHTML` from template literals. Everything else is static markup with values written at load.
+
+### The binder (the script block at the bottom)
+
+In order:
+
+1. **Snapshot loader** — tries `?data=<base64-JSON>`, then `localStorage['sw-drawdown-snapshot']`. If neither, shows the empty-state banner and returns.
+2. **Drop conditional slides** — `[data-slide="events"]` removed if no events; `[data-slide="compare"]` removed if no baseline.
+3. **Renumber** — iterate `.slide` nodes, write Roman numerals to `.eyebrow .rn` and `.slide-foot .rn`, write zero-padded page numbers to every `[data-field="pageNum"]`, set `[data-field="pageTotal"]` to the post-removal slide count.
+4. **Top-level field bind** — `setField()` for every cover, household total, assumption, outcome, projection-foot, household-totals etc.
+5. **Per-spouse household cards** — innerHTML from `plan.spouses`.
+6. **Per-spouse Y1 tax cards** — innerHTML from `projection.taxByPerson`.
+7. **Events ledger + timeline** — innerHTML from `plan.capitalEvents` (skipped if hidden).
+8. **Compare slide** — fields + chip class flipped pos/neg by horizon delta (skipped if hidden).
+9. **Year-by-year table** — every 5 years from start age plus any year matching `{startAge, discExhaustsAt, laCapHitAt, sustainableTo, depletesAt}`.
+10. **Charts** — three inline-SVG renderers:
+    - `renderIncomeChart(container, rows, {needBase, width, height})` — slides II, VI, X.
+    - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — slide VII.
+    - `renderTimeline(container, events)` — slide IX.
+    Rows are sliced by `chartSlice(extraYears)` so charts don't paint depleted years past the horizon + buffer.
+11. **Auto-print** — fires 600 ms after `load`. Suppressed via `?noprint` querystring for iteration.
+
+### Charts (inline SVG, no external lib)
+
+The inline SVG approach was chosen over Chart.js for two reasons: print fidelity (raster Chart.js canvases blur at A4 print resolution while SVG paths stay crisp), and to avoid loading the calculator's Chart.js dependency into a print-only context. CSS variables are resolved at draw time via `getComputedStyle(document.documentElement)` because Safari doesn't reliably substitute `var(...)` inside SVG attribute values.
+
+### Print
+
+```css
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { background: white; }
+  .slide { margin: 0; box-shadow: none;
+           page-break-after: always; break-after: page;
+           -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slide:last-of-type { page-break-after: auto; }
+  .empty-banner { display: none; }
+}
+```
+
+Chrome and Edge produce a clean one-slide-per-page PDF. Safari misreports `size: A4 landscape` — document the limitation if Pierre relies on it. The auto-print listener triggers `window.print()` 600 ms after `load` to give the SVG charts time to paint.
