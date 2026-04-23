@@ -88,7 +88,7 @@ The app is a single HTML file; state is driven by a `data-app-state` attribute o
 | Single | `#state-single` | Plan-bar (collapsed summary), canvas head (editorial headline + action cluster), chart card, outcome strip, narrative, canvas footer |
 | Compare | `#state-compare` | Compact head, baseline vs scenario two-up cards with delta chips |
 
-A **shared chrome** block (`#shared-chrome`) holds the Scenario-adjustments block (Return slider, monthly need, annual lump sums, collapsible Other-income and Capital-events ledgers), the per-spouse drawdown levers, and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`). Scenario-adjustments inputs are `-c`-suffixed mirrors of State 1's setup inputs; a two-way sync in the IIFE keeps both sides aligned. `project()` reads from the canonical IDs only — the mirror is purely a UX affordance so an adviser can strategise from Compare without bouncing back to Empty.
+A **shared chrome** block (`#shared-chrome`) holds the Financial-levers block (Return slider, monthly need, annual lump sums, collapsible Other-income and Capital-events ledgers), the per-spouse drawdown levers, and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`). Financial-levers inputs are `-c`-suffixed mirrors of State 1's setup inputs; a two-way sync in the IIFE keeps both sides aligned. `project()` reads from the canonical IDs only — the mirror is purely a UX affordance so an adviser can strategise from Compare without bouncing back to Empty. The block's wrapper CSS class remains `.scenario-adjust` for internal identification.
 
 Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-hidden`. The `setAppState(next)` helper does **not** persist — every page refresh resets to State 1 (`appState = 'empty'`), so an adviser opening the calculator at the start of a meeting always lands on the blank setup view.
 
@@ -111,11 +111,14 @@ Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
 
 ### Canvas head (State 2)
-Left: eyebrow + editorial headline + sub-paragraph. Right action cluster:
+Left: eyebrow + editorial headline + sub-paragraph. The headline is a two-sentence declarative: *"Your desired lifestyle is projected to cost R X per month. Based on current assumptions, this is sustainable until age N."* — "sustainable" is italicised (`<em>`), "age N" carries the gold underline. Copy is unconditional: the headline states the projected sustainable age whether that reaches the horizon or falls short; the client decides what to make of it. No verdict-based word-swap.
+
+Right action cluster:
 - `.toggle-pill` (Auto-top-up) — default OFF
-- `.seg.mini` (Real | Nominal) — default Nominal (clients quote rand figures in nominal terms during meetings)
-- Ghost `Print ↓` button
+- Ghost `Export report →` button (canonical client-PDF path; opens `retirement_drawdown_report.html` in a new tab via `localStorage` snapshot)
 - Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
+
+The `.seg.mini` (Real | Nominal) toggle lives one row down on the chart-controls row — see the Chart section. The in-page Print button and the canvas-foot One-page summary button were removed in Session 7; Cmd+P still works through the `@media print` rules.
 
 ### Outcome strip
 Three cells, first is teal primary (white text). Cells: `Lifestyle sustainable until age N · K years`, `Year-1 income need`, `Funded by LA X% · Disc Y% · Other Z%`. The primary cell flips from teal (verdict sustainable) to plain navy (stretched) automatically.
@@ -127,14 +130,16 @@ Grid `1fr 1fr`, 22px gap.
 
 ### Chart
 
+Sits below the canvas head. Controls row (`.controls-row`) above the chart card: `Income | Capital | Table` segmented selector on the left, `Real | Nominal` mini-segmented on the right (`display: flex; justify-content: space-between;`).
+
 Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered for the Income chart:
 
-- **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`:
+- **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`. **No explicit `order:` values** — stacking follows array index, so the visual top-to-bottom is Tax → Other → Disc → LA (and the transparent Target line is behind them):
   1. **LA (net)** — teal `#2a6b6b`, LA rand draw minus its share of household tax.
   2. **Disc** — gold `#b8893c`, disc draw at gross (CGT is a small fraction, lumped into the household total).
   3. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
   4. **Target need** — invisible `line` dataset (transparent border/fill) retained as the per-year data carrier for both plugins and as the legend toggle target.
-  5. **Tax** — dusty rose `--pink` `#d27a88`, stacks on top of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
+  5. **Tax** — dusty rose `--pink` `#d27a88`, stacks **on top** of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
   - Tax apportionment (per year): `laTax = tax × la/(la + other)`, `otherTax = tax × other/(la + other)`. Disc is treated as tax-free at the bar level. Bar total = gross. See `incomeBarSeries()` in the engine.
   - `targetBoxPlugin` (afterDatasetsDraw) draws the target as a **solid bold stepped top line** (coral `#a04438`, 2.5px, no dash): per-year horizontal segments spanning the full x-slot (adjacent years touch at the slot boundary) joined by vertical step segments only where `target[i+1] !== target[i]`. No left/right sides, no bottom edge, no hairlines falling to the x-axis. Real mode → flat line; Nominal mode → staircase. Previously dashed + 1px — bumped for legibility from 2m across a meeting table.
   - `shortfallShadingPlugin` (afterDatasetsDraw, registered second) paints a coral wash between the colored-bar-top and the need-line for shortfall years, plus a dashed vertical at the first shortfall age with a 10px Inter Tight label. Shortfall is detected by `net < target`, correctly now that bars represent net.
@@ -145,11 +150,8 @@ Chart.js only — no plugins from npm, no other libraries. Two inline plugins ar
 ### Alerts bar
 Above the chart body, populated when the plan hits constraints. Hidden entirely when quiet. Variants: `.chart-alert.cap` (LA ceiling), `.chart-alert.disc` (discretionary exhausted), `.chart-alert.shortfall` (real shortfall vs target).
 
-### Narrative
-White card with a 2px gold left-bar. Fraunces italic prose in `<p>` blocks. Inline callouts (`.callout` / `.warn` / `.neg`) woven through sentences. Content is selected by `narrativeForProjection(p, an)` based on verdict and clamp events — no math, just sentence selection.
-
 ### Canvas footer
-Thin row: `Illustrative only · 2026/27 SARS tables · auto-top-up on · real terms` on the left; `Year-by-year table` + `One-page summary ↓` buttons on the right.
+Thin row: `Illustrative only · 2026/27 SARS tables · auto-top-up on · real terms` on the left; a single `Year-by-year table` ghost button on the right. (The narrative card and the One-page-summary print shortcut were removed in Session 7 — the chart now speaks for itself and the client-PDF path is `Export report`.)
 
 ### Sliders
 - 4px track with a `linear-gradient` fill-up-to-value in `--gold`. Value % is pushed to a `--fill` CSS custom property on every `input` event via `updateSliderFill()`.
@@ -182,7 +184,9 @@ The single editable title-plate span `#hl-family` is `contenteditable` — free-
 
 `@media print` forces `state-single` visible on paper regardless of the on-screen state and hides every interactive chrome (plan-bar, toggles, buttons, chart legend, canvas-head-actions, canvas-foot, State-1, State-3, and the shared-chrome control buttons). The `.print-summary` block remains the compliance document on a new page (`page-break-before: always`).
 
-Print colours use `-webkit-print-color-adjust: exact` on the outcome-primary cell, narrative, chart card, and tax panel so gold/teal/coral survive the print driver.
+Print colours use `-webkit-print-color-adjust: exact` on the outcome-primary cell, chart card, and tax panel so gold/teal/coral survive the print driver.
+
+The browser's Cmd+P is now the only trigger — the in-page Print button in the canvas-head actions and the canvas-foot One-page summary button were both removed in Session 7. The editorial client PDF is produced via `Export report` (opens the sibling `retirement_drawdown_report.html`); `@media print` on the calculator itself is retained for the ad-hoc compliance print-summary only.
 
 A `beforeprint` listener also force-switches `appState` to `single`, resizes Chart.js canvases, and restores the previous state on `afterprint` — belt-and-braces to the CSS rules.
 
