@@ -5,24 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Retirement Drawdown — Simple Wealth</title>
 <style>
+  /* Editorial type system — fonts load from Google Fonts; system fallbacks preserve offline use. */
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&family=Inter+Tight:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap');
+
   :root {
-    --ink: #1a1a1a;
-    --ink-muted: #5a5a5a;
-    --ink-faint: #8a8a8a;
-    --line: #e5e5e0;
-    --line-strong: #c8c8c0;
-    --surface: #ffffff;
-    --surface-alt: #faf9f5;
-    --surface-warm: #f3f1e8;
-    --brand: #2d3e50;
-    --brand-accent: #c89a3c;
-    --success: #3b6d11;
-    --danger: #a32d2d;
-    --blue: #185fa5;
-    --coral: #993c1d;
-    --teal: #2a6b6b;
-    --radius: 8px;
-    --radius-lg: 12px;
+    /* New design-system tokens (docs/DESIGN.md) */
+    --ink:        #1a1f26;
+    --ink-2:      #3a4250;
+    --mute:       #7a8292;
+    --faint:      #b4bac4;
+    --hairline:   #e4e1d8;
+    --line:       #d4cfc2;
+    --paper:      #faf7f0;
+    --paper-2:    #f2ede2;
+    --paper-3:    #ebe4d3;
+    --surface:    #ffffff;
+
+    --navy:       #1f2d3d;
+    --navy-2:     #2d3e50;
+    --navy-soft:  #38495b;
+    --gold:       #b8893c;
+    --gold-2:     #9c7226;
+    --gold-soft:  #e3c987;
+    --gold-pale:  #f5ebd1;
+
+    --teal:       #2a6b6b;
+    --teal-2:     #1f5252;
+    --teal-pale:  #d9e6e6;
+    --coral:      #a04438;
+    --coral-pale: #f4e0da;
+    --amber-pale: #f5ebd1;
+
+    --pos:        #2f6b3a;
+    --neg:        #a64236;
+
+    --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans:  'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --mono:  'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+    --r-sm: 4px;
+    --r:    6px;
+    --r-lg: 10px;
+
+    /* Legacy aliases — kept so component CSS from earlier phases keeps rendering while Phases 2–7 land. */
+    --ink-muted:    var(--ink-2);
+    --ink-faint:    var(--mute);
+    --line-strong:  var(--line);
+    --surface-alt:  var(--paper);
+    --surface-warm: var(--paper-2);
+    --brand:        var(--navy-2);
+    --brand-accent: var(--gold);
+    --success:      var(--pos);
+    --danger:       var(--neg);
+    --blue:         #185fa5;
+    --radius:       8px;
+    --radius-lg:    12px;
   }
 
   * { box-sizing: border-box; }
@@ -30,12 +67,100 @@
   html, body {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-size: 15px;
+    font-family: var(--sans);
+    font-size: 14px;
     line-height: 1.55;
     color: var(--ink);
-    background: var(--surface-alt);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Typography utilities */
+  .headline {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.08;
+    letter-spacing: -0.6px;
+    color: var(--ink);
+    margin: 0;
+  }
+  .headline em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--navy);
+  }
+  .headline-sub {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--mute);
+    margin: 0;
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--mute);
+    display: inline-block;
+  }
+  .num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+  }
+  .num-italic {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: tabular-nums;
+  }
+  .rom {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--gold-2);
+    margin-right: 6px;
+  }
+  .gold-under {
+    position: relative;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
+  .gold-under::after {
+    content: '';
+    position: absolute;
+    left: 2px; right: 2px; bottom: 3px;
+    height: 7px;
+    background: var(--gold-soft);
+    opacity: 0.55;
+    z-index: -1;
+    border-radius: 2px;
+  }
+  .callout {
+    padding: 0 3px;
+    background-image: linear-gradient(var(--gold-pale), var(--gold-pale));
+    background-size: 100% 0.55em;
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .callout.warn {
+    background-image: linear-gradient(var(--amber-pale), var(--amber-pale));
+  }
+  .callout.neg {
+    background-image: linear-gradient(var(--coral-pale), var(--coral-pale));
+  }
+
+  /* Three-state shell (Phase 2 populates) */
+  .state { transition: opacity 0.3s ease; }
+  .state.is-hidden { display: none; }
+  .state.is-fading { opacity: 0; }
 
   .page {
     max-width: 1100px;
@@ -579,20 +704,31 @@
   }
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
-    width: 100%; height: 4px; background: var(--line-strong);
+    width: 100%; height: 4px;
+    background: linear-gradient(to right, var(--gold) 0%, var(--gold) var(--fill, 50%), var(--line) var(--fill, 50%), var(--line) 100%);
     border-radius: 2px; outline: none; margin: 0;
+    transition: background 0.1s;
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 18px; height: 18px; background: var(--brand);
+    width: 14px; height: 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--gold-2);
     border-radius: 50%; cursor: pointer;
-    border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    transition: transform 0.12s;
   }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   input[type="range"]::-moz-range-thumb {
-    width: 18px; height: 18px; background: var(--brand);
+    width: 14px; height: 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--gold-2);
     border-radius: 50%; cursor: pointer;
-    border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    transition: transform 0.12s;
   }
+  input[type="range"]::-moz-range-thumb:hover { transform: scale(1.15); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--navy); outline-offset: 4px; }
 
   /* Tax card */
   .tax-panel {
@@ -678,13 +814,58 @@
     margin-top: 32px; letter-spacing: 0.3px;
   }
 
-  /* Print */
+  /* Print — force the single-scenario projection + compliance summary onto paper, hide all interactive chrome. */
   @media print {
-    body { background: white; }
+    @page { margin: 14mm; }
+    body { background: white; color: #111; }
     .page { padding: 0; max-width: 100%; }
-    .levers, .chart-card, .tax-panel { page-break-inside: avoid; }
+
+    /* Force state visibility on paper: show state-single only. */
+    #state-empty, #state-compare { display: none !important; }
+    #state-single { display: block !important; }
+    #state-single.is-hidden { display: block !important; }
+
+    /* Hide interactive chrome. */
+    .plan-bar-lite,
+    .toggle-pill,
+    .canvas-head-actions,
+    .controls-row,
+    .chart-legend,
+    .chart-alerts,
+    .empty-cta,
+    .canvas-foot,
+    .btn,
+    .add-btn,
+    .series-toggle,
+    .no-print,
+    .action-btn,
+    .toggle,
+    .seg {
+      display: none !important;
+    }
+
+    /* Compact headlines for paper. */
+    .canvas-head { margin-bottom: 16px; display: block; }
+    .canvas-head .headline { font-size: 28px; line-height: 1.15; margin-bottom: 10px; }
+    .canvas-head-left { width: 100%; }
+    .canvas-head-eyebrow { margin-bottom: 6px; }
+    .outcome-strip { page-break-inside: avoid; margin-bottom: 14px; }
+    .outcome-cell { padding: 12px 14px; }
+    .outcome-cell .oval { font-size: 22px; }
+    .outcome-cell .oval .num-italic { font-size: 26px; }
+    .outcome-cell.primary.teal { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* Respect colours for shaded blocks. */
+    .outcome-cell.primary, .narrative, .chart-card, .tax-panel {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .levers, .chart-card, .tax-panel, .outcome-strip, .narrative { page-break-inside: avoid; }
+    .narrative-body { font-size: 12px; line-height: 1.5; }
     .print-summary { page-break-before: always; border: none; padding: 0; }
-    .action-btn, .toggle { display: none; }
+
+    /* Legacy selectors in case old DOM surfaces. */
     .client-bar input { border: none !important; }
     .hp-name { border: none !important; background: transparent !important; padding-left: 0 !important; margin-left: 0 !important; }
   }
@@ -697,161 +878,1057 @@
     .header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .doc-meta { text-align: left; }
   }
+
+  /* =============================================================
+     STATE 1 — Empty / Setup (editorial title plate + inputs)
+     ============================================================= */
+  .empty-canvas {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 28px 8px 48px;
+  }
+
+  /* Title plate */
+  .empty-titleplate {
+    text-align: center;
+    padding-bottom: 30px;
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-titleplate .eyebrow { margin-bottom: 20px; }
+  .empty-title {
+    max-width: 760px;
+    margin: 0 auto 26px;
+  }
+  .empty-title .editable {
+    font-style: italic;
+    color: var(--navy);
+    padding: 0 4px;
+    border-bottom: 1px dashed var(--line);
+    outline: none;
+    transition: background 0.12s, border-color 0.12s;
+    cursor: text;
+  }
+  .empty-title .editable:empty::before {
+    content: attr(data-placeholder);
+    color: var(--faint);
+    font-style: italic;
+  }
+  .empty-title .editable:hover { border-bottom-color: var(--gold-2); }
+  .empty-title .editable:focus {
+    background: var(--paper-2);
+    border-bottom-color: var(--navy);
+  }
+  .empty-date {
+    font-size: 11px;
+    color: var(--mute);
+    letter-spacing: 0.3px;
+  }
+
+  /* Two-column spouse setup */
+  .empty-setup {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 40px;
+    margin-bottom: 36px;
+  }
+  .empty-divider {
+    background: var(--hairline);
+    min-height: 100%;
+  }
+  .empty-spouse { display: flex; flex-direction: column; gap: 16px; }
+  .empty-steplabel {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--mute);
+    margin-bottom: 2px;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .empty-steplabel .rom {
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+  .empty-subhint {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13.5px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--mute);
+    margin-left: 8px;
+  }
+  .empty-nameage {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-name-input {
+    flex: 1;
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 300;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    outline: none;
+  }
+  .empty-name-input::placeholder {
+    font-style: italic;
+    color: var(--faint);
+  }
+  .empty-age-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .empty-age-input {
+    width: 48px;
+    padding: 3px 6px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .empty-subhead {
+    margin-top: 6px;
+    font-size: 10px;
+    letter-spacing: 1.6px;
+  }
+  .empty-field {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    align-items: center;
+    gap: 14px;
+  }
+  .empty-field label {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .empty-field label .hint {
+    color: var(--faint);
+    margin-left: 6px;
+    font-size: 10.5px;
+  }
+  .empty-field .input-wrap {
+    display: flex;
+    align-items: baseline;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    background: var(--surface);
+    padding: 5px 10px;
+  }
+  .empty-field .input-wrap:focus-within { border-color: var(--navy); }
+  .empty-field .input-wrap .pfx {
+    font-family: var(--mono);
+    color: var(--mute);
+    font-size: 12px;
+    margin-right: 6px;
+  }
+  .empty-field .input-wrap input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--ink);
+    padding: 0;
+    outline: none;
+  }
+
+  /* Household needs strip */
+  .empty-needs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    padding: 24px 0;
+    margin-bottom: 28px;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-needs-cell {
+    padding: 0 24px;
+    border-left: 1px solid var(--hairline);
+  }
+  .empty-needs-cell:first-child { border-left: none; padding-left: 0; }
+  .empty-needs-cell:last-child { padding-right: 0; }
+  .empty-needs-cell .empty-steplabel { margin-bottom: 10px; }
+  .empty-needs-cell .input-wrap.large {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-needs-cell .input-wrap.large .pfx {
+    font-family: var(--mono);
+    color: var(--gold-2);
+    font-size: 16px;
+  }
+  .empty-needs-cell .input-wrap.large input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ink);
+    padding: 0;
+    outline: none;
+  }
+  .empty-needs-cell .hint {
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 6px;
+    font-style: italic;
+    font-family: var(--serif);
+    font-weight: 300;
+  }
+  .empty-assumptions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-assumptions .empty-assum {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+  .empty-assumptions .empty-assum input[type="range"] { flex: 1; min-width: 60px; }
+  .empty-assumptions .empty-assum .num {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .empty-assumptions .sep { color: var(--faint); }
+
+  /* Events ledger */
+  .empty-events, .empty-incomes {
+    margin-bottom: 24px;
+  }
+  .empty-events-ledger, .empty-incomes-ledger {
+    background: var(--paper-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 4px 0;
+    margin-top: 12px;
+  }
+  .empty-events-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 170px 150px;
+    padding: 10px 20px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--mute);
+    font-weight: 600;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-events-ledger .events-empty,
+  .empty-incomes-ledger .events-empty {
+    padding: 14px 20px;
+    font-style: italic;
+    color: var(--faint);
+    font-family: var(--serif);
+    font-size: 13.5px;
+    font-weight: 300;
+  }
+  .empty-events-ledger .add-btn,
+  .empty-incomes-ledger .add-btn {
+    margin: 10px 16px 12px;
+    width: calc(100% - 32px);
+  }
+
+  /* Top-up + client meta */
+  .empty-topup-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  .empty-topup-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--navy);
+    margin-top: 2px;
+    cursor: pointer;
+  }
+  .empty-topup-label strong { color: var(--ink); font-weight: 500; }
+  .empty-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 16px 0;
+    margin-bottom: 24px;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .empty-meta > span { display: flex; flex-direction: column; gap: 4px; }
+  .empty-meta label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--mute);
+    font-weight: 600;
+  }
+  .empty-meta input {
+    border: none;
+    background: transparent;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink);
+    padding: 2px 0;
+    border-bottom: 1px dashed transparent;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .empty-meta input:hover, .empty-meta input:focus { border-bottom-color: var(--line); }
+
+  /* CTA bar */
+  .empty-cta {
+    margin-top: 24px;
+    padding: 24px 28px;
+    background: var(--navy);
+    color: var(--paper);
+    border-radius: var(--r-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+  }
+  .empty-cta-eyebrow {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .empty-cta-sub {
+    font-size: 12.5px;
+    color: var(--gold-soft);
+    opacity: 0.95;
+    max-width: 500px;
+    line-height: 1.55;
+  }
+
+  /* Shared buttons — light additions for Phase 3; full refresh in Phase 7 */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: var(--r);
+    border: 1px solid transparent;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .btn.primary {
+    background: var(--navy);
+    color: var(--paper);
+    border-color: var(--navy);
+  }
+  .btn.primary:hover { background: var(--navy-soft); border-color: var(--navy-soft); }
+  .btn.gold {
+    background: var(--gold);
+    color: #fff;
+    border-color: var(--gold);
+  }
+  .btn.gold:hover { background: var(--gold-2); border-color: var(--gold-2); }
+  .btn.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--mute);
+  }
+  .btn.ghost:hover { color: var(--ink); background: var(--paper-2); }
+  .btn.large { font-size: 14px; padding: 13px 22px; }
+
+  .add-btn {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px dashed var(--line);
+    background: transparent;
+    border-radius: var(--r);
+    color: var(--mute);
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+  }
+  .add-btn:hover {
+    border-color: var(--navy);
+    color: var(--navy);
+    background: var(--surface);
+  }
+
+  /* =============================================================
+     STATE 2 — Single scenario: canvas-head, outcome strip, narrative
+     ============================================================= */
+  .canvas-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 28px;
+    margin: 12px 0 24px;
+  }
+  .canvas-head-left { flex: 1; min-width: 0; }
+  .canvas-head-eyebrow { margin-bottom: 12px; letter-spacing: 2.2px; }
+  .canvas-head .headline { font-size: 44px; line-height: 1.08; margin: 0 0 16px; max-width: 760px; }
+  .canvas-head .headline .num,
+  .canvas-head .headline .num-italic { color: var(--navy); }
+  .canvas-head .headline-sub { max-width: 560px; }
+  .canvas-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Segmented toggle */
+  .seg {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    padding: 2px;
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+  .seg > span, .seg > button {
+    padding: 4px 10px;
+    border-radius: 3px;
+    color: var(--mute);
+    cursor: pointer;
+    white-space: nowrap;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-weight: 500;
+    transition: background 0.12s, color 0.12s;
+  }
+  .seg > span.on, .seg > button.on,
+  .seg > span.active, .seg > button.active {
+    background: var(--navy);
+    color: var(--paper);
+  }
+  .seg.mini > span, .seg.mini > button { padding: 3px 8px; font-size: 11px; }
+
+  /* Toggle pill */
+  .toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 5px 12px 5px 10px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .toggle-pill:hover { border-color: var(--line); }
+  .toggle-pill.on {
+    background: var(--navy);
+    color: var(--paper);
+    border-color: var(--navy);
+  }
+  .toggle-pill .sw {
+    width: 22px;
+    height: 12px;
+    border-radius: 8px;
+    background: var(--line);
+    position: relative;
+    transition: background 0.15s;
+    flex: 0 0 22px;
+  }
+  .toggle-pill.on .sw { background: var(--gold); }
+  .toggle-pill .sw::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--surface);
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .toggle-pill.on .sw::after { transform: translateX(10px); }
+
+  /* Outcome strip */
+  .outcome-strip {
+    display: flex;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    margin-bottom: 22px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .outcome-cell {
+    flex: 1;
+    padding: 18px 22px;
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .outcome-cell:last-child { border-right: none; }
+  .outcome-cell.primary { background: var(--navy); color: var(--paper); }
+  .outcome-cell.primary.teal { background: var(--teal); color: #fff; }
+  .outcome-cell.primary.teal .ocap,
+  .outcome-cell.primary.teal .osub { color: rgba(255,255,255,0.75); }
+  .outcome-cell .ocap {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.7px;
+    color: var(--mute);
+    font-weight: 600;
+  }
+  .outcome-cell .oval {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 28px;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+  .outcome-cell.primary .oval { color: #fff; }
+  .outcome-cell .oval .num-italic { font-size: 34px; }
+  .outcome-cell .oval .unit { font-size: 14px; color: inherit; opacity: 0.85; }
+  .outcome-cell .oval.split { font-size: 18px; letter-spacing: 0.3px; }
+  .outcome-cell .osub {
+    font-size: 11px;
+    color: var(--mute);
+    font-style: italic;
+    font-family: var(--serif);
+    font-weight: 300;
+  }
+
+  /* Narrative */
+  .narrative {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 22px 28px;
+    margin: 0 0 22px;
+    position: relative;
+  }
+  .narrative::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22px; bottom: 22px;
+    width: 2px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+  .narrative-eyebrow {
+    display: block;
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--mute);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .narrative-body {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-2);
+    max-width: 720px;
+  }
+  .narrative-body p { margin: 0 0 10px; }
+  .narrative-body strong { font-style: normal; font-weight: 500; color: var(--ink); }
+
+  /* Canvas footer */
+  .canvas-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0 8px;
+    border-top: 1px solid var(--hairline);
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--mute);
+  }
+  .canvas-foot .canvas-foot-actions { display: flex; gap: 8px; }
+
+  /* Drawer (tax details) */
+  .drawer { overflow: hidden; transition: max-height 0.25s ease; }
+  .drawer.is-closed { max-height: 0 !important; }
+  .drawer-link {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--navy);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .drawer-link:hover { color: var(--navy-soft); }
+
+  /* Restyle summary/legacy-light touches for new tokens */
+  .summary-card .label { color: var(--mute); }
+  .summary-card { border-color: var(--hairline); border-radius: var(--r-lg); }
+  .summary-card.primary { background: var(--navy); }
+  .tax-panel { border-color: var(--hairline); border-radius: var(--r-lg); }
+  .chart-card { border-color: var(--hairline); border-radius: var(--r-lg); }
+  .controls-row { border-color: var(--hairline); }
+
+  /* @media print additions in Phase 6 */
+
+  /* =============================================================
+     STATE 3 — Compare: two-up cards + delta chips
+     ============================================================= */
+  .canvas-head.compact { margin-bottom: 20px; align-items: center; }
+  .canvas-head.compact .headline { font-size: 36px; margin-bottom: 6px; }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    margin-bottom: 22px;
+  }
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 22px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .compare-card.baseline {
+    background: var(--paper-2);
+    opacity: 0.95;
+  }
+  .compare-card.scenario {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 1px var(--navy), 0 4px 14px rgba(31,45,61,0.08);
+  }
+  .compare-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.7px;
+    color: var(--mute);
+    font-weight: 600;
+  }
+  .compare-lock {
+    color: var(--gold-2);
+    font-weight: 500;
+    letter-spacing: 1.4px;
+  }
+  .compare-bigval {
+    font-family: var(--serif);
+    font-size: 42px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.05;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .compare-card.baseline .compare-bigval { color: var(--ink-2); }
+  .compare-bigval .unit {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 16px;
+    color: var(--mute);
+  }
+  .compare-sub {
+    font-size: 12.5px;
+    color: var(--mute);
+    font-style: italic;
+    font-family: var(--serif);
+    font-weight: 300;
+  }
+  .compare-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hairline);
+    font-size: 11px;
+    color: var(--mute);
+  }
+  .compare-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .compare-meta-row .num { color: var(--ink); }
+  .compare-meta-row em {
+    color: var(--gold-2);
+    font-style: italic;
+    font-family: var(--serif);
+    margin-left: 6px;
+    font-weight: 400;
+  }
+  .compare-meta-row em.neg { color: var(--neg); }
+
+  .delta-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--gold-pale);
+    color: var(--gold-2);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: none;
+  }
+  .delta-chip.neg {
+    background: var(--coral-pale);
+    color: var(--neg);
+  }
+
+  .compare-helper {
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13px;
+    color: var(--mute);
+    margin: 4px 0 18px;
+  }
+
+  /* Shared chrome visibility: hide when in empty state. */
+  body[data-app-state="empty"] #shared-chrome { display: none; }
+
+  @media (max-width: 820px) {
+    .compare-grid { grid-template-columns: 1fr; gap: 18px; }
+    .canvas-head.compact { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .canvas-head-actions { justify-content: flex-start; }
+  }
+
+  /* Plan-bar lite (provisional, Phase 4 expands into full plan-bar) */
+  .plan-bar-lite {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 12px 18px;
+    margin-bottom: 20px;
+  }
+  .plan-bar-lite-left {
+    display: flex;
+    align-items: baseline;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .plan-bar-lite-fact {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .plan-bar-lite-fact label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--mute);
+    font-weight: 600;
+  }
+  .plan-bar-lite-fact .num {
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  /* State 1 responsive */
+  @media (max-width: 820px) {
+    .empty-setup { grid-template-columns: 1fr; gap: 28px; }
+    .empty-divider { display: none; }
+    .empty-needs { grid-template-columns: 1fr; gap: 18px; }
+    .empty-needs-cell { border-left: none; padding: 12px 0; border-top: 1px solid var(--hairline); }
+    .empty-needs-cell:first-child { padding-top: 0; border-top: none; }
+    .empty-cta { flex-direction: column; align-items: flex-start; }
+    .empty-meta { grid-template-columns: 1fr; }
+    .empty-events-header { grid-template-columns: 80px 1fr 120px 100px; font-size: 9px; }
+  }
 </style>
 </head>
 <body>
 <div class="page">
 
-  <header class="header">
-    <div class="brand">
-      <img src="https://www.simplewealth.co.za/logo.webp" alt="Simple Wealth" class="brand-logo"
-           onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='flex';">
-      <div id="brand-fallback" class="brand-mark" style="display:none;">SW</div>
-    </div>
-    <div style="display: flex; align-items: flex-end; gap: 20px;">
-      <div class="doc-meta">
-        <div><strong>Retirement Drawdown Projection</strong></div>
-        <div id="doc-date">—</div>
-      </div>
-      <button class="action-btn no-print" onclick="window.print()" style="white-space: nowrap;">Print / save as PDF</button>
-    </div>
-  </header>
+<!-- ============= STATE 1: Empty / Setup ============= -->
+<section id="state-empty" class="state is-hidden" data-state="empty">
+  <div class="empty-canvas">
 
-  <div class="title-block">
-    <h1>Retirement drawdown projection</h1>
-    <p class="sub">A household view of retirement capital and income for two spouses, each with a living annuity and a discretionary portfolio. The chart shows lifetime household capital in both nominal and real terms; the tax panel shows this year's projected income tax by spouse.</p>
-  </div>
-
-  <!-- Client details -->
-  <div class="client-bar">
-    <div class="field">
-      <label>Prepared for</label>
-      <input type="text" id="client-name" value="Client Household">
-    </div>
-    <div class="field">
-      <label>Meeting date</label>
-      <input type="text" id="client-date" placeholder="DD Month YYYY">
-    </div>
-    <div class="field">
-      <label>Adviser</label>
-      <input type="text" id="adviser-name" value="Simple Wealth (Pty) Ltd">
-    </div>
-  </div>
-
-  <!-- Household position: first-class entry points -->
-  <div class="section-header collapsible" data-target="hh-position-body">
-    <span class="caret"></span>Household position today
-  </div>
-  <div class="household-panel collapsible-body" id="hh-position-body" style="max-height: 1500px; margin-bottom: 28px;">
-    <div class="hp-row">
-      <div class="hp-col-head">
-        <input type="text" id="hp-name-A" class="hp-name" value="Spouse A" aria-label="Spouse A name" maxlength="40">
-        <span style="text-transform:none; letter-spacing:0; color:var(--ink-muted); font-weight:400; display: inline-flex; align-items: center; gap: 8px;">
-          age
-          <input type="number" id="hp-age-A" value="65" min="55" max="100" step="1"
-                 style="width: 56px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-alt); font-family: inherit; font-size: 13px; font-weight: 500; color: var(--ink); text-align: center; font-variant-numeric: tabular-nums;">
-        </span>
-      </div>
-      <div class="hp-field">
-        <label>Living annuity balance</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-la-A" value="4 000 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Discretionary balance</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-disc-A" value="1 000 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Discretionary base cost</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-A" value="500 000" inputmode="numeric"></div>
-      </div>
+    <!-- Title plate -->
+    <div class="empty-titleplate">
+      <div class="eyebrow">Simple Wealth &middot; Retirement Drawdown</div>
+      <h1 class="headline empty-title">
+        A plan for
+        <span id="hl-family"
+              class="editable"
+              contenteditable="true"
+              role="textbox"
+              aria-label="Family name"
+              data-placeholder="the &mdash;&mdash;&mdash; family">the Mitchell family</span>,
+        living off
+        <span id="hl-monthly-empty"
+              class="editable"
+              contenteditable="true"
+              role="textbox"
+              aria-label="Monthly income"
+              data-placeholder="R &mdash;&mdash;&mdash;">R 50 000</span>
+        a month.
+      </h1>
+      <div class="empty-date num">Prepared <span id="empty-date-val">—</span></div>
     </div>
 
-    <div class="hp-row">
-      <div class="hp-col-head">
-        <input type="text" id="hp-name-B" class="hp-name" value="Spouse B" aria-label="Spouse B name" maxlength="40">
-        <span style="text-transform:none; letter-spacing:0; color:var(--ink-muted); font-weight:400; display: inline-flex; align-items: center; gap: 8px;">
-          age
-          <input type="number" id="hp-age-B" value="65" min="55" max="100" step="1"
-                 style="width: 56px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-alt); font-family: inherit; font-size: 13px; font-weight: 500; color: var(--ink); text-align: center; font-variant-numeric: tabular-nums;">
-        </span>
-      </div>
-      <div class="hp-field">
-        <label>Living annuity balance</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-la-B" value="4 000 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Discretionary balance</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-disc-B" value="1 000 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Discretionary base cost</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-B" value="500 000" inputmode="numeric"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Household needs in retirement -->
-  <div class="section-header collapsible" data-target="hh-needs-body">
-    <span class="caret"></span>Household needs in retirement
-  </div>
-  <div class="household-panel collapsible-body" id="hh-needs-body" style="max-height: 800px; margin-bottom: 28px;">
-    <div class="hp-row" style="grid-template-columns: repeat(3, 1fr); gap: 16px 20px;">
-      <div class="hp-field">
-        <label>Monthly after-tax expenses</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="needs-monthly" value="50 000" inputmode="numeric"></div>
-      </div>
-      <div class="hp-field">
-        <label>Additional annual lump-sum needs</label>
-        <div class="input-wrap"><span class="pfx">R</span><input type="text" id="needs-lump" value="100 000" inputmode="numeric"></div>
-        <div style="font-size: 11px; color: var(--ink-faint); margin-top: 4px;">e.g. holidays, car replacement, home maintenance</div>
-      </div>
-      <div class="hp-field">
-        <label>Annual target (after tax)</label>
-        <div class="input-wrap" style="background: var(--surface-warm);">
-          <span class="pfx">R</span>
-          <input type="text" id="needs-annual-total" value="700 000" readonly
-                 style="background: transparent; color: var(--ink); cursor: default;">
+    <!-- Spouse setup -->
+    <div class="empty-setup">
+      <div class="empty-spouse">
+        <div class="empty-steplabel"><span class="rom">I.</span> Spouse A</div>
+        <div class="empty-nameage">
+          <input type="text" id="hp-name-A" class="empty-name-input" value="Marilyn" placeholder="First name" maxlength="40" aria-label="Spouse A name">
+          <span class="empty-age-wrap">
+            age <input type="number" id="hp-age-A" class="empty-age-input" value="65" min="55" max="100" step="1" aria-label="Spouse A age">
+          </span>
         </div>
-        <div style="font-size: 11px; color: var(--ink-faint); margin-top: 4px;">monthly &times; 12 + lump sum</div>
+        <div class="empty-subhead eyebrow">Retirement capital</div>
+        <div class="empty-field">
+          <label>LA balance</label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-la-A" value="4 000 000" inputmode="numeric"></div>
+        </div>
+        <div class="empty-field">
+          <label>Discretionary</label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-disc-A" value="1 000 000" inputmode="numeric"></div>
+        </div>
+        <div class="empty-field">
+          <label>Disc. base cost <span class="hint">CGT</span></label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-A" value="500 000" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="empty-divider" aria-hidden="true"></div>
+
+      <div class="empty-spouse">
+        <div class="empty-steplabel"><span class="rom">II.</span> Spouse B</div>
+        <div class="empty-nameage">
+          <input type="text" id="hp-name-B" class="empty-name-input" value="James" placeholder="First name" maxlength="40" aria-label="Spouse B name">
+          <span class="empty-age-wrap">
+            age <input type="number" id="hp-age-B" class="empty-age-input" value="65" min="55" max="100" step="1" aria-label="Spouse B age">
+          </span>
+        </div>
+        <div class="empty-subhead eyebrow">Retirement capital</div>
+        <div class="empty-field">
+          <label>LA balance</label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-la-B" value="4 000 000" inputmode="numeric"></div>
+        </div>
+        <div class="empty-field">
+          <label>Discretionary</label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-disc-B" value="1 000 000" inputmode="numeric"></div>
+        </div>
+        <div class="empty-field">
+          <label>Disc. base cost <span class="hint">CGT</span></label>
+          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="hp-base-B" value="500 000" inputmode="numeric"></div>
+        </div>
       </div>
     </div>
-    <div class="hp-row" style="grid-template-columns: 1fr; gap: 0; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);">
-      <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink); cursor: pointer;">
-        <input type="checkbox" id="needs-topup" style="width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer;">
-        <span><strong>Auto-top-up to meet target</strong> — when LA income (at the CPI-escalated rate) falls short, fill the gap from discretionary (proportional to balance, CGT-aware). If discretionary is exhausted and a gap remains, boost LA draws toward the 17.5% ceiling (proportional to LA balance).</span>
+
+    <!-- Household needs + market assumptions strip -->
+    <div class="empty-needs">
+      <div class="empty-needs-cell">
+        <div class="empty-steplabel"><span class="rom">III.</span> Monthly household need</div>
+        <div class="input-wrap large">
+          <span class="pfx">R</span><input type="text" id="needs-monthly" value="50 000" inputmode="numeric" aria-label="Monthly household expenses">
+        </div>
+        <div class="hint">after tax &middot; today's money</div>
+      </div>
+      <div class="empty-needs-cell">
+        <div class="empty-steplabel"><span class="rom">IV.</span> Annual lump sums</div>
+        <div class="input-wrap large">
+          <span class="pfx">R</span><input type="text" id="needs-lump" value="100 000" inputmode="numeric" aria-label="Annual lump-sum needs">
+        </div>
+        <div class="hint">holidays, car, home</div>
+      </div>
+      <div class="empty-needs-cell">
+        <div class="empty-steplabel"><span class="rom">V.</span> Market assumptions</div>
+        <div class="empty-assumptions">
+          <span class="empty-assum"><input type="range" id="return" min="4" max="15" step="0.25" value="9" aria-label="Expected nominal return"><span class="num" id="return-out">9.00%</span></span>
+          <span class="sep">&middot;</span>
+          <span class="empty-assum"><input type="range" id="cpi" min="2" max="10" step="0.25" value="5" aria-label="Inflation CPI"><span class="num" id="cpi-out">5.00%</span></span>
+        </div>
+        <div class="hint">return &middot; CPI</div>
+      </div>
+    </div>
+
+    <!-- Other taxable income streams -->
+    <div class="empty-incomes">
+      <div class="empty-steplabel">
+        <span class="rom">VI.</span> Other taxable income
+        <span class="empty-subhint">DB pensions, rental, trust distributions &mdash; today's money</span>
+      </div>
+      <div class="empty-incomes-ledger">
+        <div id="incomes-list" class="events-list"></div>
+        <div id="incomes-empty" class="events-empty">No other income streams yet.</div>
+        <button type="button" id="incomes-add" class="add-btn">&#xFF0B; Add income source</button>
+      </div>
+    </div>
+
+    <!-- Family capital events ledger -->
+    <div class="empty-events">
+      <div class="empty-steplabel">
+        <span class="rom">VII.</span> Family capital events
+        <span class="empty-subhint">one-off inflows along the timeline &mdash; property sales, inheritances, maturing policies</span>
+      </div>
+      <div class="empty-events-ledger">
+        <div class="empty-events-header">
+          <span>When</span><span>Event</span><span>For whom</span><span>Amount</span>
+        </div>
+        <div id="events-list" class="events-list"></div>
+        <div id="events-empty" class="events-empty">No capital events yet.</div>
+        <button type="button" id="events-add" class="add-btn">&#xFF0B; Add capital event</button>
+      </div>
+    </div>
+
+    <!-- Auto-top-up toggle -->
+    <label class="empty-topup-label">
+      <input type="checkbox" id="needs-topup">
+      <span><strong>Auto-top-up to meet target</strong> &mdash; when LA income (at the CPI-escalated rate) falls short of the monthly need, fill the gap from discretionary (CGT-aware, proportional to balance). If discretionary is exhausted and a gap remains, boost LA draws toward the 17.5% ceiling.</span>
+    </label>
+
+    <!-- Client metadata -->
+    <div class="empty-meta">
+      <span><label>Prepared for</label><input type="text" id="client-name" value="Client Household"></span>
+      <span><label>Meeting date</label><input type="text" id="client-date" placeholder="DD Month YYYY"></span>
+      <span><label>Adviser</label><input type="text" id="adviser-name" value="Simple Wealth (Pty) Ltd"></span>
+    </div>
+
+    <!-- CTA bar -->
+    <div class="empty-cta">
+      <div class="empty-cta-left">
+        <div class="empty-cta-eyebrow">Ready to see if this lifestyle is sustainable?</div>
+        <div class="empty-cta-sub">We'll run a year-by-year projection across both spouses, showing what's drawn, what's taxed, and how the horizon unfolds until the youngest reaches 100.</div>
+      </div>
+      <button type="button" class="btn gold large" id="btn-build-projection">Build the projection &rarr;</button>
+    </div>
+
+    <!-- Readonly annual total (kept in DOM for the calc engine; hidden from view) -->
+    <input type="hidden" id="needs-annual-total" value="700 000">
+  </div>
+</section>
+
+<!-- ============= STATE 2: Single scenario projection ============= -->
+<section id="state-single" class="state" data-state="single">
+
+  <!-- Plan inputs summary bar -->
+  <div class="plan-bar-lite">
+    <div class="plan-bar-lite-left">
+      <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
+      <span class="plan-bar-lite-fact"><label>Household</label><span id="pb-household" class="num">—</span></span>
+      <span class="plan-bar-lite-fact"><label>Capital</label><span id="pb-capital" class="num">—</span></span>
+      <span class="plan-bar-lite-fact"><label>Target</label><span id="pb-target" class="num">—</span></span>
+      <span class="plan-bar-lite-fact"><label>Prepared</label><span id="doc-date" class="num">—</span></span>
+    </div>
+    <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
+  </div>
+
+  <!-- Canvas head -->
+  <div class="canvas-head">
+    <div class="canvas-head-left">
+      <div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">Sustainability projection &middot; today's money</div>
+      <h1 class="headline">
+        <span id="hl-monthly" class="num">R 50 000</span> a month is
+        <em id="hl-verdict">sustainable</em> until
+        <span class="gold-under">age <span id="hl-age" class="num-italic">—</span></span>.
+      </h1>
+      <p class="headline-sub" id="hl-sub">Across the youngest spouse's horizon, living-annuity income (escalating with CPI) and discretionary drawdowns together cover the household target.</p>
+    </div>
+    <div class="canvas-head-actions">
+      <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
+        <span class="sw" aria-hidden="true"></span>
+        <span>Auto-top-up</span>
       </label>
+      <div class="seg mini" role="tablist" aria-label="Real or Nominal">
+        <button id="btn-real" class="on" role="tab" aria-selected="true">Real</button>
+        <button id="btn-nom" role="tab" aria-selected="false">Nominal</button>
+      </div>
+      <button type="button" class="btn ghost no-print" onclick="window.print()">Print &darr;</button>
+      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
   </div>
 
-  <!-- Other taxable income streams (rental, DB pension, maintenance, etc.) -->
-  <div class="section-header collapsible" data-target="incomes-body">
-    <span class="caret"></span>Other taxable income streams
-  </div>
-  <div class="household-panel collapsible-body" id="incomes-body" style="max-height: 1200px; margin-bottom: 28px;">
-    <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 14px;">
-      Rental income, a DB pension, trust distributions, maintenance orders — anything taxable alongside living-annuity income. Amounts are entered in today's money; tick Escalate for streams that grow with CPI. Start age and duration set when the stream runs for the chosen spouse.
+  <!-- Outcome strip -->
+  <div class="outcome-strip">
+    <div class="outcome-cell primary teal" id="outcome-primary">
+      <div class="ocap" id="out-primary-label">Lifestyle sustainable until age</div>
+      <div class="oval"><span id="out-age" class="num-italic">—</span><span class="unit">&middot; <span id="out-years" class="num">—</span> years</span></div>
+      <div class="osub" id="out-primary-sub">youngest spouse &middot; target fully met</div>
     </div>
-    <div id="incomes-list" class="events-list"></div>
-    <div id="incomes-empty" class="events-empty">No other income streams. Click below to add one.</div>
-    <button type="button" id="incomes-add" class="events-add">+ Add income stream</button>
+    <div class="outcome-cell">
+      <div class="ocap">Year-1 income need</div>
+      <div class="oval"><span id="out-need" class="num">—</span></div>
+      <div class="osub">per month &middot; after tax</div>
+    </div>
+    <div class="outcome-cell">
+      <div class="ocap">Funded by</div>
+      <div class="oval split"><span id="out-mix" class="num">—</span></div>
+      <div class="osub">year-1 income mix</div>
+    </div>
   </div>
 
-  <!-- Future capital events (inheritance, property sale, etc.) -->
-  <div class="section-header collapsible" data-target="events-body">
-    <span class="caret"></span>Future capital events
-  </div>
-  <div class="household-panel collapsible-body" id="events-body" style="max-height: 800px; margin-bottom: 28px;">
-    <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 14px;">
-      Expected capital inflows (property sale, inheritance, maturing policy). Each event lands in the chosen spouse's discretionary portfolio at the end of the specified year, and is added to that portfolio's base cost so no unrealised gain is assumed on arrival.
-    </div>
-    <div id="events-list" class="events-list"></div>
-    <div id="events-empty" class="events-empty">No capital events. Click below to add one.</div>
-    <button type="button" id="events-add" class="events-add">+ Add capital event</button>
-  </div>
-
-  <!-- Summary cards -->
-  <div class="section-header">Year 1 summary</div>
-  <div class="summary">
+  <!-- Legacy summary-cards (kept in DOM for updateCards() to write into; hidden from view but printed for compliance) -->
+  <div class="summary legacy-summary" aria-hidden="true" style="display: none;">
     <div class="summary-card primary">
       <div class="label">Household capital today</div>
       <div class="value" id="sum-capital">R0</div>
@@ -874,52 +1951,48 @@
     </div>
   </div>
 
-  <!-- Chart -->
+  <!-- Chart controls: view segmented — Income default -->
   <div class="controls-row">
-    <div class="toggle" role="tablist" aria-label="Chart view">
-      <button id="btn-view-capital" class="active" role="tab">Capital</button>
-      <button id="btn-view-income" role="tab">Income</button>
-      <button id="btn-view-table" role="tab">Table</button>
-    </div>
-    <div class="toggle no-print" role="tablist" aria-label="Unit of account">
-      <button id="btn-real" class="active" role="tab">Real (today's money)</button>
-      <button id="btn-nom" role="tab">Nominal (future rands)</button>
+    <div class="seg" role="tablist" aria-label="Chart view">
+      <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
+      <button id="btn-view-capital" role="tab" aria-selected="false">Capital</button>
+      <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
     </div>
   </div>
 
   <div class="chart-card">
-    <!-- Capital view legend -->
-    <div class="chart-legend" id="legend-capital" role="toolbar" aria-label="Capital chart series toggles">
+    <!-- Capital view legend (hidden by default — Income is the new default view) -->
+    <div class="chart-legend" id="legend-capital" role="toolbar" aria-label="Capital chart series toggles" style="display: none;">
       <button type="button" class="series-toggle" id="tog-la" data-series="la" aria-pressed="true">
         <span class="swatch" style="background:#2a6b6b;"></span>Living annuities
       </button>
       <button type="button" class="series-toggle" id="tog-disc" data-series="disc" aria-pressed="true">
-        <span class="swatch" style="background:#c89a3c;"></span>Discretionary
+        <span class="swatch" style="background:#b8893c;"></span>Discretionary
       </button>
-      <button type="button" class="series-toggle" id="tog-rate" data-series="rate" aria-pressed="true" style="color:#993c1d;">
-        <span class="swatch line" style="color:#993c1d;"></span>Household withdrawal rate
+      <button type="button" class="series-toggle" id="tog-rate" data-series="rate" aria-pressed="true" style="color:#a04438;">
+        <span class="swatch line" style="color:#a04438;"></span>Household withdrawal rate
       </button>
     </div>
-    <!-- Income view legend (hidden by default) -->
-    <div class="chart-legend" id="legend-income" role="toolbar" aria-label="Income chart series toggles" style="display: none;">
-      <button type="button" class="series-toggle" id="tog-gross" data-series="gross" aria-pressed="true">
-        <span class="swatch" style="background:#185fa5;"></span>Gross drawdown
+    <!-- Income view legend (default visible; Capital view toggles this) -->
+    <div class="chart-legend" id="legend-income" role="toolbar" aria-label="Income chart series toggles">
+      <button type="button" class="series-toggle" id="tog-inc-la" data-series="la" aria-pressed="true">
+        <span class="swatch" style="background:#2a6b6b;"></span>LA draw
       </button>
-      <button type="button" class="series-toggle" id="tog-tax" data-series="tax" aria-pressed="true">
-        <span class="swatch" style="background:#993c1d;"></span>Tax
+      <button type="button" class="series-toggle" id="tog-inc-disc" data-series="disc" aria-pressed="true">
+        <span class="swatch" style="background:#b8893c;"></span>Discretionary
       </button>
-      <button type="button" class="series-toggle" id="tog-net" data-series="net" aria-pressed="true">
-        <span class="swatch" style="background:#3b6d11;"></span>Net after-tax income
+      <button type="button" class="series-toggle" id="tog-inc-other" data-series="other" aria-pressed="true">
+        <span class="swatch" style="background:#38495b;"></span>Other income
       </button>
-      <button type="button" class="series-toggle" id="tog-target" data-series="target" aria-pressed="true">
-        <span class="swatch line" style="color:#2d3e50;"></span>Expense target
+      <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#a04438;">
+        <span class="swatch line" style="color:#a04438;"></span>Target need
       </button>
     </div>
     <!-- Plan-health alerts (populated dynamically; hidden if no alerts) -->
     <div id="chart-alerts" class="chart-alerts" style="display: none;"></div>
     <div class="chart-wrap">
-      <canvas id="chart" role="img" aria-label="Stacked bar chart of household capital split by living annuity and discretionary, with household withdrawal rate as a percentage line on the secondary axis.">Capital projection chart.</canvas>
-      <canvas id="chart-income" role="img" aria-label="Line chart showing year-by-year gross drawdown, tax, net after-tax income, and the household expense target." style="display: none;">Income projection chart.</canvas>
+      <canvas id="chart" role="img" aria-label="Stacked bar chart of household capital split by living annuity and discretionary, with household withdrawal rate as a percentage line on the secondary axis." style="display: none;">Capital projection chart.</canvas>
+      <canvas id="chart-income" role="img" aria-label="Stacked bar chart of household income sources (living annuity, discretionary, other) versus the target need line, year by year.">Income projection chart.</canvas>
       <div id="year-table-wrap" class="year-table-wrap" style="display: none;" role="region" aria-label="Year-by-year projection table">
         <table class="year-table" id="year-table">
           <thead></thead>
@@ -929,112 +2002,178 @@
     </div>
   </div>
 
-  <!-- Levers: two people side by side -->
-  <div class="section-header" style="display: flex; align-items: center; justify-content: space-between;">
-    <span>Drawdown levers</span>
-    <button class="action-btn secondary" id="btn-solve" style="font-size: 12px; padding: 6px 14px; text-transform: none; letter-spacing: normal;">Solve LA rates to target</button>
+  <!-- Narrative section -->
+  <div class="narrative">
+    <span class="narrative-eyebrow" id="narrative-eyebrow">Is this sustainable?</span>
+    <div class="narrative-body" id="narrative-body">
+      <p>Loading narrative&hellip;</p>
+    </div>
   </div>
-  <div class="levers-two-col">
 
-    <div class="levers">
-      <h3 id="lev-name-A">Spouse A</h3>
-      <div class="levers-grid">
-        <div class="lever">
-          <div class="lever-head">
-            <label>Initial LA drawdown rate <span style="color:var(--ink-faint);">(rand escalates at CPI thereafter)</span></label>
-            <span class="val" id="la-rate-A-out">5.00%</span>
-          </div>
-          <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
+  <!-- Canvas footer -->
+  <div class="canvas-foot">
+    <span>Illustrative only &middot; 2026/27 SARS tables &middot; <span id="foot-topup">auto-top-up on</span> &middot; <span id="foot-mode">real terms</span></span>
+    <span class="canvas-foot-actions">
+      <button type="button" class="btn ghost" id="btn-show-table">Year-by-year table</button>
+      <button type="button" class="btn" onclick="window.print()">One-page summary &darr;</button>
+    </span>
+  </div>
+
+  </section>
+  <!-- /state-single -->
+
+  <!-- ============= STATE 3: Compare ============= -->
+  <section id="state-compare" class="state is-hidden" data-state="compare">
+
+    <!-- Plan inputs summary bar (mirrors state-single) -->
+    <div class="plan-bar-lite">
+      <div class="plan-bar-lite-left">
+        <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
+        <span class="plan-bar-lite-fact"><label>Household</label><span id="pb-household-c" class="num">—</span></span>
+        <span class="plan-bar-lite-fact"><label>Baseline</label><span id="pb-baseline-c" class="num">—</span></span>
+      </div>
+      <button type="button" class="btn ghost" id="btn-edit-plan-compare">Edit plan &darr;</button>
+    </div>
+
+    <!-- Compact head -->
+    <div class="canvas-head compact">
+      <div class="canvas-head-left">
+        <div class="eyebrow canvas-head-eyebrow">Scenario compare &middot; baseline locked</div>
+        <h1 class="headline" style="font-size: 36px;">
+          What if we <span class="gold-under" id="cmp-tweak">nudge the levers</span>?
+        </h1>
+      </div>
+      <div class="canvas-head-actions">
+        <label class="toggle-pill" id="toggle-topup-pill-c" role="switch" aria-checked="false" tabindex="0">
+          <span class="sw" aria-hidden="true"></span>
+          <span>Auto-top-up</span>
+        </label>
+        <div class="seg mini" role="tablist" aria-label="Real or Nominal (compare)">
+          <button id="btn-real-c" class="on" role="tab" aria-selected="true">Real</button>
+          <button id="btn-nom-c" role="tab" aria-selected="false">Nominal</button>
         </div>
-        <div class="lever">
-          <div class="lever-head">
-            <label>Annual discretionary withdrawal</label>
-            <span class="val" id="disc-draw-A-out">R0</span>
+        <button type="button" class="btn ghost" id="btn-clear-baseline">Clear baseline</button>
+        <button type="button" class="btn primary" id="btn-relock-baseline">Re-lock as new baseline</button>
+      </div>
+    </div>
+
+    <!-- Two-up cards -->
+    <div class="compare-grid">
+      <div class="compare-card baseline" id="compare-baseline">
+        <div class="compare-card-head">
+          <span class="compare-tag">Baseline &middot; current plan</span>
+          <span class="compare-lock">Locked</span>
+        </div>
+        <div class="compare-bigval">age <span id="base-age" class="num-italic">—</span> <span class="unit">&middot; <span id="base-years" class="num">—</span> years</span></div>
+        <div class="compare-sub" id="base-sub">—</div>
+        <div class="compare-meta" id="base-meta"></div>
+      </div>
+      <div class="compare-card scenario" id="compare-scenario">
+        <div class="compare-card-head">
+          <span class="compare-tag">Planned scenario</span>
+          <span class="delta-chip" id="cmp-delta-chip">&mdash;</span>
+        </div>
+        <div class="compare-bigval">age <span id="cmp-age" class="num-italic">—</span> <span class="unit">&middot; <span id="cmp-years" class="num">—</span> years</span></div>
+        <div class="compare-sub" id="cmp-sub">—</div>
+        <div class="compare-meta" id="cmp-meta"></div>
+      </div>
+    </div>
+
+    <div class="compare-helper">
+      Use the scenario levers below to adjust this plan. Baseline stays locked until you re-lock or clear it.
+    </div>
+
+  </section>
+
+  <!-- ============= Shared chrome (visible in State 2 and State 3) =============
+       Hidden in State 1 via [data-state-active="empty"] rule. -->
+  <div id="shared-chrome">
+    <!-- Levers: two people side by side -->
+    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between;">
+      <span>Drawdown levers</span>
+      <button class="btn ghost" id="btn-solve" style="font-size: 12px;">Solve LA rates to target</button>
+    </div>
+    <div class="levers-two-col">
+
+      <div class="levers">
+        <h3 id="lev-name-A">Spouse A</h3>
+        <div class="levers-grid">
+          <div class="lever">
+            <div class="lever-head">
+              <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
+              <span class="val" id="la-rate-A-out">5.00%</span>
+            </div>
+            <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
           </div>
-          <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
+          <div class="lever">
+            <div class="lever-head">
+              <label>Annual discretionary withdrawal</label>
+              <span class="val" id="disc-draw-A-out">R0</span>
+            </div>
+            <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
+          </div>
+        </div>
+      </div>
+
+      <div class="levers">
+        <h3 id="lev-name-B">Spouse B</h3>
+        <div class="levers-grid">
+          <div class="lever">
+            <div class="lever-head">
+              <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
+              <span class="val" id="la-rate-B-out">5.00%</span>
+            </div>
+            <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
+          </div>
+          <div class="lever">
+            <div class="lever-head">
+              <label>Annual discretionary withdrawal</label>
+              <span class="val" id="disc-draw-B-out">R0</span>
+            </div>
+            <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="levers">
-      <h3 id="lev-name-B">Spouse B</h3>
-      <div class="levers-grid">
-        <div class="lever">
-          <div class="lever-head">
-            <label>Initial LA drawdown rate <span style="color:var(--ink-faint);">(rand escalates at CPI thereafter)</span></label>
-            <span class="val" id="la-rate-B-out">5.00%</span>
-          </div>
-          <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
+    <!-- Tax panel -->
+    <div class="section-header" style="margin-top: 28px;">Year 1 income tax projection (2026/27 tables)</div>
+    <div class="tax-panel">
+      <div class="tax-sub">Tax is computed on each spouse individually at 2026/27 SARS rates. Living annuity income is fully taxable. Discretionary withdrawals trigger CGT on the gain portion (proportional to base cost), included at 40% into taxable income with a R50 000 annual exclusion applied per person.</div>
+      <div class="tax-grid">
+        <div class="tax-side">
+          <h4 id="tax-name-A">Spouse A</h4>
+          <table class="tax-table">
+            <tr><td>LA income</td><td id="ta-la">R0</td></tr>
+            <tr><td>Other taxable income (year 1)</td><td id="ta-other">R0</td></tr>
+            <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
+            <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="ta-incl">R0</td></tr>
+            <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
+            <tr><td>Income tax before rebates</td><td id="ta-gross">R0</td></tr>
+            <tr class="sub"><td>less primary + age rebates</td><td id="ta-rebate">R0</td></tr>
+            <tr class="total"><td>Tax payable</td><td id="ta-payable">R0</td></tr>
+            <tr><td>Effective rate on gross income</td><td id="ta-eff">0.0%</td></tr>
+          </table>
         </div>
-        <div class="lever">
-          <div class="lever-head">
-            <label>Annual discretionary withdrawal</label>
-            <span class="val" id="disc-draw-B-out">R0</span>
-          </div>
-          <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
+        <div class="tax-side">
+          <h4 id="tax-name-B">Spouse B</h4>
+          <table class="tax-table">
+            <tr><td>LA income</td><td id="tb-la">R0</td></tr>
+            <tr><td>Other taxable income (year 1)</td><td id="tb-other">R0</td></tr>
+            <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
+            <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="tb-incl">R0</td></tr>
+            <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
+            <tr><td>Income tax before rebates</td><td id="tb-gross">R0</td></tr>
+            <tr class="sub"><td>less primary + age rebates</td><td id="tb-rebate">R0</td></tr>
+            <tr class="total"><td>Tax payable</td><td id="tb-payable">R0</td></tr>
+            <tr><td>Effective rate on gross income</td><td id="tb-eff">0.0%</td></tr>
+          </table>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Shared assumptions -->
-  <div class="section-header">Market assumptions</div>
-  <div class="levers">
-    <div class="levers-grid" style="grid-template-columns: repeat(2, 1fr); gap: 18px 32px;">
-      <div class="lever">
-        <div class="lever-head">
-          <label>Investment return (nominal, p.a.)</label>
-          <span class="val" id="return-out">9.0%</span>
-        </div>
-        <input type="range" min="4" max="15" step="0.25" value="9" id="return">
-      </div>
-      <div class="lever">
-        <div class="lever-head">
-          <label>General inflation (CPI)</label>
-          <span class="val" id="cpi-out">5.0%</span>
-        </div>
-        <input type="range" min="2" max="10" step="0.25" value="5" id="cpi">
-      </div>
-    </div>
-  </div>
-
-  <!-- Tax panel -->
-  <div class="section-header" style="margin-top: 28px;">Year 1 income tax projection (2026/27 tables)</div>
-  <div class="tax-panel">
-    <div class="tax-sub">Tax is computed on each spouse individually at 2026/27 SARS rates. Living annuity income is fully taxable. Discretionary withdrawals trigger CGT on the gain portion (proportional to base cost), included at 40% into taxable income with a R50 000 annual exclusion applied per person.</div>
-    <div class="tax-grid">
-      <div class="tax-side">
-        <h4 id="tax-name-A">Spouse A</h4>
-        <table class="tax-table">
-          <tr><td>LA income</td><td id="ta-la">R0</td></tr>
-          <tr><td>Other taxable income (year 1)</td><td id="ta-other">R0</td></tr>
-          <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
-          <tr class="sub"><td>CGT inclusion (40% &times; [gain − R50k])</td><td id="ta-incl">R0</td></tr>
-          <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
-          <tr><td>Income tax before rebates</td><td id="ta-gross">R0</td></tr>
-          <tr class="sub"><td>less primary + age rebates</td><td id="ta-rebate">R0</td></tr>
-          <tr class="total"><td>Tax payable</td><td id="ta-payable">R0</td></tr>
-          <tr><td>Effective rate on gross income</td><td id="ta-eff">0.0%</td></tr>
-        </table>
-      </div>
-      <div class="tax-side">
-        <h4 id="tax-name-B">Spouse B</h4>
-        <table class="tax-table">
-          <tr><td>LA income</td><td id="tb-la">R0</td></tr>
-          <tr><td>Other taxable income (year 1)</td><td id="tb-other">R0</td></tr>
-          <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
-          <tr class="sub"><td>CGT inclusion (40% &times; [gain − R50k])</td><td id="tb-incl">R0</td></tr>
-          <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
-          <tr><td>Income tax before rebates</td><td id="tb-gross">R0</td></tr>
-          <tr class="sub"><td>less primary + age rebates</td><td id="tb-rebate">R0</td></tr>
-          <tr class="total"><td>Tax payable</td><td id="tb-payable">R0</td></tr>
-          <tr><td>Effective rate on gross income</td><td id="tb-eff">0.0%</td></tr>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Print summary -->
+  <!-- Print summary (always available; print flow forces state-single on paper) -->
   <div class="print-summary" id="print-summary">
     <h2>Summary of assumptions and outcome</h2>
 
@@ -1131,9 +2270,28 @@
   var CGT = { inclusion: 0.40, exclusion: 50000 };
 
   var mode = 'real';
-  var chartView = 'capital';  // 'capital' | 'income'
+  var chartView = 'income';  // 'income' | 'capital' | 'table' — income is default in the editorial redesign
   var chart = null;
   var seriesVisible = { la: true, disc: true, rate: true };
+
+  // ===== App state (three-state flow: empty → single → compare) =====
+  var appState = 'single';  // 'empty' | 'single' | 'compare' — Phase 3 flips default to 'empty'
+  var baseline = null;      // frozen snapshot for Compare; Phase 5 populates
+  function setAppState(next){
+    if (next === appState) return;
+    var prev = appState;
+    appState = next;
+    document.body.setAttribute('data-app-state', next);
+    var states = document.querySelectorAll('[data-state]');
+    for (var i = 0; i < states.length; i++){
+      var el = states[i];
+      var match = el.getAttribute('data-state') === next;
+      el.classList.toggle('is-hidden', !match);
+    }
+    try { localStorage.setItem('drawdownAppState', next); } catch(e){}
+    if (typeof refresh === 'function') refresh();
+    return prev;
+  }
 
   // ===== Formatting =====
   function fmtR(n){
@@ -1879,13 +3037,13 @@
             hidden: !seriesVisible.la,
             order: 2 },
           { type: 'bar', label: 'Discretionary', data: series.disc,
-            backgroundColor: '#c89a3c', borderColor: '#c89a3c',
+            backgroundColor: '#b8893c', borderColor: '#b8893c',
             borderWidth: 0, stack: 'capital', yAxisID: 'y',
             categoryPercentage: 0.85, barPercentage: 0.95,
             hidden: !seriesVisible.disc,
             order: 2 },
           { type: 'line', label: 'Household withdrawal rate', data: p.drawRatePct,
-            borderColor: '#993c1d', backgroundColor: '#993c1d',
+            borderColor: '#a04438', backgroundColor: '#a04438',
             borderDash: [6, 4], fill: false, tension: 0,
             pointRadius: 0, pointHoverRadius: 4,
             borderWidth: 2, yAxisID: 'y1',
@@ -1931,10 +3089,10 @@
             ticks: {
               callback: function(v){ return v.toFixed(1) + '%'; },
               font: { size: 11 },
-              color: '#993c1d'
+              color: '#a04438'
             },
             grid: { display: false },
-            title: { display: true, text: 'withdrawal rate', font: { size: 10 }, color: '#993c1d' }
+            title: { display: true, text: 'withdrawal rate', font: { size: 10 }, color: '#a04438' }
           },
           x: {
             stacked: true,
@@ -1948,46 +3106,115 @@
 
   // ===== Income chart state & builder =====
   var incomeChart = null;
-  var incomeSeriesVisible = { gross: true, tax: true, net: true, target: true };
+  var incomeSeriesVisible = { la: true, disc: true, other: true, target: true };
+
+  // Chart.js plugin: coral wash over shortfall years + dashed vertical at first shortfall.
+  var shortfallShadingPlugin = {
+    id: 'shortfallShading',
+    afterDatasetsDraw: function(chart){
+      var ds = chart.data.datasets;
+      if (!ds || ds.length < 4) return;
+      var la = ds[0], disc = ds[1], other = ds[2], target = ds[3];
+      if (target.hidden) return;
+      var ctx = chart.ctx;
+      var yScale = chart.scales.y;
+      var xScale = chart.scales.x;
+      var N = chart.data.labels.length;
+      var shortfallStart = -1;
+      ctx.save();
+      ctx.fillStyle = 'rgba(160, 68, 56, 0.18)';
+      for (var i = 0; i < N; i++){
+        var total = 0;
+        if (!la.hidden) total += la.data[i] || 0;
+        if (!disc.hidden) total += disc.data[i] || 0;
+        if (!other.hidden) total += other.data[i] || 0;
+        var need = target.data[i] || 0;
+        if (total < need - 100){
+          var x = xScale.getPixelForValue(i);
+          var xNext = (i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right;
+          var barSpan = xNext - x;
+          var yNeed = yScale.getPixelForValue(need);
+          var yTotal = yScale.getPixelForValue(total);
+          ctx.fillRect(x - barSpan/2, yNeed, barSpan, yTotal - yNeed);
+          if (shortfallStart < 0) shortfallStart = i;
+        }
+      }
+      if (shortfallStart >= 0){
+        var xs = xScale.getPixelForValue(shortfallStart);
+        ctx.strokeStyle = '#a04438';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(xs, yScale.top);
+        ctx.lineTo(xs, yScale.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#a04438';
+        ctx.font = '10px "Inter Tight", sans-serif';
+        var labelText = 'shortfall begins · age ' + (chart.data.labels[shortfallStart] || '').toString().replace('Age ', '');
+        ctx.fillText(labelText, xs + 6, yScale.top + 12);
+      }
+      ctx.restore();
+    }
+  };
+
+  // Aggregate household LA/Disc/Other draws per year in the active display mode.
+  function incomeBarSeries(p){
+    var years = p.years;
+    var cpi = p.cpi;
+    var realMode = (mode === 'real');
+    var la = [], disc = [], other = [];
+    for (var i = 0; i < years; i++){
+      var laNom = (p.table.laA_draw[i] || 0) + (p.table.laB_draw[i] || 0);
+      var discNom = (p.table.discA_draw[i] || 0) + (p.table.discB_draw[i] || 0);
+      var otherNom = (p.table.otherA[i] || 0) + (p.table.otherB[i] || 0);
+      if (realMode){
+        var d = Math.pow(1 + cpi, i);
+        la.push(laNom / d); disc.push(discNom / d); other.push(otherNom / d);
+      } else {
+        la.push(laNom); disc.push(discNom); other.push(otherNom);
+      }
+    }
+    return { la: la, disc: disc, other: other };
+  }
 
   function buildIncomeChart(p){
     var ctx = document.getElementById('chart-income');
     var series = mode === 'real' ? p.real : p.nominal;
+    var bars = incomeBarSeries(p);
+    var targetArr = series.target.slice();
 
     if (incomeChart){
       incomeChart.data.labels = p.labels;
-      incomeChart.data.datasets[0].data = series.draw;
-      incomeChart.data.datasets[1].data = series.tax;
-      incomeChart.data.datasets[2].data = series.net;
-      incomeChart.data.datasets[3].data = series.target;
-      incomeChart.data.datasets[0].hidden = !incomeSeriesVisible.gross;
-      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.tax;
-      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.net;
+      incomeChart.data.datasets[0].data = bars.la;
+      incomeChart.data.datasets[1].data = bars.disc;
+      incomeChart.data.datasets[2].data = bars.other;
+      incomeChart.data.datasets[3].data = targetArr;
+      incomeChart.data.datasets[0].hidden = !incomeSeriesVisible.la;
+      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.disc;
+      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.other;
       incomeChart.data.datasets[3].hidden = !incomeSeriesVisible.target;
       incomeChart.update('none');
       return;
     }
 
     incomeChart = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: p.labels,
         datasets: [
-          { label: 'Gross drawdown', data: series.draw,
-            borderColor: '#185fa5', backgroundColor: 'transparent',
-            fill: false, tension: 0.25, pointRadius: 0, borderWidth: 2,
-            hidden: !incomeSeriesVisible.gross },
-          { label: 'Tax', data: series.tax,
-            borderColor: '#993c1d', backgroundColor: 'transparent',
-            fill: false, tension: 0.25, pointRadius: 0, borderWidth: 1.75,
-            hidden: !incomeSeriesVisible.tax },
-          { label: 'Net after-tax income', data: series.net,
-            borderColor: '#3b6d11', backgroundColor: 'rgba(59, 109, 17, 0.06)',
-            fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2.5,
-            hidden: !incomeSeriesVisible.net },
-          { label: 'Expense target', data: series.target,
-            borderColor: '#2d3e50', backgroundColor: 'transparent',
-            borderDash: [6, 4], fill: false, tension: 0, pointRadius: 0, borderWidth: 1.75,
+          { type: 'bar', label: 'LA draw', data: bars.la,
+            backgroundColor: '#2a6b6b', stack: 'income', borderWidth: 0, order: 3,
+            hidden: !incomeSeriesVisible.la },
+          { type: 'bar', label: 'Discretionary', data: bars.disc,
+            backgroundColor: '#b8893c', stack: 'income', borderWidth: 0, order: 2,
+            hidden: !incomeSeriesVisible.disc },
+          { type: 'bar', label: 'Other income', data: bars.other,
+            backgroundColor: '#38495b', stack: 'income', borderWidth: 0, order: 1,
+            hidden: !incomeSeriesVisible.other },
+          { type: 'line', label: 'Target need', data: targetArr,
+            borderColor: '#a04438', backgroundColor: 'transparent',
+            borderDash: [5, 4], tension: 0, pointRadius: 0, borderWidth: 1.75, order: 0,
             hidden: !incomeSeriesVisible.target }
         ]
       },
@@ -2004,16 +3231,19 @@
         },
         scales: {
           y: {
+            stacked: true,
             beginAtZero: true,
-            ticks: { callback: function(v){ return fmtShort(v); }, font: { size: 11 } },
-            grid: { color: 'rgba(0,0,0,0.06)' }
+            ticks: { callback: function(v){ return fmtShort(v); }, font: { size: 11, family: 'JetBrains Mono, monospace' }, color: '#7a8292' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
           },
           x: {
-            ticks: { font: { size: 11 }, maxTicksLimit: 12 },
+            stacked: true,
+            ticks: { font: { size: 11, family: 'JetBrains Mono, monospace' }, color: '#7a8292', maxTicksLimit: 12 },
             grid: { display: false }
           }
         }
-      }
+      },
+      plugins: [shortfallShadingPlugin]
     });
   }
 
@@ -2180,6 +3410,290 @@
     }
   }
 
+  function updatePlanBarLite(p){
+    var household = (document.getElementById('hp-name-A') || {}).value || 'Spouse A';
+    var nb = (document.getElementById('hp-name-B') || {}).value || 'Spouse B';
+    var phH = document.getElementById('pb-household');
+    var phC = document.getElementById('pb-capital');
+    var phT = document.getElementById('pb-target');
+    if (phH) phH.textContent = household + ' · ' + nb;
+    if (phC) phC.textContent = fmtR(p.nominal.total[0] || 0);
+    if (phT) phT.textContent = fmtR(p.targetPVAnnual || 0) + ' / yr';
+  }
+
+  // ===== Sustainability analysis for editorial framing =====
+  function analyseProjection(p){
+    var N = p.years;
+    var startAge = p.startAge;
+    var depleteIdx = -1, laCapIdx = -1, discExhaustIdx = -1;
+    var shortfallIdx = -1;
+    for (var i = 0; i < N; i++){
+      var laTotal = (p.table.laA_bal[i] || 0) + (p.table.laB_bal[i] || 0);
+      var discTotal = (p.table.discA_bal[i] || 0) + (p.table.discB_bal[i] || 0);
+      var netReal = p.real.net[i] || 0;
+      var targetReal = p.real.target[i] || 0;
+      if (depleteIdx < 0 && laTotal < 1 && discTotal < 1) depleteIdx = i;
+      if (discExhaustIdx < 0 && discTotal < 1) discExhaustIdx = i;
+      if (laCapIdx < 0 && p.table.clampA[i] === 'cap' && p.table.clampB[i] === 'cap') laCapIdx = i;
+      if (shortfallIdx < 0 && netReal < targetReal - 100) shortfallIdx = i;
+    }
+    var sustainableIdx = (shortfallIdx < 0) ? N : shortfallIdx;
+    var sustainableAge = startAge + sustainableIdx;
+    // verdict: true sustainable if we reach horizon without shortfall AND without full depletion
+    var verdict = (sustainableIdx >= N && depleteIdx < 0);
+    return {
+      sustainableIdx: sustainableIdx,
+      sustainableAge: sustainableAge,
+      horizonAge: p.horizonAge,
+      yearsLasted: sustainableIdx,
+      depleteIdx: depleteIdx,
+      depleteAge: depleteIdx < 0 ? null : startAge + depleteIdx,
+      laCapIdx: laCapIdx,
+      laCapAge: laCapIdx < 0 ? null : startAge + laCapIdx,
+      discExhaustIdx: discExhaustIdx,
+      discExhaustAge: discExhaustIdx < 0 ? null : startAge + discExhaustIdx,
+      shortfallIdx: shortfallIdx,
+      shortfallAge: shortfallIdx < 0 ? null : startAge + shortfallIdx,
+      verdict: verdict
+    };
+  }
+
+  function updateHeadline(p, an){
+    var monthlyEl = document.getElementById('hl-monthly');
+    var ageEl = document.getElementById('hl-age');
+    var verdictEl = document.getElementById('hl-verdict');
+    var subEl = document.getElementById('hl-sub');
+    var eyebrowEl = document.getElementById('hl-eyebrow');
+    if (monthlyEl) monthlyEl.textContent = fmtR((p.targetPVAnnual || 0) / 12);
+    if (ageEl) ageEl.textContent = an.sustainableAge;
+    if (verdictEl) verdictEl.textContent = an.verdict ? 'sustainable' : 'stretched';
+    if (eyebrowEl) eyebrowEl.textContent = 'Sustainability projection · ' + (mode === 'real' ? "today's money" : 'future rands');
+    if (subEl){
+      if (an.verdict){
+        subEl.textContent = 'Across the youngest spouse’s horizon, living-annuity income (escalating with CPI) together with discretionary drawdowns covers the household target without depleting either pot.';
+      } else if (an.shortfallAge){
+        subEl.textContent = 'Income starts to fall short of the target around age ' + an.shortfallAge + '. Below, the chart shows where discretionary exhausts and where the 17.5% LA ceiling begins to bite.';
+      } else {
+        subEl.textContent = 'Capital runs down before the horizon. The chart shows the crossover where income can no longer meet the target.';
+      }
+    }
+  }
+
+  function updateOutcomeStrip(p, an){
+    var ageOut = document.getElementById('out-age');
+    var yrOut = document.getElementById('out-years');
+    var needOut = document.getElementById('out-need');
+    var mixOut = document.getElementById('out-mix');
+    var primary = document.getElementById('outcome-primary');
+    var primLabel = document.getElementById('out-primary-label');
+    var primSub = document.getElementById('out-primary-sub');
+    if (ageOut) ageOut.textContent = an.sustainableAge;
+    if (yrOut) yrOut.textContent = an.yearsLasted;
+    if (needOut) needOut.textContent = fmtR((p.targetPVAnnual || 0) / 12);
+    // Funded-by mix: Y1 household shares
+    var laY1 = (p.table.laA_draw[0] || 0) + (p.table.laB_draw[0] || 0);
+    var discY1 = (p.table.discA_draw[0] || 0) + (p.table.discB_draw[0] || 0);
+    var otherY1 = (p.table.otherA[0] || 0) + (p.table.otherB[0] || 0);
+    var totalY1 = laY1 + discY1 + otherY1;
+    if (mixOut){
+      if (totalY1 > 0){
+        var laPct = Math.round(laY1 / totalY1 * 100);
+        var discPct = Math.round(discY1 / totalY1 * 100);
+        var otherPct = 100 - laPct - discPct;
+        mixOut.textContent = 'LA ' + laPct + '% · Disc ' + discPct + '% · Other ' + otherPct + '%';
+      } else {
+        mixOut.textContent = '—';
+      }
+    }
+    if (primary){
+      if (an.verdict){
+        primary.classList.add('teal'); primary.classList.remove('coral');
+        if (primLabel) primLabel.textContent = 'Lifestyle sustainable until age';
+        if (primSub) primSub.textContent = 'youngest spouse · target fully met';
+      } else {
+        primary.classList.remove('teal');
+        if (primLabel) primLabel.textContent = 'Target met until age';
+        if (primSub){
+          if (an.depleteAge){
+            primSub.textContent = 'capital depletes at age ' + an.depleteAge;
+          } else {
+            primSub.textContent = 'shortfall emerges before the horizon';
+          }
+        }
+      }
+    }
+  }
+
+  function updateNarrative(p, an){
+    var body = document.getElementById('narrative-body');
+    if (!body) return;
+    var parts = [];
+    var startAge = p.startAge;
+    if (an.verdict){
+      parts.push('<p>In the opening years the household draws comfortably against its living annuities, topped up lightly from the discretionary portfolio where needed. <span class="callout">Real income tracks the target without strain</span>.</p>');
+    } else {
+      parts.push('<p>The plan starts well. Living-annuity income at the opening rate meets most of the monthly need, with a modest top-up from discretionary.</p>');
+    }
+    if (an.discExhaustAge && an.discExhaustAge < p.horizonAge){
+      parts.push('<p>By age ' + an.discExhaustAge + ' the <span class="callout warn">discretionary pot is exhausted</span>, leaving the living annuity to carry the full load. From then on the effective draw rate begins to climb as the rand-amount target keeps rising with CPI.</p>');
+    }
+    if (an.laCapAge){
+      parts.push('<p>Around age ' + an.laCapAge + ' both living annuities reach the <span class="callout warn">17.5% legal ceiling</span>. The escalated rand target can no longer be met in full from LA income alone.</p>');
+    }
+    if (!an.verdict && an.shortfallAge){
+      parts.push('<p>From age ' + an.shortfallAge + ' a <span class="callout neg">real income shortfall</span> opens against the monthly target — visible in the chart as the coral wash between bar tops and the need line.</p>');
+    }
+    if (an.verdict){
+      parts.push('<p>If returns soften to <strong>7%</strong> or CPI runs at <strong>7%</strong>, the verdict can flip. Use the levers above to stress-test.</p>');
+    }
+    body.innerHTML = parts.join('');
+  }
+
+  function updateCanvasFoot(){
+    var topupEl = document.getElementById('foot-topup');
+    var modeEl = document.getElementById('foot-mode');
+    var onEl = document.getElementById('needs-topup');
+    if (topupEl) topupEl.textContent = (onEl && onEl.checked) ? 'auto-top-up on' : 'auto-top-up off';
+    if (modeEl) modeEl.textContent = (mode === 'real') ? 'real terms' : 'nominal terms';
+  }
+
+  function syncTopupPill(){
+    var cb = document.getElementById('needs-topup');
+    if (!cb) return;
+    ['toggle-topup-pill', 'toggle-topup-pill-c'].forEach(function(id){
+      var pill = document.getElementById(id);
+      if (!pill) return;
+      pill.classList.toggle('on', !!cb.checked);
+      pill.setAttribute('aria-checked', cb.checked ? 'true' : 'false');
+    });
+  }
+
+  function computeY1Draws(p){
+    return {
+      laA: p.table.laA_draw[0] || 0,
+      laB: p.table.laB_draw[0] || 0,
+      discA: p.table.discA_draw[0] || 0,
+      discB: p.table.discB_draw[0] || 0,
+      otherA: p.table.otherA[0] || 0,
+      otherB: p.table.otherB[0] || 0
+    };
+  }
+  function laRatePct(p, suffix){
+    var laBal = (suffix === 'A' ? (p.pA.laBalance || 0) : (p.pB.laBalance || 0));
+    var draw = (suffix === 'A' ? (p.table.laA_draw[0] || 0) : (p.table.laB_draw[0] || 0));
+    if (laBal <= 0) return 0;
+    return (draw / laBal) * 100;
+  }
+  function deltaStr(cur, base, digits, prefix){
+    if (base === undefined || base === null) return '';
+    var d = cur - base;
+    if (Math.abs(d) < (digits === 0 ? 1 : 0.005)) return '';
+    var sign = d > 0 ? '+' : '';
+    return sign + (digits === 0 ? Math.round(d).toLocaleString('en-ZA').replace(/,/g, ' ') : d.toFixed(digits)) + (prefix || '');
+  }
+
+  function updateCompareCards(p){
+    var nameA = (document.getElementById('hp-name-A') || {}).value || 'Spouse A';
+    var nameB = (document.getElementById('hp-name-B') || {}).value || 'Spouse B';
+    var phC = document.getElementById('pb-household-c');
+    if (phC) phC.textContent = nameA + ' · ' + nameB;
+
+    var tweakEl = document.getElementById('cmp-tweak');
+    if (tweakEl) tweakEl.textContent = baseline ? 'nudge the levers' : 'no baseline yet';
+
+    var baseEl = {
+      age: document.getElementById('base-age'),
+      years: document.getElementById('base-years'),
+      sub: document.getElementById('base-sub'),
+      meta: document.getElementById('base-meta')
+    };
+    var cmpEl = {
+      age: document.getElementById('cmp-age'),
+      years: document.getElementById('cmp-years'),
+      sub: document.getElementById('cmp-sub'),
+      meta: document.getElementById('cmp-meta'),
+      chip: document.getElementById('cmp-delta-chip')
+    };
+    var pbBaseFact = document.getElementById('pb-baseline-c');
+
+    if (!baseline){
+      if (baseEl.age) baseEl.age.textContent = '—';
+      if (baseEl.years) baseEl.years.textContent = '—';
+      if (baseEl.sub) baseEl.sub.textContent = 'Lock a baseline from the projection view to compare.';
+      if (baseEl.meta) baseEl.meta.innerHTML = '';
+      if (pbBaseFact) pbBaseFact.textContent = '—';
+    } else {
+      var anBase = analyseProjection(baseline);
+      if (baseEl.age) baseEl.age.textContent = anBase.sustainableAge;
+      if (baseEl.years) baseEl.years.textContent = anBase.yearsLasted;
+      var bDraws = computeY1Draws(baseline);
+      if (baseEl.sub){
+        baseEl.sub.textContent = 'R ' + Math.round((baseline.targetPVAnnual || 0) / 12).toLocaleString('en-ZA').replace(/,/g, ' ')
+          + ' / mo · ' + fmtShort(baseline.nominal.total[0]) + ' starting capital';
+      }
+      if (pbBaseFact) pbBaseFact.textContent = 'age ' + anBase.sustainableAge + ' · ' + anBase.yearsLasted + ' yrs';
+      if (baseEl.meta){
+        var rowsB = [
+          ['LA draw · ' + nameA, laRatePct(baseline, 'A').toFixed(2) + '%'],
+          ['LA draw · ' + nameB, laRatePct(baseline, 'B').toFixed(2) + '%'],
+          ['Disc. draw · household', fmtShort(bDraws.discA + bDraws.discB) + ' / yr'],
+          ['Monthly need (after tax)', 'R ' + Math.round((baseline.targetPVAnnual || 0) / 12).toLocaleString('en-ZA').replace(/,/g, ' ')],
+          ['Return · CPI', (baseline.rNom * 100).toFixed(1) + '% · ' + (baseline.cpi * 100).toFixed(1) + '%']
+        ];
+        baseEl.meta.innerHTML = rowsB.map(function(r){
+          return '<div class="compare-meta-row"><span>' + r[0] + '</span><span class="num">' + r[1] + '</span></div>';
+        }).join('');
+      }
+    }
+
+    // Scenario card (live)
+    var anCur = analyseProjection(p);
+    if (cmpEl.age) cmpEl.age.textContent = anCur.sustainableAge;
+    if (cmpEl.years) cmpEl.years.textContent = anCur.yearsLasted;
+    if (cmpEl.sub){
+      cmpEl.sub.textContent = 'R ' + Math.round((p.targetPVAnnual || 0) / 12).toLocaleString('en-ZA').replace(/,/g, ' ')
+        + ' / mo · ' + fmtShort(p.nominal.total[0]) + ' starting capital';
+    }
+    if (cmpEl.chip){
+      if (!baseline){
+        cmpEl.chip.textContent = '—';
+        cmpEl.chip.classList.remove('neg');
+      } else {
+        var anBase = analyseProjection(baseline);
+        var yrDelta = anCur.yearsLasted - anBase.yearsLasted;
+        if (yrDelta === 0){
+          cmpEl.chip.textContent = 'no change';
+          cmpEl.chip.classList.remove('neg');
+        } else if (yrDelta > 0){
+          cmpEl.chip.textContent = '+' + yrDelta + ' years';
+          cmpEl.chip.classList.remove('neg');
+        } else {
+          cmpEl.chip.textContent = yrDelta + ' years · depletes at ' + anCur.sustainableAge;
+          cmpEl.chip.classList.add('neg');
+        }
+      }
+    }
+    if (cmpEl.meta){
+      var cDraws = computeY1Draws(p);
+      var bDraws2 = baseline ? computeY1Draws(baseline) : null;
+      var rows = [
+        ['LA draw · ' + nameA, laRatePct(p, 'A').toFixed(2) + '%',
+          bDraws2 ? deltaStr(laRatePct(p, 'A'), laRatePct(baseline, 'A'), 2, '%') : ''],
+        ['LA draw · ' + nameB, laRatePct(p, 'B').toFixed(2) + '%',
+          bDraws2 ? deltaStr(laRatePct(p, 'B'), laRatePct(baseline, 'B'), 2, '%') : ''],
+        ['Disc. draw · household', fmtShort(cDraws.discA + cDraws.discB) + ' / yr',
+          bDraws2 ? deltaStr(cDraws.discA + cDraws.discB, bDraws2.discA + bDraws2.discB, 0, '') : ''],
+        ['Monthly need (after tax)', 'R ' + Math.round((p.targetPVAnnual || 0) / 12).toLocaleString('en-ZA').replace(/,/g, ' '),
+          baseline ? deltaStr(p.targetPVAnnual / 12, baseline.targetPVAnnual / 12, 0, '') : ''],
+        ['Return · CPI', (p.rNom * 100).toFixed(1) + '% · ' + (p.cpi * 100).toFixed(1) + '%', '']
+      ];
+      cmpEl.meta.innerHTML = rows.map(function(r){
+        var deltaHtml = r[2] ? (' <em' + (r[2].charAt(0) === '-' ? ' class="neg"' : '') + '>' + r[2] + '</em>') : '';
+        return '<div class="compare-meta-row"><span>' + r[0] + '</span><span class="num">' + r[1] + deltaHtml + '</span></div>';
+      }).join('');
+    }
+  }
+
   function refresh(){
     updateNameLabels();
     updateLeverLabels();
@@ -2187,10 +3701,22 @@
     updateCards(p);
     updateTaxPanel(p);
     updateAlerts(p);
-    if (chartView === 'capital') buildChart(p);
-    else if (chartView === 'income') buildIncomeChart(p);
-    else if (chartView === 'table') buildYearTable(p);
+    // Chart canvas lives inside #state-single; when other states are active, the
+    // canvas is display:none — Chart.js tolerates this but skip renders in 'empty'.
+    if (appState !== 'empty'){
+      if (chartView === 'capital') buildChart(p);
+      else if (chartView === 'income') buildIncomeChart(p);
+      else if (chartView === 'table') buildYearTable(p);
+    }
     updatePrintSummary(p);
+    updatePlanBarLite(p);
+    var an = analyseProjection(p);
+    updateHeadline(p, an);
+    updateOutcomeStrip(p, an);
+    updateNarrative(p, an);
+    updateCanvasFoot();
+    syncTopupPill();
+    if (appState === 'compare') updateCompareCards(p);
   }
 
   // ===== Solve LA rates for target after-tax income =====
@@ -2471,11 +3997,28 @@
     el.value = Math.round(n).toLocaleString('en-ZA').replace(/,/g, ' ');
   }
 
+  // ===== Slider fill-% (visual gold track up to the thumb) =====
+  function updateSliderFill(el){
+    if (!el) return;
+    var min = parseFloat(el.min) || 0;
+    var max = parseFloat(el.max) || 100;
+    var v = parseFloat(el.value) || 0;
+    var pct = (max > min) ? ((v - min) / (max - min)) * 100 : 0;
+    el.style.setProperty('--fill', pct.toFixed(2) + '%');
+  }
+  function updateAllSliderFills(){
+    document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+  }
+
   // ===== Wire up =====
   var sliderIds = ['la-rate-A','disc-draw-A','la-rate-B','disc-draw-B','return','cpi'];
   sliderIds.forEach(function(id){
-    document.getElementById(id).addEventListener('input', refresh);
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', function(){ updateSliderFill(el); refresh(); });
+    updateSliderFill(el);
   });
+  updateAllSliderFills();
 
   // Household-position number inputs: parse on every keystroke for live feedback,
   // reformat on blur.
@@ -2555,8 +4098,10 @@
 
   function setMode(m){
     mode = m;
-    document.getElementById('btn-real').classList.toggle('active', m === 'real');
-    document.getElementById('btn-nom').classList.toggle('active', m === 'nominal');
+    var real = document.getElementById('btn-real');
+    var nom = document.getElementById('btn-nom');
+    if (real){ real.classList.toggle('active', m === 'real'); real.classList.toggle('on', m === 'real'); real.setAttribute('aria-selected', m === 'real'); }
+    if (nom){ nom.classList.toggle('active', m === 'nominal'); nom.classList.toggle('on', m === 'nominal'); nom.setAttribute('aria-selected', m === 'nominal'); }
     refresh();
   }
   document.getElementById('btn-real').addEventListener('click', function(){ setMode('real'); });
@@ -2564,17 +4109,17 @@
 
   function setView(v){
     chartView = v;
-    document.getElementById('btn-view-capital').classList.toggle('active', v === 'capital');
-    document.getElementById('btn-view-income').classList.toggle('active', v === 'income');
-    document.getElementById('btn-view-table').classList.toggle('active', v === 'table');
-    // Swap visible canvas / table
+    var bc = document.getElementById('btn-view-capital');
+    var bi = document.getElementById('btn-view-income');
+    var bt = document.getElementById('btn-view-table');
+    [bc, bi, bt].forEach(function(btn){ if (btn){ btn.classList.remove('active', 'on'); btn.setAttribute('aria-selected', 'false'); } });
+    var activeBtn = v === 'capital' ? bc : (v === 'income' ? bi : bt);
+    if (activeBtn){ activeBtn.classList.add('active', 'on'); activeBtn.setAttribute('aria-selected', 'true'); }
     document.getElementById('chart').style.display         = v === 'capital' ? '' : 'none';
     document.getElementById('chart-income').style.display  = v === 'income'  ? '' : 'none';
     document.getElementById('year-table-wrap').style.display = v === 'table'  ? '' : 'none';
-    // Legends: capital keeps its legend, income keeps its legend, table has none.
     document.getElementById('legend-capital').style.display = v === 'capital' ? '' : 'none';
     document.getElementById('legend-income').style.display  = v === 'income'  ? '' : 'none';
-    // Force a rebuild of the newly visible chart so Chart.js resizes correctly.
     if (v === 'capital' && chart){ chart.destroy(); chart = null; }
     if (v === 'income' && incomeChart){ incomeChart.destroy(); incomeChart = null; }
     refresh();
@@ -2583,6 +4128,72 @@
   document.getElementById('btn-view-income').addEventListener('click', function(){ setView('income'); });
   document.getElementById('btn-view-table').addEventListener('click', function(){ setView('table'); });
 
+  // Auto-top-up pill mirrors the hidden #needs-topup checkbox in state-empty.
+  var topupPill = document.getElementById('toggle-topup-pill');
+  if (topupPill){
+    var topupTrigger = function(){
+      var cb = document.getElementById('needs-topup');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      refresh();
+    };
+    topupPill.addEventListener('click', topupTrigger);
+    topupPill.addEventListener('keydown', function(e){
+      if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); topupTrigger(); }
+    });
+  }
+  // Lock as baseline → enter Compare. Re-lock from Compare refreshes the baseline snapshot.
+  function snapshotBaseline(){
+    try { baseline = JSON.parse(JSON.stringify(project())); } catch(e){ baseline = null; }
+  }
+  var btnLock = document.getElementById('btn-lock-baseline');
+  if (btnLock) btnLock.addEventListener('click', function(){
+    snapshotBaseline();
+    setAppState('compare');
+  });
+  var btnRelock = document.getElementById('btn-relock-baseline');
+  if (btnRelock) btnRelock.addEventListener('click', function(){
+    snapshotBaseline();
+    refresh();
+  });
+  var btnClearBase = document.getElementById('btn-clear-baseline');
+  if (btnClearBase) btnClearBase.addEventListener('click', function(){
+    baseline = null;
+    setAppState('single');
+  });
+  var btnEditPlanCompare = document.getElementById('btn-edit-plan-compare');
+  if (btnEditPlanCompare) btnEditPlanCompare.addEventListener('click', function(){ setAppState('empty'); });
+  // Compare-view Real/Nominal + topup pill share the main toggles.
+  var realC = document.getElementById('btn-real-c');
+  var nomC = document.getElementById('btn-nom-c');
+  if (realC) realC.addEventListener('click', function(){
+    setMode('real');
+    realC.classList.add('on', 'active');
+    realC.setAttribute('aria-selected', 'true');
+    if (nomC){ nomC.classList.remove('on', 'active'); nomC.setAttribute('aria-selected', 'false'); }
+  });
+  if (nomC) nomC.addEventListener('click', function(){
+    setMode('nominal');
+    nomC.classList.add('on', 'active');
+    nomC.setAttribute('aria-selected', 'true');
+    if (realC){ realC.classList.remove('on', 'active'); realC.setAttribute('aria-selected', 'false'); }
+  });
+  var topupPillC = document.getElementById('toggle-topup-pill-c');
+  if (topupPillC){
+    var topupCTrigger = function(){
+      var cb = document.getElementById('needs-topup');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      refresh();
+    };
+    topupPillC.addEventListener('click', topupCTrigger);
+    topupPillC.addEventListener('keydown', function(e){
+      if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); topupCTrigger(); }
+    });
+  }
+  var btnShowTable = document.getElementById('btn-show-table');
+  if (btnShowTable) btnShowTable.addEventListener('click', function(){ setView('table'); });
+
   // Date
   var today = new Date();
   var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2590,6 +4201,65 @@
   document.getElementById('doc-date').textContent = dateStr;
   document.getElementById('footer-date').textContent = dateStr;
   document.getElementById('client-date').value = dateStr;
+  var emptyDateEl = document.getElementById('empty-date-val');
+  if (emptyDateEl) emptyDateEl.textContent = dateStr;
+
+  // ===== State transitions =====
+  var btnBuild = document.getElementById('btn-build-projection');
+  if (btnBuild) btnBuild.addEventListener('click', function(){ setAppState('single'); });
+  var btnEdit = document.getElementById('btn-edit-plan');
+  if (btnEdit) btnEdit.addEventListener('click', function(){ setAppState('empty'); });
+
+  // ===== Title-plate contenteditable bindings =====
+  // `#hl-family` is free-text (editorial only; does not feed the engine).
+  // `#hl-monthly-empty` mirrors #needs-monthly; edits propagate both ways.
+  var hlMonthly = document.getElementById('hl-monthly-empty');
+  var needsMonthly = document.getElementById('needs-monthly');
+  function syncMonthlyFromHeadline(){
+    if (!hlMonthly || !needsMonthly) return;
+    var raw = (hlMonthly.textContent || '').replace(/[^0-9]/g, '');
+    if (raw.length === 0) return;
+    var n = parseInt(raw, 10);
+    if (!isFinite(n)) return;
+    needsMonthly.value = n.toLocaleString('en-ZA').replace(/,/g, ' ');
+    refresh();
+  }
+  function syncHeadlineFromMonthly(){
+    if (!hlMonthly || !needsMonthly) return;
+    var n = parseInt(String(needsMonthly.value).replace(/[^0-9]/g, ''), 10);
+    if (!isFinite(n)) return;
+    hlMonthly.textContent = 'R ' + n.toLocaleString('en-ZA').replace(/,/g, ' ');
+  }
+  if (hlMonthly) {
+    hlMonthly.addEventListener('blur', syncMonthlyFromHeadline);
+    hlMonthly.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); hlMonthly.blur(); }
+    });
+  }
+  if (needsMonthly) needsMonthly.addEventListener('blur', syncHeadlineFromMonthly);
+  syncHeadlineFromMonthly();
+
+  // Default body data-app-state so CSS rules that depend on it apply immediately.
+  document.body.setAttribute('data-app-state', appState);
+
+  // Print handlers: snapshot the active state, force 'single' for paper, restore after.
+  var _preprintState = null;
+  window.addEventListener('beforeprint', function(){
+    _preprintState = appState;
+    if (appState !== 'single') setAppState('single');
+    if (chart) { chart.resize(); }
+    if (incomeChart) { incomeChart.resize(); }
+  });
+  window.addEventListener('afterprint', function(){
+    if (_preprintState && _preprintState !== appState) setAppState(_preprintState);
+    _preprintState = null;
+  });
+
+  // Restore app state from localStorage (first visit stays on 'single' — current-users' workflow unchanged).
+  try {
+    var saved = localStorage.getItem('drawdownAppState');
+    if (saved === 'empty' || saved === 'compare') setAppState(saved);
+  } catch(e){}
 
   refresh();
 })();
