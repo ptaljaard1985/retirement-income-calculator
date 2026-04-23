@@ -111,12 +111,14 @@ Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
 
 ### Canvas head (State 2)
-Left: eyebrow + editorial headline + sub-paragraph. The headline is a two-sentence declarative: *"Your desired lifestyle is projected to cost R X per month. Based on current assumptions, this is sustainable until age N."* — "sustainable" is italicised (`<em>`), "age N" carries the gold underline. Copy is unconditional: the headline states the projected sustainable age whether that reaches the horizon or falls short; the client decides what to make of it. No verdict-based word-swap.
+Minimal by design. Left: eyebrow only (`SUSTAINABILITY PROJECTION · TODAY'S MONEY | FUTURE RANDS` depending on mode). The editorial 44px headline and subtitle paragraph were removed in Session 8 — the outcome strip directly below carries the summary (target-met age, Y1 need, income mix), and the chart's alert chips carry any shortfall / LA-cap narration. `updateHeadline()` is now a single-line function that only writes the eyebrow.
 
 Right action cluster:
 - `.toggle-pill` (Auto-top-up) — default OFF
 - Ghost `Export report →` button (canonical client-PDF path; opens `retirement_drawdown_report.html` in a new tab via `localStorage` snapshot)
 - Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
+
+`.canvas-head` is `display: flex; align-items: flex-end; justify-content: space-between;` — with only the eyebrow on the left, the action cluster aligns neatly to the bottom of the eyebrow row without any CSS change.
 
 The `.seg.mini` (Real | Nominal) toggle lives one row down on the chart-controls row — see the Chart section. The in-page Print button and the canvas-foot One-page summary button were removed in Session 7; Cmd+P still works through the `@media print` rules.
 
@@ -202,6 +204,7 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 - Don't reintroduce a localStorage-restored app state. Refresh always lands on State 1 — that's the adviser's reset between client meetings.
 - Don't hide the shared chrome outside of State 1.
 - Don't move `#print-summary` back outside `#state-single`. It needs to be a child of state-single so it only shows in single mode on screen; print still works because `@media print` forces state-single visible.
+- Don't reintroduce an editorial headline or subtitle paragraph above the outcome strip on State 2. The strip is the answer; a prose overlay duplicates it, eats vertical real estate, and pushes the chart and levers below the fold. Removed in Session 8.
 - Don't add a charting library to `retirement_drawdown_report.html`. Its three chart renderers are inline SVG by design — print fidelity at A4 is the reason. Chart.js is the calculator's dep, not the report's.
 
 ## The export-report sibling

@@ -1964,12 +1964,6 @@
   <div class="canvas-head">
     <div class="canvas-head-left">
       <div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">Sustainability projection &middot; today's money</div>
-      <h1 class="headline">
-        Your desired lifestyle is projected to cost <span id="hl-monthly" class="num">R 50 000</span> per month.
-        Based on current assumptions, this is <em>sustainable</em> until
-        <span class="gold-under">age <span id="hl-age" class="num-italic">—</span></span>.
-      </h1>
-      <p class="headline-sub" id="hl-sub">Across the youngest spouse's horizon, living-annuity income (escalating with CPI) and discretionary drawdowns together cover the household target.</p>
     </div>
     <div class="canvas-head-actions">
       <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
@@ -3780,23 +3774,12 @@
     };
   }
 
-  function updateHeadline(p, an){
-    var monthlyEl = document.getElementById('hl-monthly');
-    var ageEl = document.getElementById('hl-age');
-    var subEl = document.getElementById('hl-sub');
+  function updateHeadline(){
+    // Only the eyebrow remains above the outcome strip. The outcome strip
+    // (updateOutcomeStrip) carries the target-met-age / Y1-need / mix facts,
+    // and the chart alert chips carry any shortfall / LA-cap narration.
     var eyebrowEl = document.getElementById('hl-eyebrow');
-    if (monthlyEl) monthlyEl.textContent = fmtR((p.targetPVAnnual || 0) / 12);
-    if (ageEl) ageEl.textContent = an.sustainableAge;
     if (eyebrowEl) eyebrowEl.textContent = 'Sustainability projection · ' + (mode === 'real' ? "today's money" : 'future rands');
-    if (subEl){
-      if (an.verdict){
-        subEl.textContent = 'Across the youngest spouse’s horizon, living-annuity income (escalating with CPI) together with discretionary drawdowns covers the household target without depleting either pot.';
-      } else if (an.shortfallAge){
-        subEl.textContent = 'Income starts to fall short of the target around age ' + an.shortfallAge + '. Below, the chart shows where discretionary exhausts and where the 17.5% LA ceiling begins to bite.';
-      } else {
-        subEl.textContent = 'Capital runs down before the horizon. The chart shows the crossover where income can no longer meet the target.';
-      }
-    }
   }
 
   function updateOutcomeStrip(p, an){
@@ -4006,7 +3989,7 @@
     updatePrintSummary(p);
     updatePlanBarLite(p);
     var an = analyseProjection(p);
-    updateHeadline(p, an);
+    updateHeadline();
     updateOutcomeStrip(p, an);
     updateCanvasFoot();
     syncTopupPill();
