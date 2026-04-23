@@ -1965,8 +1965,8 @@
     <div class="canvas-head-left">
       <div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">Sustainability projection &middot; today's money</div>
       <h1 class="headline">
-        <span id="hl-monthly" class="num">R 50 000</span> a month is
-        <em id="hl-verdict">sustainable</em> until
+        Your desired lifestyle is projected to cost <span id="hl-monthly" class="num">R 50 000</span> per month.
+        Based on current assumptions, this is <em>sustainable</em> until
         <span class="gold-under">age <span id="hl-age" class="num-italic">—</span></span>.
       </h1>
       <p class="headline-sub" id="hl-sub">Across the youngest spouse's horizon, living-annuity income (escalating with CPI) and discretionary drawdowns together cover the household target.</p>
@@ -1976,12 +1976,7 @@
         <span class="sw" aria-hidden="true"></span>
         <span>Auto-top-up</span>
       </label>
-      <div class="seg mini" role="tablist" aria-label="Real or Nominal">
-        <button id="btn-real" role="tab" aria-selected="false">Real</button>
-        <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
-      </div>
       <button type="button" class="btn ghost no-print" id="btn-export-report" title="Open the editorial client report in a new tab">Export report &rarr;</button>
-      <button type="button" class="btn ghost no-print" onclick="window.print()">Print &darr;</button>
       <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
   </div>
@@ -2029,12 +2024,16 @@
     </div>
   </div>
 
-  <!-- Chart controls: view segmented — Income default -->
+  <!-- Chart controls: view segmented on the left, Real/Nominal on the right -->
   <div class="controls-row">
     <div class="seg" role="tablist" aria-label="Chart view">
       <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
       <button id="btn-view-capital" role="tab" aria-selected="false">Capital</button>
       <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
+    </div>
+    <div class="seg mini" role="tablist" aria-label="Real or Nominal">
+      <button id="btn-real" role="tab" aria-selected="false">Real</button>
+      <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
     </div>
   </div>
 
@@ -2083,20 +2082,11 @@
     </div>
   </div>
 
-  <!-- Narrative section -->
-  <div class="narrative">
-    <span class="narrative-eyebrow" id="narrative-eyebrow">Is this sustainable?</span>
-    <div class="narrative-body" id="narrative-body">
-      <p>Loading narrative&hellip;</p>
-    </div>
-  </div>
-
   <!-- Canvas footer -->
   <div class="canvas-foot">
     <span>Illustrative only &middot; 2026/27 SARS tables &middot; <span id="foot-topup">auto-top-up on</span> &middot; <span id="foot-mode">real terms</span></span>
     <span class="canvas-foot-actions">
       <button type="button" class="btn ghost" id="btn-show-table">Year-by-year table</button>
-      <button type="button" class="btn" onclick="window.print()">One-page summary &darr;</button>
     </span>
   </div>
 
@@ -2172,11 +2162,12 @@
        Hidden in State 1 via [data-state-active="empty"] rule. -->
   <div id="shared-chrome">
 
-    <!-- Scenario adjustments: the strategy-board levers for live client meetings.
+    <!-- Financial levers: the strategy-board controls for live client meetings.
          Inputs are -c duplicates of State 1's setup inputs; two-way sync keeps
-         project() reading from the canonical IDs. -->
+         project() reading from the canonical IDs. CSS class `.scenario-adjust`
+         is retained as an internal identifier. -->
     <div class="scenario-adjust">
-      <div class="section-header">Scenario adjustments</div>
+      <div class="section-header">Financial levers</div>
 
       <div class="scenario-adjust-row">
         <div class="lever">
@@ -3432,26 +3423,27 @@
       data: {
         labels: p.labels,
         datasets: [
+          // Stack order follows array index: LA at the bottom, Tax on top.
+          // Explicit `order:` values previously inverted this — removed deliberately.
           { type: 'bar', label: 'LA draw', data: bars.la,
-            backgroundColor: '#2a6b6b', stack: 'income', borderWidth: 0, order: 3,
+            backgroundColor: '#2a6b6b', stack: 'income', borderWidth: 0,
             hidden: !incomeSeriesVisible.la },
           { type: 'bar', label: 'Discretionary', data: bars.disc,
-            backgroundColor: '#b8893c', stack: 'income', borderWidth: 0, order: 2,
+            backgroundColor: '#b8893c', stack: 'income', borderWidth: 0,
             hidden: !incomeSeriesVisible.disc },
           { type: 'bar', label: 'Other income', data: bars.other,
-            backgroundColor: '#38495b', stack: 'income', borderWidth: 0, order: 1,
+            backgroundColor: '#38495b', stack: 'income', borderWidth: 0,
             hidden: !incomeSeriesVisible.other },
           // Target dataset kept for legend toggle, tooltips, and plugin data access.
           // Visible rendering is handled by targetBoxPlugin (per-year box outlines).
           { type: 'line', label: 'Target need', data: targetArr,
             borderColor: 'transparent', backgroundColor: 'transparent',
-            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0, order: 0,
+            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0,
             hidden: !incomeSeriesVisible.target },
-          // Tax slice: stacks on top of LA/Disc/Other so colored portion = net to bank,
-          // tax cap = household tax. Bar TOTAL = gross income. Dusty-rose reads as
-          // the "tax bite" — deliberately louder than the previous mute grey.
+          // Tax slice: caps the stack so colored portion = net to bank, tax cap = household tax.
+          // Bar TOTAL = gross income. Dusty-rose reads as the "tax bite".
           { type: 'bar', label: 'Tax', data: bars.tax,
-            backgroundColor: '#d27a88', stack: 'income', borderWidth: 0, order: -1,
+            backgroundColor: '#d27a88', stack: 'income', borderWidth: 0,
             hidden: !incomeSeriesVisible.tax }
         ]
       },
@@ -3515,17 +3507,18 @@
       data: {
         labels: p.labels,
         datasets: [
+          // Stack order follows array index: LA at the bottom, Tax on top.
           { type: 'bar', label: 'LA', data: bars.la, backgroundColor: '#2a6b6b',
-            stack: 'cmp', borderWidth: 0, order: 3 },
+            stack: 'cmp', borderWidth: 0 },
           { type: 'bar', label: 'Disc', data: bars.disc, backgroundColor: '#b8893c',
-            stack: 'cmp', borderWidth: 0, order: 2 },
+            stack: 'cmp', borderWidth: 0 },
           { type: 'bar', label: 'Other', data: bars.other, backgroundColor: '#38495b',
-            stack: 'cmp', borderWidth: 0, order: 1 },
+            stack: 'cmp', borderWidth: 0 },
           { type: 'line', label: 'Target', data: targetArr,
             borderColor: 'transparent', backgroundColor: 'transparent',
-            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0, order: 0 },
+            tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0 },
           { type: 'bar', label: 'Tax', data: bars.tax, backgroundColor: '#d27a88',
-            stack: 'cmp', borderWidth: 0, order: -1 }
+            stack: 'cmp', borderWidth: 0 }
         ]
       },
       options: {
@@ -3774,12 +3767,10 @@
   function updateHeadline(p, an){
     var monthlyEl = document.getElementById('hl-monthly');
     var ageEl = document.getElementById('hl-age');
-    var verdictEl = document.getElementById('hl-verdict');
     var subEl = document.getElementById('hl-sub');
     var eyebrowEl = document.getElementById('hl-eyebrow');
     if (monthlyEl) monthlyEl.textContent = fmtR((p.targetPVAnnual || 0) / 12);
     if (ageEl) ageEl.textContent = an.sustainableAge;
-    if (verdictEl) verdictEl.textContent = an.verdict ? 'sustainable' : 'stretched';
     if (eyebrowEl) eyebrowEl.textContent = 'Sustainability projection · ' + (mode === 'real' ? "today's money" : 'future rands');
     if (subEl){
       if (an.verdict){
@@ -3835,31 +3826,6 @@
         }
       }
     }
-  }
-
-  function updateNarrative(p, an){
-    var body = document.getElementById('narrative-body');
-    if (!body) return;
-    var parts = [];
-    var startAge = p.startAge;
-    if (an.verdict){
-      parts.push('<p>In the opening years the household draws comfortably against its living annuities, topped up lightly from the discretionary portfolio where needed. <span class="callout">Real income tracks the target without strain</span>.</p>');
-    } else {
-      parts.push('<p>The plan starts well. Living-annuity income at the opening rate meets most of the monthly need, with a modest top-up from discretionary.</p>');
-    }
-    if (an.discExhaustAge && an.discExhaustAge < p.horizonAge){
-      parts.push('<p>By age ' + an.discExhaustAge + ' the <span class="callout warn">discretionary pot is exhausted</span>, leaving the living annuity to carry the full load. From then on the effective draw rate begins to climb as the rand-amount target keeps rising with CPI.</p>');
-    }
-    if (an.laCapAge){
-      parts.push('<p>Around age ' + an.laCapAge + ' both living annuities reach the <span class="callout warn">17.5% legal ceiling</span>. The escalated rand target can no longer be met in full from LA income alone.</p>');
-    }
-    if (!an.verdict && an.shortfallAge){
-      parts.push('<p>From age ' + an.shortfallAge + ' a <span class="callout neg">real income shortfall</span> opens against the monthly target — visible in the chart as the coral wash between bar tops and the need line.</p>');
-    }
-    if (an.verdict){
-      parts.push('<p>If returns soften to <strong>7%</strong> or CPI runs at <strong>7%</strong>, the verdict can flip. Use the levers above to stress-test.</p>');
-    }
-    body.innerHTML = parts.join('');
   }
 
   function updateCanvasFoot(){
@@ -4026,7 +3992,6 @@
     var an = analyseProjection(p);
     updateHeadline(p, an);
     updateOutcomeStrip(p, an);
-    updateNarrative(p, an);
     updateCanvasFoot();
     syncTopupPill();
     if (appState === 'compare'){
@@ -4458,23 +4423,27 @@
     });
   });
 
-  // Series toggles — route each key to the appropriate chart's visibility state
-  var CAPITAL_KEYS = { la: 1, disc: 1, rate: 1 };
-  var INCOME_KEYS  = { gross: 1, tax: 1, net: 1, target: 1 };
+  // Series toggles — route each click by the parent legend container so overlapping
+  // data-series values (la / disc) don't cross-wire between the capital and income charts.
   document.querySelectorAll('.series-toggle').forEach(function(btn){
     btn.addEventListener('click', function(){
       var key = btn.getAttribute('data-series');
-      if (CAPITAL_KEYS[key]){
+      var isIncome = !!btn.closest('#legend-income');
+      if (isIncome){
+        if (!(key in incomeSeriesVisible)) return;
+        incomeSeriesVisible[key] = !incomeSeriesVisible[key];
+        btn.classList.toggle('off', !incomeSeriesVisible[key]);
+        btn.setAttribute('aria-pressed', incomeSeriesVisible[key] ? 'true' : 'false');
+        // Income chart needs a rebuild so hidden-state flows through dataset construction.
+        if (incomeChart){ incomeChart.destroy(); incomeChart = null; }
+      } else {
+        if (!(key in seriesVisible)) return;
         seriesVisible[key] = !seriesVisible[key];
         btn.classList.toggle('off', !seriesVisible[key]);
         btn.setAttribute('aria-pressed', seriesVisible[key] ? 'true' : 'false');
         // Capital chart needs a full rebuild if the rate series visibility toggles
         // (the right axis appears/disappears).
         if (chart){ chart.destroy(); chart = null; }
-      } else if (INCOME_KEYS[key]){
-        incomeSeriesVisible[key] = !incomeSeriesVisible[key];
-        btn.classList.toggle('off', !incomeSeriesVisible[key]);
-        btn.setAttribute('aria-pressed', incomeSeriesVisible[key] ? 'true' : 'false');
       }
       refresh();
     });

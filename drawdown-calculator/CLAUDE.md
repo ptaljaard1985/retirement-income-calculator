@@ -107,6 +107,27 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 7 — 2026-04-23 (feat/next-iteration)
+
+**Built / changed** on branch `feat/next-iteration` — all UI / copy, no engine changes:
+- **Tax slice now stacks on top of the income bars.** `buildIncomeChart` and `buildCompareMiniChart` previously set explicit `order: 3 / 2 / 1 / 0 / -1` on the five datasets. Chart.js treats `order` as both draw-order and stack-order, so Tax at `order: -1` was drawn first → visually at the BOTTOM of each bar. CLAUDE.md's own docs claimed "stacking follows array order, so Tax caps the top" — true only when `order` is absent. Fix: removed every `order:` property from both chart builders so array-index stacking takes over (LA[0] at bottom, Tax[4] on top). Matches the documented intent.
+- **Income-legend pills all toggle correctly.** Long-standing Session-5 bug: the `.series-toggle` click handler routed by `data-series` key through two lookup objects, `CAPITAL_KEYS = {la, disc, rate}` and a stale `INCOME_KEYS = {gross, tax, net, target}`. Income-legend buttons have `data-series="la" | "disc" | "other" | "tax" | "target"` — `la` and `disc` collided with `CAPITAL_KEYS` → wrong branch → toggled an invisible chart; `other` matched neither set → silent no-op. Rewrote the handler to discriminate on the parent legend container (`btn.closest('#legend-income')`) instead of the key name, and destroy the relevant chart so `refresh()` rebuilds it with the new `hidden` state. All five income pills and all three capital pills now work.
+- **Real | Nominal moved to the chart-controls row.** Was in `.canvas-head-actions` alongside Auto-top-up / Export / Print / Lock-baseline; moved into `.controls-row` on the right, with Income | Capital | Table on the left. `.controls-row` was already `flex; justify-content: space-between; align-items: center;` — no CSS change. `#btn-real` / `#btn-nom` IDs unchanged, `setMode()` wiring untouched.
+- **Print buttons removed.** Deleted both `Print ↓` (top, canvas-head) and `One-page summary ↓` (bottom, canvas-foot). The browser's Cmd+P still works via the untouched `@media print` rules + `beforeprint`/`afterprint` listeners. Export report is the canonical client-PDF path now.
+- **"Scenario adjustments" → "Financial levers"** (single `section-header` text change at `#shared-chrome`). CSS class `.scenario-adjust` is retained to avoid selector churn; ARCHITECTURE + DESIGN docs call out the heading/class split.
+- **Removed the "Is this sustainable?" narrative card.** HTML block, `updateNarrative()` function, and `refresh()` call site all deleted. Dead `.narrative-*` CSS selectors remain in the stylesheet — noted in `TECH_DEBT.md` for a later sweep per the "don't reformat the whole file" rule.
+- **State-2 main headline reworded.** Was `"R X a month is sustainable/stretched until age N."`; now `"Your desired lifestyle is projected to cost R X per month. Based on current assumptions, this is sustainable until age N."` The word "sustainable" is now static — per the adviser's steer, the heading states a fact (the projected age) and the client decides what to make of it. `#hl-verdict` span removed; `updateHeadline()` trimmed to drop the verdict word-swap.
+
+**Architectural decisions**
+- **Array-index stacking over explicit `order`.** Removing `order:` is the smaller delta and matches what the docs already claimed. Keeping the explicit values but inverting them would have been symmetrical but more brittle — every future change to the dataset list would need a matching re-inversion of `order` numbers.
+- **Discriminate toggles by parent container, not by key rename.** Renaming `data-series` values (e.g. `income-la`, `capital-la`) would have fixed the collision but rippled into styling selectors, ARIA wiring, and the two legends that have to stay cosmetically identical. `btn.closest('#legend-income')` is one line and localises the fix.
+- **Static "sustainable" in the headline.** Considered the verdict-based stretched/sustainable swap, rejected after the adviser's steer. The outcome strip and chart already carry the verdict signal (teal vs plain navy primary cell, coral shortfall wash). Two signals is enough; three is preachy.
+- **Engine untouched.** 77/77 Python + 16/16 JS pass. No projection / tax / solver code touched.
+
+**Follow-ups**
+- Dead `.narrative-*` CSS (5 selectors) ready for a broom-sweep pass — entry logged in `TECH_DEBT.md`.
+- `.collapsible-body` max-height snap (Session 6 follow-up) is still open; documented in `TECH_DEBT.md` — cosmetic only.
+
 ### Session 6 — 2026-04-23 (feat/post-merge-iteration)
 
 **Built / changed** on branch `feat/post-merge-iteration`:
@@ -217,26 +238,4 @@ Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_
 - Narrative sentence selection is canned + basic. A future pass could personalise more aggressively based on `an.laCapAge` vs `an.discExhaustAge` orderings.
 - Income chart scales the need line from `series.target[i]` per-year. For Real mode this is flat (matches the design). For Nominal mode it rises with CPI and the "target need" reads as a shallow upward curve — intended.
 
-### Session 1 — 2026-04-22
-
-**Built / changed**
-- Named households & spouses. Each spouse has an editable inline name input in the household-position section; the value flows through the tax panel heading, drawdown-levers heading, year-table column groups, single-spouse LA-cap alert, future-capital-events selector, and print summary headings. "Prepared for" remains the household-level label.
-- Documented the behaviour of the old "Other taxable income p.a." field — confirmed it was read once as a scalar, added flat to every year's tax and gross income, and never escalated.
-- Replaced the two fixed `hp-other-A/B` inputs with a multi-item **Other taxable income streams** section (mirrors the Future capital events pattern). Each stream carries `{label, spouse, amountPV, startAge, duration, escalates}`. Resolved per-year inside `project()` via a new `otherIncomeForYear(store, suffix, age, yearIdx, cpi)` helper.
-- Year-by-year table gained an aggregated per-spouse `Other` column (spouse group colspan 5 → 6).
-- Print summary drops the per-spouse Other-income rows and gains a conditional "Other taxable income streams" schedule table + a methodology sentence explaining flat vs CPI-escalating streams.
-- Python audits: added `other_income_for_year` helper and `incomes=` kwarg on `project()` in `tests/python/conftest.py`; 15 new tests in `tests/python/test_other_income.py`. Full suite: 77/77 Python and 16/16 JS pass.
-
-**Architectural decisions**
-- Schedule active window is half-open `[startAge, startAge + duration)`. Escalation factor is `(1+cpi)^yearIdx` (from today, not from startAge) so the adviser's entered `amountPV` preserves its real value when the stream kicks in late.
-- `incomeStore` mirrors `eventsStore` exactly (in-memory array, `readX/renderX`, delegated handlers on `#incomes-list`, blur reformats amount). Keeps the file idiomatic.
-- Python `project()` treats `incomes=None` as the legacy scalar-baseline path; `incomes=[]` forces the schedule path. Old tests keep passing, new tests get full coverage.
-- `readPerson` still returns `otherIncome: 0` as a placeholder — `sA.otherIncome` is overwritten each year inside the loop before any read. Keeping the placeholder is defensive, not necessary.
-- `Other` column in the year table shows the aggregated per-spouse total for that year. Itemised sub-rows were considered and rejected as too noisy.
-
-**Follow-ups**
-- Browser + print-preview pass with a non-trivial schedule to confirm the year-table layout at 18 data columns and the print summary's new block paginates cleanly.
-- JS-side smoke test for `otherIncomeForYear` is optional; the function is pure and the Python audit covers the semantics.
-- The legacy scalar-baseline path in `conftest.project()` and `readPerson`'s `otherIncome: 0` placeholder can both be removed once confidence in the schedule path is established.
-
-_No prior sessions are logged (this file was added after session 1 completed)._
+_Session 1 (2026-04-22, named spouses + other-income schedule) archived in `docs/SESSION_LOG.md`._
