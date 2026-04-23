@@ -104,6 +104,34 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 2 — 2026-04-23
+
+**Built / changed**
+- Implemented the full hi-fi redesign from `design/design_files/` on branch `design-update-pr`. Three connected states (Empty / Single scenario / Compare) in one file; crossfade transitions driven by `setAppState()` and `body[data-app-state]`.
+- Replaced the entire `:root` palette with the warm-paper + editorial token set (`--paper #faf7f0`, `--navy #1f2d3d`, `--gold #b8893c`, `--coral #a04438`, Fraunces / Inter Tight / JetBrains Mono via Google Fonts `@import`). Legacy token names (`--brand`, `--surface-alt`, `--ink-muted`, etc.) remain aliased to the new values so component CSS untouched in this pass keeps rendering.
+- **State 1 (Empty)**: editorial title plate with two `contenteditable` spans (family name + monthly amount — the monthly span is bi-directionally bound to `#needs-monthly`), two-column spouse setup (I. / II.), household-needs strip (monthly, lump sums, markets — `#return` and `#cpi` sliders now live here), other-income + capital-events ledgers (ledger visual for events with grid header), navy CTA bar with gold "Build the projection →" button.
+- **State 2 (Single)**: plan-bar-lite chrome (household / capital / target / date facts + "Edit plan ↓"); canvas-head with editorial Fraunces 44px headline (`R X a month is sustainable until age N.`, "sustainable" in serif italic, "age N" gold-underlined); action cluster (`Auto-top-up` toggle pill, `Real | Nominal` segmented, ghost Print, primary `Lock as baseline →`). New default chart view is **Income**: stacked bars (teal LA + gold Disc + navy-soft Other) with a dashed coral target line and a `shortfallShadingPlugin` that paints coral wash + dashed vertical at the first shortfall age. Capital view restyled with new tokens. Outcome strip (3 cells, teal primary). Condensed-path tax panel still writes into the existing `#ta-*` / `#tb-*` ids (no id changes). Narrative section with inline callouts. Canvas footer.
+- **State 3 (Compare)**: baseline vs scenario two-up cards. "Lock as baseline" snapshots `project()` via `JSON.parse(JSON.stringify(...))`. Delta chip flips gold / coral based on year-count delta. Meta rows show per-spouse LA rates, disc draw, monthly need, return·CPI with inline italic `--gold-2` deltas. Scenario levers and tax panel live in a shared-chrome block rendered below state-compare (hidden only in State 1 via `body[data-app-state="empty"] #shared-chrome { display: none; }`).
+- **Print**: `@media print` forces state-single visible, hides every interactive element, applies `-webkit-print-color-adjust: exact` to coloured blocks. A `beforeprint` / `afterprint` JS pair snapshots and restores `appState`.
+- **Sliders**: new visual — 4px linear-gradient track with gold fill up to `--fill` %, 14px white thumb with `--gold-2` border, scale(1.15) on hover. `updateSliderFill()` keeps `--fill` in sync on every `input` event.
+- **Docs**: `docs/DESIGN.md` fully rewritten to describe the new tokens, typography, three-state flow, chart spec, print behaviour, and component conventions.
+
+**Architectural decisions**
+- **Engine untouched.** `project()`, `solveTopUp`, `stepPerson`, the SARS tax helpers, and `solveLARate` were not modified. Existing test suites confirm: 77/77 Python + 16/16 JS continue to pass.
+- **Single file preserved.** No build, no modules, no new packages. Only external dependency changes are Google Fonts (soft: falls back to Georgia + system sans + system mono offline) alongside the existing Chart.js CDN.
+- **No DOM id collisions.** Setup inputs physically live in state-empty; outputs in state-single; shared per-spouse lever sliders + tax panel in `#shared-chrome`. Each `id` appears exactly once. `updateTaxPanel` / `updateCards` / `updatePrintSummary` all keep writing to their original ids.
+- **Legacy summary cards retained (hidden)** so `updateCards(p)` keeps writing to `sum-capital` / `sum-gross` / `sum-net` / `sum-gap` without breakage while the new outcome strip takes the visible role.
+- **Chart.js plugins are inline**. `shortfallShadingPlugin` is defined in the IIFE and passed to the Income chart's `plugins` array — no external plugin dependency.
+- **Baseline is a JSON deep-clone** of the current `project()` output. Stored only in memory; cleared on `Clear baseline` or overwritten on `Re-lock as new baseline`. No persistence across reloads by design.
+
+**Follow-ups**
+- Browser walk-through (Chrome, Safari, Firefox print preview) with a non-trivial income schedule and capital events.
+- Offline smoke test: disable network, reload, confirm system-font fallback reads acceptably.
+- The `Solve to target` inline panel in State 3 is still a legacy `btn-solve` button inside shared chrome — per the plan, the proper inline panel is out of scope.
+- Dead CSS from the old layout (`.header`, `.brand`, `.brand-mark`, `.title-block`, `.client-bar`, `.hp-row`, `.hp-field`) remains in the stylesheet. Harmless but could be pruned in a follow-up.
+- Narrative sentence selection is canned + basic. A future pass could personalise more aggressively based on `an.laCapAge` vs `an.discExhaustAge` orderings.
+- Income chart scales the need line from `series.target[i]` per-year. For Real mode this is flat (matches the design). For Nominal mode it rises with CPI and the "target need" reads as a shallow upward curve — intended.
+
 ### Session 1 — 2026-04-22
 
 **Built / changed**
