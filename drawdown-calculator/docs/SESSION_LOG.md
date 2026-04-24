@@ -145,3 +145,64 @@ Older session entries live here. The most recent ~5 stay in `CLAUDE.md`. Oldest 
 - Browser walkthrough: move sliders, type in currency fields, add/delete an income stream and a capital event from State 3, switch to State 1 — confirm both sides stay consistent. Print preview from State 2 to confirm the Scenario-adjustments block is hidden on paper.
 - Pre-existing income-legend-routing bug from Session 5 (LA/Disc/Other buttons in the income legend route through `CAPITAL_KEYS`) is still open — independent of this change.
 - The `.collapsible-body` CSS transitions `max-height` but doesn't set a numeric expanded max — it falls back to `none`, so expansion snaps open without animation. Could add an explicit max-height via JS for a smoother reveal, but the snap is acceptable and keeps the code minimal.
+
+---
+
+## Session 7 — 2026-04-23 (feat/next-iteration)
+
+**Built / changed** on branch `feat/next-iteration` — all UI / copy, no engine changes:
+- **Tax slice now stacks on top of the income bars.** `buildIncomeChart` and `buildCompareMiniChart` previously set explicit `order: 3 / 2 / 1 / 0 / -1` on the five datasets. Chart.js treats `order` as both draw-order and stack-order, so Tax at `order: -1` was drawn first → visually at the BOTTOM of each bar. CLAUDE.md's own docs claimed "stacking follows array order, so Tax caps the top" — true only when `order` is absent. Fix: removed every `order:` property from both chart builders so array-index stacking takes over (LA[0] at bottom, Tax[4] on top). Matches the documented intent.
+- **Income-legend pills all toggle correctly.** Long-standing Session-5 bug: the `.series-toggle` click handler routed by `data-series` key through two lookup objects, `CAPITAL_KEYS = {la, disc, rate}` and a stale `INCOME_KEYS = {gross, tax, net, target}`. Income-legend buttons have `data-series="la" | "disc" | "other" | "tax" | "target"` — `la` and `disc` collided with `CAPITAL_KEYS` → wrong branch → toggled an invisible chart; `other` matched neither set → silent no-op. Rewrote the handler to discriminate on the parent legend container (`btn.closest('#legend-income')`) instead of the key name, and destroy the relevant chart so `refresh()` rebuilds it with the new `hidden` state. All five income pills and all three capital pills now work.
+- **Real | Nominal moved to the chart-controls row.** Was in `.canvas-head-actions` alongside Auto-top-up / Export / Print / Lock-baseline; moved into `.controls-row` on the right, with Income | Capital | Table on the left. `.controls-row` was already `flex; justify-content: space-between; align-items: center;` — no CSS change. `#btn-real` / `#btn-nom` IDs unchanged, `setMode()` wiring untouched.
+- **Print buttons removed.** Deleted both `Print ↓` (top, canvas-head) and `One-page summary ↓` (bottom, canvas-foot). The browser's Cmd+P still works via the untouched `@media print` rules + `beforeprint`/`afterprint` listeners. Export report is the canonical client-PDF path now.
+- **"Scenario adjustments" → "Financial levers"** (single `section-header` text change at `#shared-chrome`). CSS class `.scenario-adjust` is retained to avoid selector churn; ARCHITECTURE + DESIGN docs call out the heading/class split.
+- **Removed the "Is this sustainable?" narrative card.** HTML block, `updateNarrative()` function, and `refresh()` call site all deleted. Dead `.narrative-*` CSS selectors remain in the stylesheet — noted in `TECH_DEBT.md` for a later sweep per the "don't reformat the whole file" rule.
+- **State-2 main headline reworded.** Was `"R X a month is sustainable/stretched until age N."`; now `"Your desired lifestyle is projected to cost R X per month. Based on current assumptions, this is sustainable until age N."` The word "sustainable" is now static — per the adviser's steer, the heading states a fact (the projected age) and the client decides what to make of it. `#hl-verdict` span removed; `updateHeadline()` trimmed to drop the verdict word-swap.
+
+**Architectural decisions**
+- **Array-index stacking over explicit `order`.** Removing `order:` is the smaller delta and matches what the docs already claimed. Keeping the explicit values but inverting them would have been symmetrical but more brittle — every future change to the dataset list would need a matching re-inversion of `order` numbers.
+- **Discriminate toggles by parent container, not by key rename.** Renaming `data-series` values (e.g. `income-la`, `capital-la`) would have fixed the collision but rippled into styling selectors, ARIA wiring, and the two legends that have to stay cosmetically identical. `btn.closest('#legend-income')` is one line and localises the fix.
+- **Static "sustainable" in the headline.** Considered the verdict-based stretched/sustainable swap, rejected after the adviser's steer. The outcome strip and chart already carry the verdict signal (teal vs plain navy primary cell, coral shortfall wash). Two signals is enough; three is preachy.
+- **Engine untouched.** 77/77 Python + 16/16 JS pass. No projection / tax / solver code touched.
+
+**Follow-ups**
+- Dead `.narrative-*` CSS (5 selectors) ready for a broom-sweep pass — entry logged in `TECH_DEBT.md`.
+- `.collapsible-body` max-height snap (Session 6 follow-up) is still open; documented in `TECH_DEBT.md` — cosmetic only.
+
+---
+
+## Session 8 — 2026-04-23 (fix/income-bar-apportionment)
+
+**Built / changed** on branch `fix/income-bar-apportionment` — two correctness fixes:
+
+1. **Income-bar tax apportionment now includes Disc.** The adviser spotted that in shortfall years the chart's coral gap between bar-top and target line was smaller than the real shortfall. Root cause: `incomeBarSeries()` computed `taxableBase = laDisp + otherDisp` and pushed `disc.push(discDisp)` at gross — meaning the full household tax (which already includes CGT on disc gains) was apportioned only across LA and Other, and Disc carried zero share. The colored stack therefore equalled `laGross + discGross + otherGross − (laShare + otherShare)` = `gross − tax + discShare`, sitting ABOVE the true net-to-bank by the disc CGT contribution. Fixed by changing `taxableBase` to `laDisp + discDisp + otherDisp` and subtracting each source's proportional share. Bar total now equals gross exactly; colored sum equals true net; on-target years land the colored top on the target line; shortfall years show the real shortfall in the coral wash.
+
+2. **Trimmed the above-the-chart area on State 2.** The editorial 44px headline and the subtitle paragraph duplicated what the outcome strip already shows (target-met age, Y1 need, funded-by mix) and what the chart alert chips say about shortfalls / LA cap. Deleted both from the HTML at `retirement_drawdown.html:1964–1987`; `updateHeadline()` trimmed to only write the eyebrow (the monthly / age / sub branches are gone). Eyebrow + outcome strip + action cluster now carry the summary in one compact band. Saves ~200px of vertical real estate — on a 13" laptop the income chart lands above the fold and the Financial-levers block is a short scroll instead of a long one. The canvas-head's `display: flex; align-items: flex-end;` collapses gracefully as the left side shrinks to just the eyebrow; no CSS change needed.
+
+3. **17.5% LA-cap flag now fires when auto-top-up is on.** Audit finding: `stepPerson`'s cap detection uses strict `target > laCeil`. In auto-top-up mode, `solveTopUp` pre-clamps the target to `ceil` exactly (Phase 1) or boosts LA up to `ceil` (Phase 3). `project()` was then calling `stepPerson(sA, rNom, topup.laDrawA)` with `target === ceil`; the strict `>` check missed the equality → flag stayed `'ok'`. Result: the `"Both LAs at 17.5% ceiling from age X"` alert and the ▲ markers in the year-table **never fired when auto-top-up was on**, regardless of how pinned the household was to the cap. `solveTopUp`'s own Phase-1 clampLA helper and Phase-3 boost tracker both set `clampA = 'cap'` correctly — those flags were being computed and discarded. Fix: thread `topup.clampA` / `topup.clampB` into `clampA_series` when auto-top-up is on; fall back to `stepPerson`'s flag otherwise. Non-auto-top-up mode still catches strict-`>` cases (CPI-escalated user-fixed rate pushing above 17.5% as balance depletes). Mirrored in the Python port (`conftest.project()`) + a new `tests/python/test_cap_flag_propagation.py` (4 tests) guards the Phase-1 cap, the Phase-3 cap, and the non-auto-top-up path.
+
+**Architectural decisions**
+- **Three-way apportionment over CGT-specific attribution.** Considered splitting the household tax into income-tax and CGT components and attributing CGT specifically to Disc, but `project()` only exposes a single `nominal.tax[i]` / `real.tax[i]` scalar per year. Breaking that apart would widen the engine's contract for a presentation concern. Proportional three-way apportionment is a ~3-line change in `incomeBarSeries()` with the correct visual invariants (colored = net = target when on-target).
+- **Solver-authoritative clamp flag (auto-top-up mode).** Considered loosening `stepPerson` to `target >= ceil` (one-char diff) but rejected: the "at-cap-by-user-choice" case (non-auto-top-up, user sets rate=17.5% directly) should still flag correctly, and `stepPerson`'s strict semantic means "I was forced down". The solver already distinguishes "pre-clamped to ceil" (Phase 1, forced) from "boosted to ceil" (Phase 3, pinned). Using its flag keeps the semantic precise and leaves stepPerson's contract intact.
+- **Engine untouched.** 81/81 Python + 16/16 JS pass. No projection, tax, solver, or clamp-math change; only the flag that feeds alerts/table markers is now authoritative.
+
+**Follow-ups**
+- The Y1 summary card and tax panel already read from `p.taxA` / `p.taxB` directly (not the bar series), so they're unaffected by either fix.
+
+---
+
+## Session 9 — 2026-04-23 (refactor/shrink-above-chart)
+
+**Built / changed** on branch `refactor/shrink-above-chart` — further tightening of State 2's above-chart area:
+- **Removed the eyebrow.** `SUSTAINABILITY PROJECTION · FUTURE RANDS` was semantically redundant: the Real|Nominal toggle on the chart-controls row signals the mode, and the plan-bar-lite already names the product ("Simple Wealth · Retirement Drawdown"). Deleted `<div class="eyebrow canvas-head-eyebrow" id="hl-eyebrow">` and the `.canvas-head-left` wrapper. `updateHeadline()` (the one-line function introduced in Session 8 after the headline/subtitle delete) is now gone entirely; the call site in `refresh()` is removed too.
+- **Canvas-head is action-cluster only.** With the left side empty, `.canvas-head`'s `justify-content: space-between` would push the single remaining child (`.canvas-head-actions`) to the left. Added `margin-left: auto` to `.canvas-head-actions` so it stays right-aligned in State 2 and still works in State 3 (where the canvas-head-left wrapper remains for the "What if we nudge the levers?" headline).
+- **Shrunk the outcome strip.** Padding `18px 22px → 14px 20px`; gap between rows `6px → 4px`; `.oval` font `28px → 22px`; `.oval .num-italic` `34px → 26px`; `.oval .unit` `14px → 12px`; `.oval.split` `18px → 15px`; `.osub` `11px → 10px`. Each cell ~25–30px shorter. All three cells retain their label / value / sub structure; nothing dropped.
+
+**Architectural decisions**
+- **Remove eyebrow over shrink.** The user asked for "less tall and contain much less info" — removing entirely is the limit of that ask, and the mode signal is already carried by the Real|Nominal toggle. Shrinking the eyebrow but keeping it would have added nothing: it named a section ("Sustainability projection") that the rest of the page already is.
+- **`margin-left: auto` over changing `justify-content`.** `.canvas-head` is shared with State 3's `.canvas-head.compact` (where both a left wrapper and action cluster exist). Changing the parent rule would have rippled. Adding `margin-left: auto` to the right child is flex-container-agnostic and doesn't break the two-child State 3 layout.
+- **Tighten rather than delete outcome-strip rows.** The `.osub` lines carry real content for the primary cell ("shortfall emerges before the horizon" / "youngest spouse · target fully met"). Keeping all three rows on all three cells preserves the verdict signal and keeps cell heights consistent in the flex row.
+- **Engine untouched.** 81/81 Python + 16/16 JS pass.
+
+**Follow-ups**
+- Dead print-CSS selectors `.canvas-head .headline` and `.canvas-head-eyebrow` at `retirement_drawdown.html:915–917` apply to State 2 on paper but reference elements that no longer exist there. State 3 is hidden on paper, so these rules effectively paint nothing. Left in place — same "no broad sweep" principle; bundle with the Session-7 `.narrative-*` and Session-8 `.headline-sub` sweep.
