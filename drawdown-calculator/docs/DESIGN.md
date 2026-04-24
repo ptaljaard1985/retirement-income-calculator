@@ -111,14 +111,20 @@ Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder
 Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow + key facts (household, capital, target, date). Right side = `Edit plan ↓` ghost button that flips to State 1.
 
 ### Canvas head (State 2)
-Minimal by design. Left: eyebrow only (`SUSTAINABILITY PROJECTION · TODAY'S MONEY | FUTURE RANDS` depending on mode). The editorial 44px headline and subtitle paragraph were removed in Session 8 — the outcome strip directly below carries the summary (target-met age, Y1 need, income mix), and the chart's alert chips carry any shortfall / LA-cap narration. `updateHeadline()` is now a single-line function that only writes the eyebrow.
+Action cluster only. The editorial 44px headline and subtitle paragraph (removed in Session 8) and the section eyebrow (removed in Session 9) are all gone — the outcome strip directly below carries the summary (target-met age, Y1 need, income mix), the chart alert chips carry shortfall / LA-cap narration, and the Real|Nominal toggle on the chart-controls row signals the mode. There is no `updateHeadline()` any more; the function and its `refresh()` call site were deleted in Session 9.
 
-Right action cluster:
+Action cluster:
 - `.toggle-pill` (Auto-top-up) — default OFF
 - Ghost `Export report →` button (canonical client-PDF path; opens `retirement_drawdown_report.html` in a new tab via `localStorage` snapshot)
 - Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
 
-`.canvas-head` is `display: flex; align-items: flex-end; justify-content: space-between;` — with only the eyebrow on the left, the action cluster aligns neatly to the bottom of the eyebrow row without any CSS change.
+`.canvas-head` is `display: flex; align-items: flex-end; justify-content: space-between;` — with no left-side child in State 2, `.canvas-head-actions` carries `margin-left: auto` to stay right-aligned. State 3's `.canvas-head.compact` still uses both a `.canvas-head-left` (with the compact headline) and the action cluster; the `margin-left: auto` is a no-op there because the two children already fill the row.
+
+### Outcome strip
+
+Three cells — teal primary (`TARGET MET UNTIL AGE`), plain (`YEAR-1 INCOME NEED`), plain (`FUNDED BY`). Each cell has three rows: label (`.ocap` — 10px uppercase), value (`.oval` — 22px, num-italic at 26px, unit at 12px), and sub (`.osub` — 10px italic Fraunces). Padding `14px 20px`, row-gap `4px`. Session 9 tightened all four dimensions (down from 18/22px padding, 6px gap, 28/34/14px oval fonts) to bring cell height down ~25–30px without dropping any content.
+
+The primary teal cell flips on verdict: label `TARGET MET UNTIL AGE` + sub `youngest spouse · target fully met` when sustainable; label stays the same but sub flips to `shortfall emerges before the horizon` or `capital depletes at age N` when the plan can't meet the target. See `updateOutcomeStrip(p, an)`.
 
 The `.seg.mini` (Real | Nominal) toggle lives one row down on the chart-controls row — see the Chart section. The in-page Print button and the canvas-foot One-page summary button were removed in Session 7; Cmd+P still works through the `@media print` rules.
 
@@ -204,7 +210,7 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 - Don't reintroduce a localStorage-restored app state. Refresh always lands on State 1 — that's the adviser's reset between client meetings.
 - Don't hide the shared chrome outside of State 1.
 - Don't move `#print-summary` back outside `#state-single`. It needs to be a child of state-single so it only shows in single mode on screen; print still works because `@media print` forces state-single visible.
-- Don't reintroduce an editorial headline or subtitle paragraph above the outcome strip on State 2. The strip is the answer; a prose overlay duplicates it, eats vertical real estate, and pushes the chart and levers below the fold. Removed in Session 8.
+- Don't reintroduce an editorial headline, subtitle paragraph, or section eyebrow above the outcome strip on State 2. The strip is the answer; a prose overlay or section label duplicates it, eats vertical real estate, and pushes the chart and levers below the fold. Headline + subtitle removed in Session 8; eyebrow removed in Session 9.
 - Don't add a charting library to `retirement_drawdown_report.html`. Its three chart renderers are inline SVG by design — print fidelity at A4 is the reason. Chart.js is the calculator's dep, not the report's.
 
 ## The export-report sibling
