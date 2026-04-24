@@ -2068,8 +2068,8 @@
       <button type="button" class="series-toggle" id="tog-inc-tax" data-series="tax" aria-pressed="true">
         <span class="swatch" style="background:#d27a88;"></span>Tax
       </button>
-      <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#a04438;">
-        <span class="swatch line" style="color:#a04438;"></span>Target need
+      <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#1f2d3d;">
+        <span class="swatch line" style="color:#1f2d3d;"></span>Target need
       </button>
     </div>
     <!-- Plan-health alerts (populated dynamically; hidden if no alerts) -->
@@ -3188,16 +3188,27 @@
       data: {
         labels: p.labels,
         datasets: [
+          // Flush bars with 1px white right-border for year dividers — matches
+          // the Income chart treatment. categoryPercentage + barPercentage at
+          // 1.0 so adjacent years touch; borderWidth as an object so only the
+          // right edge carries the divider (no horizontal lines inside the
+          // LA→Disc stack).
           { type: 'bar', label: 'Living annuities', data: series.la,
-            backgroundColor: '#2a6b6b', borderColor: '#2a6b6b',
-            borderWidth: 0, stack: 'capital', yAxisID: 'y',
-            categoryPercentage: 0.85, barPercentage: 0.95,
+            backgroundColor: '#2a6b6b',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
+            stack: 'capital', yAxisID: 'y',
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !seriesVisible.la,
             order: 2 },
           { type: 'bar', label: 'Discretionary', data: series.disc,
-            backgroundColor: '#b8893c', borderColor: '#b8893c',
-            borderWidth: 0, stack: 'capital', yAxisID: 'y',
-            categoryPercentage: 0.85, barPercentage: 0.95,
+            backgroundColor: '#b8893c',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
+            stack: 'capital', yAxisID: 'y',
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !seriesVisible.disc,
             order: 2 },
           { type: 'line', label: 'Household withdrawal rate', data: p.drawRatePct,
@@ -3297,7 +3308,7 @@
         ? (xScale.getPixelForValue(1) - xScale.getPixelForValue(0))
         : (xScale.right - xScale.left);
       ctx.save();
-      ctx.strokeStyle = '#a04438';
+      ctx.strokeStyle = '#1f2d3d';
       ctx.lineWidth = 2.5;
       ctx.lineJoin = 'miter';
       ctx.lineCap = 'butt';
@@ -3467,16 +3478,30 @@
           // `categoryPercentage: 1.0, barPercentage: 1.0` makes adjacent years
           // touch flush (no horizontal gap). Chart.js defaults (0.8 × 0.9) leave
           // ~28% whitespace between bars; the editorial reference has bars flush.
+          // 1px white right-border on each bar creates a faint vertical divider
+          // between adjacent years. Top/bottom/left borders stay 0 so stacked
+          // segments within a year read as continuous colour blocks (no
+          // horizontal lines inside the stack). `borderSkipped: false` lets the
+          // object-form borderWidth control each edge independently.
           { type: 'bar', label: 'LA draw', data: bars.la,
-            backgroundColor: '#2a6b6b', stack: 'income', borderWidth: 0,
+            backgroundColor: '#2a6b6b', stack: 'income',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.la },
           { type: 'bar', label: 'Discretionary', data: bars.disc,
-            backgroundColor: '#b8893c', stack: 'income', borderWidth: 0,
+            backgroundColor: '#b8893c', stack: 'income',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.disc },
           { type: 'bar', label: 'Other income', data: bars.other,
-            backgroundColor: '#38495b', stack: 'income', borderWidth: 0,
+            backgroundColor: '#38495b', stack: 'income',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.other },
           // Target dataset kept for legend toggle, tooltips, and plugin data access.
@@ -3488,7 +3513,10 @@
           // Tax slice: caps the stack so colored portion = net to bank, tax cap = household tax.
           // Bar TOTAL = gross income. Dusty-rose reads as the "tax bite".
           { type: 'bar', label: 'Tax', data: bars.tax,
-            backgroundColor: '#d27a88', stack: 'income', borderWidth: 0,
+            backgroundColor: '#d27a88', stack: 'income',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.tax }
         ]
@@ -3555,20 +3583,33 @@
         datasets: [
           // Stack order follows array index: LA at the bottom, Tax on top.
           // Flush bars (categoryPercentage + barPercentage at 1.0) match the main chart.
+          // 1px white right-border matches the main chart's year-divider style.
           { type: 'bar', label: 'LA', data: bars.la, backgroundColor: '#2a6b6b',
-            stack: 'cmp', borderWidth: 0,
+            stack: 'cmp',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'bar', label: 'Disc', data: bars.disc, backgroundColor: '#b8893c',
-            stack: 'cmp', borderWidth: 0,
+            stack: 'cmp',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'bar', label: 'Other', data: bars.other, backgroundColor: '#38495b',
-            stack: 'cmp', borderWidth: 0,
+            stack: 'cmp',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'line', label: 'Target', data: targetArr,
             borderColor: 'transparent', backgroundColor: 'transparent',
             tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0 },
           { type: 'bar', label: 'Tax', data: bars.tax, backgroundColor: '#d27a88',
-            stack: 'cmp', borderWidth: 0,
+            stack: 'cmp',
+            borderColor: '#ffffff',
+            borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
+            borderSkipped: false,
             categoryPercentage: 1.0, barPercentage: 1.0 }
         ]
       },
