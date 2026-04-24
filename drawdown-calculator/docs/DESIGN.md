@@ -84,8 +84,8 @@ The app is a single HTML file; state is driven by a `data-app-state` attribute o
 
 | State | Container | Content |
 |---|---|---|
-| Empty | `#state-empty` | Editorial title plate, spouse setup, household needs strip, other-income + capital-events ledgers, CTA bar |
-| Single | `#state-single` | Plan-bar (collapsed summary), canvas head (editorial headline + action cluster), chart card, outcome strip, narrative, canvas footer |
+| Empty | `#state-empty` | Editorial title plate, spouse setup, household needs strip, other-income + capital-events ledgers, centered `Build the projection →` CTA |
+| Single | `#state-single` | Plan-bar (brand + Family/Prepared facts + Export report + Edit plan), outcome strip, chart controls row (view selector + Auto-top-up + Real/Nominal + Lock as baseline), chart card, canvas footer |
 | Compare | `#state-compare` | Compact head, baseline vs scenario two-up cards with delta chips |
 
 A **shared chrome** block (`#shared-chrome`) holds the Financial-levers block and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`). Financial levers contains, top-to-bottom: (1) **Drawdown levers** — per-spouse `Initial LA drawdown rate` + `Annual discretionary withdrawal` sliders, with the `Solve LA rates to target` button in the sub-heading (folded in at the top in Session 10); (2) Return slider; (3) Monthly household need + Annual lump sums; (4) collapsible Other-income and Capital-events ledgers. The scalar `-c`-suffixed inputs (`#return-c`, `#needs-monthly-c`, `#needs-lump-c`) are bi-directionally synced to their State-1 canonical counterparts. `project()` reads from the canonical IDs only — the mirror is purely a UX affordance so an adviser can strategise from Compare without bouncing back to Empty. The block's wrapper CSS class remains `.scenario-adjust` for internal identification.
@@ -108,18 +108,10 @@ Centred. Eyebrow above a Fraunces 44px headline reading *"A retirement income pl
 Spouse name inputs default to empty with `placeholder="Spouse A"` / `placeholder="Spouse B"`. `getName('A')` / `getName('B')` in JS fall back to the same strings when the input is blank, so every downstream label reads "Spouse A" / "Spouse B" until the adviser types a real name. This avoids planting "Marilyn" / "James" as suggestive example names in client meetings.
 
 ### Plan-bar
-Paper-2 background, hairline border, 8px radius. Left side = brand eyebrow (`Simple Wealth · Retirement Drawdown`) + `Family <surname>` + `Prepared <date>`. Right side = `Edit plan ↓` ghost button that flips to State 1. Trimmed in Session 10: the old `Household`, `Capital`, and `Target` facts were removed because the outcome strip below already carries the target and the income mix, and the Household names aren't needed for a compact identifier — the surname does the job. `#pb-family` reads from the State-1 title-plate span `#hl-family`; it updates whenever `refresh()` fires, so flipping between states keeps it current.
+Paper-2 background, hairline border, 8px radius, 18px top margin so the bar doesn't butt against the browser chrome. Left side = brand eyebrow (`Simple Wealth · Retirement Drawdown`) + `Family <surname>` + `Prepared <date>`. Right side (`.plan-bar-lite-actions`, `display: inline-flex; gap: 10px;`) = `Export report →` ghost + `Edit plan ↓` ghost. The plan-bar is the State-2 top-nav: plan-level navigation (Edit) and the canonical client-PDF action (Export report) both live here. `#pb-family` reads from the State-1 title-plate span `#hl-family`; it updates whenever `refresh()` fires, so flipping between states keeps it current.
 
 ### Canvas head (State 2)
-Action cluster only. The editorial 44px headline and subtitle paragraph (removed in Session 8) and the section eyebrow (removed in Session 9) are all gone — the outcome strip directly below carries the summary (target-met age, Y1 need, income mix), the chart alert chips carry shortfall / LA-cap narration, and the Real|Nominal toggle on the chart-controls row signals the mode. There is no `updateHeadline()` any more; the function and its `refresh()` call site were deleted in Session 9.
-
-Action cluster:
-- Ghost `Export report →` button (canonical client-PDF path; opens `retirement_drawdown_report.html` in a new tab via `localStorage` snapshot)
-- Primary `Lock as baseline →` (flips to State 3 with a frozen snapshot)
-
-The `Auto-top-up` pill was moved out of the action cluster and onto the chart-controls row in Session 10 — see the Chart section.
-
-`.canvas-head` is `display: flex; align-items: flex-end; justify-content: space-between;` — with no left-side child in State 2, `.canvas-head-actions` carries `margin-left: auto` to stay right-aligned. State 3's `.canvas-head.compact` still uses both a `.canvas-head-left` (with the compact headline) and the action cluster; the `margin-left: auto` is a no-op there because the two children already fill the row.
+Removed in Session 11. Every action it used to carry is now either in the plan-bar (`Export report`) or on the chart-controls row (`Auto-top-up`, `Lock as baseline`). The outcome strip sits directly below the plan-bar with the standard 20px plan-bar margin-bottom as its only breathing room. State 3 still uses `.canvas-head.compact` for the compact "What if we nudge the levers?" headline + action cluster — that variant is unchanged.
 
 ### Outcome strip
 
@@ -139,7 +131,7 @@ Grid `1fr 1fr`, 22px gap.
 
 ### Chart
 
-Sits below the canvas head. Controls row (`.controls-row`) above the chart card: `Income | Capital | Table` segmented selector on the left; on the right, a `.controls-row-right` cluster holds the `Auto-top-up` toggle pill followed by the `Real | Nominal` mini-segmented toggle (`display: flex; justify-content: space-between;` on the outer row, `display: inline-flex; gap: 12px;` on the cluster). The pill moved here from the canvas-head action cluster in Session 10 so the chart-controls row now carries every chart-level mode switch in one strip.
+Sits below the plan-bar. Controls row (`.controls-row`) above the chart card: `Income | Capital | Table` segmented selector on the left; on the right, a `.controls-row-right` cluster holds `[Auto-top-up pill] [Real | Nominal] [Lock as baseline →]` (`display: flex; justify-content: space-between;` on the outer row, `display: inline-flex; gap: 12px;` on the cluster). The pill moved here from the canvas-head action cluster in Session 10; `Lock as baseline` joined the cluster in Session 11 when the canvas-head was retired entirely. Lock is a scenario-level CTA tied to the current projection (it freezes `project()` into the baseline), so sitting on the chart-controls row alongside the view mode switches is semantically correct — plan-level navigation (Export report, Edit plan) lives on the plan-bar above.
 
 Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered for the Income chart:
 

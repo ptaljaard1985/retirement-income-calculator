@@ -1303,15 +1303,9 @@
 
   /* CTA bar */
   .empty-cta {
-    margin-top: 24px;
-    padding: 24px 28px;
-    background: var(--navy);
-    color: var(--paper);
-    border-radius: var(--r-lg);
+    margin-top: 32px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 28px;
+    justify-content: center;
   }
   .empty-cta-eyebrow {
     font-family: var(--serif);
@@ -1771,7 +1765,14 @@
     border: 1px solid var(--hairline);
     border-radius: var(--r-lg);
     padding: 12px 18px;
+    margin-top: 18px;
     margin-bottom: 20px;
+  }
+  .plan-bar-lite-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
   .plan-bar-lite-left {
     display: flex;
@@ -1803,8 +1804,6 @@
     .empty-needs { grid-template-columns: 1fr; gap: 18px; }
     .empty-needs-cell { border-left: none; padding: 12px 0; border-top: 1px solid var(--hairline); }
     .empty-needs-cell:first-child { padding-top: 0; border-top: none; }
-    .empty-cta { flex-direction: column; align-items: flex-start; }
-    .empty-meta { grid-template-columns: 1fr; }
     .empty-events-header { grid-template-columns: 80px 1fr 120px 100px; font-size: 9px; }
   }
 </style>
@@ -1939,25 +1938,18 @@
       </div>
     </div>
 
-    <!-- Auto-top-up toggle -->
-    <label class="empty-topup-label">
-      <input type="checkbox" id="needs-topup">
-      <span><strong>Auto-top-up to meet target</strong> &mdash; when LA income (at the CPI-escalated rate) falls short of the monthly need, fill the gap from discretionary (CGT-aware, proportional to balance). If discretionary is exhausted and a gap remains, boost LA draws toward the 17.5% ceiling.</span>
-    </label>
+    <!-- Hidden inputs kept in the DOM so the engine, print summary, and export
+         report keep reading them. Defaults match the pre-Session-11 visible
+         values so downstream compliance blocks render identically. Auto-top-up
+         is driven by the State-2 chart-controls pill; meeting date is
+         auto-filled with today's date during init. -->
+    <input type="checkbox" id="needs-topup" hidden>
+    <input type="text" id="client-name" value="Client Household" hidden>
+    <input type="text" id="client-date" value="" hidden>
+    <input type="text" id="adviser-name" value="Simple Wealth (Pty) Ltd" hidden>
 
-    <!-- Client metadata -->
-    <div class="empty-meta">
-      <span><label>Prepared for</label><input type="text" id="client-name" value="Client Household"></span>
-      <span><label>Meeting date</label><input type="text" id="client-date" placeholder="DD Month YYYY"></span>
-      <span><label>Adviser</label><input type="text" id="adviser-name" value="Simple Wealth (Pty) Ltd"></span>
-    </div>
-
-    <!-- CTA bar -->
+    <!-- CTA: just the centered button. -->
     <div class="empty-cta">
-      <div class="empty-cta-left">
-        <div class="empty-cta-eyebrow">Ready to see if this lifestyle is sustainable?</div>
-        <div class="empty-cta-sub">We'll run a year-by-year projection across both spouses, showing what's drawn, what's taxed, and how the horizon unfolds until the youngest reaches 100.</div>
-      </div>
       <button type="button" class="btn gold large" id="btn-build-projection">Build the projection &rarr;</button>
     </div>
 
@@ -1969,23 +1961,17 @@
 <!-- ============= STATE 2: Single scenario projection ============= -->
 <section id="state-single" class="state is-hidden" data-state="single">
 
-  <!-- Plan inputs summary bar -->
+  <!-- Plan inputs summary bar. Doubles as the top-nav menu on State 2: holds
+       the Export report and Edit plan actions alongside the brand + facts. -->
   <div class="plan-bar-lite">
     <div class="plan-bar-lite-left">
       <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
       <span class="plan-bar-lite-fact"><label>Family</label><span id="pb-family" class="num">—</span></span>
       <span class="plan-bar-lite-fact"><label>Prepared</label><span id="doc-date" class="num">—</span></span>
     </div>
-    <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
-  </div>
-
-  <!-- Canvas head: action cluster only. Eyebrow removed — mode is signalled
-       by the Real|Nominal toggle on the chart-controls row, and the outcome
-       strip below carries the summary. -->
-  <div class="canvas-head">
-    <div class="canvas-head-actions">
+    <div class="plan-bar-lite-actions">
       <button type="button" class="btn ghost no-print" id="btn-export-report" title="Open the editorial client report in a new tab">Export report &rarr;</button>
-      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
+      <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
     </div>
   </div>
 
@@ -2032,7 +2018,10 @@
     </div>
   </div>
 
-  <!-- Chart controls: view segmented on the left; auto-top-up + Real/Nominal on the right. -->
+  <!-- Chart controls: view segmented on the left; auto-top-up + Real/Nominal +
+       Lock as baseline on the right. Lock sits here (not the plan-bar) because
+       it's a scenario-level action tied to the current projection rather than
+       a plan/navigation action. -->
   <div class="controls-row">
     <div class="seg" role="tablist" aria-label="Chart view">
       <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
@@ -2048,6 +2037,7 @@
         <button id="btn-real" role="tab" aria-selected="false">Real</button>
         <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
       </div>
+      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
   </div>
 
@@ -2440,6 +2430,11 @@
     if (typeof renderEvents === 'function') renderEvents();
     if (typeof renderIncomes === 'function') renderIncomes();
     if (typeof refresh === 'function') refresh();
+    // Browsers keep the scroll position across display-swap state changes,
+    // which lands the user near the bottom when moving from the short empty
+    // state to the taller single state (and vice versa). Reset on every
+    // transition so each state lands at the top of the page.
+    try { window.scrollTo(0, 0); } catch (_) {}
     return prev;
   }
 
