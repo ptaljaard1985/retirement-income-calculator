@@ -301,6 +301,9 @@
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 14px; flex-wrap: wrap; gap: 12px;
   }
+  .controls-row-right {
+    display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
   .toggle {
     display: inline-flex; background: var(--surface-warm);
     border-radius: var(--radius); padding: 3px;
@@ -746,6 +749,15 @@
   .scenario-adjust > .section-header:first-child { margin-bottom: 14px; }
   .scenario-adjust-row { display: grid; gap: 16px 22px; }
   .scenario-adjust-row.two-col { grid-template-columns: 1fr 1fr; }
+  .scenario-adjust-row.scenario-adjust-row-divider {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--hairline);
+  }
+  .drawdown-levers-inline .drawdown-levers-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .drawdown-levers-inline .levers-two-col { margin-bottom: 4px; }
   .scenario-adjust-field label {
     display: block;
     font-size: 11px;
@@ -794,7 +806,15 @@
   @media (max-width: 820px) {
     .scenario-adjust-row.two-col { grid-template-columns: 1fr; }
   }
-  @media print { .scenario-adjust { display: none !important; } }
+  @media print {
+    /* Financial levers container drops its chrome on paper; only the folded-in
+       Drawdown levers (.drawdown-levers-inline) remain visible so the printed
+       PDF still shows the live per-spouse sliders alongside the tax panel. */
+    .scenario-adjust { background: transparent; border: none; padding: 0; margin-bottom: 20px; }
+    .scenario-adjust > .section-header,
+    .scenario-adjust > .scenario-adjust-row,
+    .scenario-adjust > .sub-section { display: none !important; }
+  }
 
   /* Tax card */
   .tax-panel {
@@ -1953,9 +1973,7 @@
   <div class="plan-bar-lite">
     <div class="plan-bar-lite-left">
       <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
-      <span class="plan-bar-lite-fact"><label>Household</label><span id="pb-household" class="num">—</span></span>
-      <span class="plan-bar-lite-fact"><label>Capital</label><span id="pb-capital" class="num">—</span></span>
-      <span class="plan-bar-lite-fact"><label>Target</label><span id="pb-target" class="num">—</span></span>
+      <span class="plan-bar-lite-fact"><label>Family</label><span id="pb-family" class="num">—</span></span>
       <span class="plan-bar-lite-fact"><label>Prepared</label><span id="doc-date" class="num">—</span></span>
     </div>
     <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
@@ -1966,10 +1984,6 @@
        strip below carries the summary. -->
   <div class="canvas-head">
     <div class="canvas-head-actions">
-      <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
-        <span class="sw" aria-hidden="true"></span>
-        <span>Auto-top-up</span>
-      </label>
       <button type="button" class="btn ghost no-print" id="btn-export-report" title="Open the editorial client report in a new tab">Export report &rarr;</button>
       <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
@@ -2018,16 +2032,22 @@
     </div>
   </div>
 
-  <!-- Chart controls: view segmented on the left, Real/Nominal on the right -->
+  <!-- Chart controls: view segmented on the left; auto-top-up + Real/Nominal on the right. -->
   <div class="controls-row">
     <div class="seg" role="tablist" aria-label="Chart view">
       <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
       <button id="btn-view-capital" role="tab" aria-selected="false">Capital</button>
       <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
     </div>
-    <div class="seg mini" role="tablist" aria-label="Real or Nominal">
-      <button id="btn-real" role="tab" aria-selected="false">Real</button>
-      <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
+    <div class="controls-row-right">
+      <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
+        <span class="sw" aria-hidden="true"></span>
+        <span>Auto-top-up</span>
+      </label>
+      <div class="seg mini" role="tablist" aria-label="Real or Nominal">
+        <button id="btn-real" role="tab" aria-selected="false">Real</button>
+        <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
+      </div>
     </div>
   </div>
 
@@ -2163,7 +2183,59 @@
     <div class="scenario-adjust">
       <div class="section-header">Financial levers</div>
 
-      <div class="scenario-adjust-row">
+      <!-- Drawdown levers: folded in at the top of Financial levers so per-spouse
+           LA rate / disc draw / Solve sit alongside the other strategy-board
+           controls in one block. -->
+      <div class="drawdown-levers-inline">
+        <div class="section-header drawdown-levers-head">
+          <span>Drawdown levers</span>
+          <button class="btn ghost" id="btn-solve" style="font-size: 12px;">Solve LA rates to target</button>
+        </div>
+        <div class="levers-two-col">
+
+          <div class="levers">
+            <h3 id="lev-name-A">Spouse A</h3>
+            <div class="levers-grid">
+              <div class="lever">
+                <div class="lever-head">
+                  <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
+                  <span class="val" id="la-rate-A-out">5.00%</span>
+                </div>
+                <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
+              </div>
+              <div class="lever">
+                <div class="lever-head">
+                  <label>Annual discretionary withdrawal</label>
+                  <span class="val" id="disc-draw-A-out">R0</span>
+                </div>
+                <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
+              </div>
+            </div>
+          </div>
+
+          <div class="levers">
+            <h3 id="lev-name-B">Spouse B</h3>
+            <div class="levers-grid">
+              <div class="lever">
+                <div class="lever-head">
+                  <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
+                  <span class="val" id="la-rate-B-out">5.00%</span>
+                </div>
+                <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
+              </div>
+              <div class="lever">
+                <div class="lever-head">
+                  <label>Annual discretionary withdrawal</label>
+                  <span class="val" id="disc-draw-B-out">R0</span>
+                </div>
+                <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scenario-adjust-row scenario-adjust-row-divider">
         <div class="lever">
           <div class="lever-head">
             <label>Expected nominal return <span style="color:var(--mute);">(portfolio mix)</span></label>
@@ -2203,54 +2275,6 @@
           <div id="events-list-c" class="events-list"></div>
           <div id="events-empty-c" class="events-empty">No capital events yet.</div>
           <button type="button" id="events-add-c" class="add-btn">&#xFF0B; Add capital event</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Levers: two people side by side -->
-    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between;">
-      <span>Drawdown levers</span>
-      <button class="btn ghost" id="btn-solve" style="font-size: 12px;">Solve LA rates to target</button>
-    </div>
-    <div class="levers-two-col">
-
-      <div class="levers">
-        <h3 id="lev-name-A">Spouse A</h3>
-        <div class="levers-grid">
-          <div class="lever">
-            <div class="lever-head">
-              <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
-              <span class="val" id="la-rate-A-out">5.00%</span>
-            </div>
-            <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
-          </div>
-          <div class="lever">
-            <div class="lever-head">
-              <label>Annual discretionary withdrawal</label>
-              <span class="val" id="disc-draw-A-out">R0</span>
-            </div>
-            <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
-          </div>
-        </div>
-      </div>
-
-      <div class="levers">
-        <h3 id="lev-name-B">Spouse B</h3>
-        <div class="levers-grid">
-          <div class="lever">
-            <div class="lever-head">
-              <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
-              <span class="val" id="la-rate-B-out">5.00%</span>
-            </div>
-            <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
-          </div>
-          <div class="lever">
-            <div class="lever-head">
-              <label>Annual discretionary withdrawal</label>
-              <span class="val" id="disc-draw-B-out">R0</span>
-            </div>
-            <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
-          </div>
         </div>
       </div>
     </div>
@@ -3726,15 +3750,11 @@
     }
   }
 
-  function updatePlanBarLite(p){
-    var household = (document.getElementById('hp-name-A') || {}).value || 'Spouse A';
-    var nb = (document.getElementById('hp-name-B') || {}).value || 'Spouse B';
-    var phH = document.getElementById('pb-household');
-    var phC = document.getElementById('pb-capital');
-    var phT = document.getElementById('pb-target');
-    if (phH) phH.textContent = household + ' · ' + nb;
-    if (phC) phC.textContent = fmtR(p.nominal.total[0] || 0);
-    if (phT) phT.textContent = fmtR(p.targetPVAnnual || 0) + ' / yr';
+  function updatePlanBarLite(){
+    var familySpan = document.getElementById('hl-family');
+    var surname = familySpan ? (familySpan.textContent || '').trim() : '';
+    var phF = document.getElementById('pb-family');
+    if (phF) phF.textContent = surname || '—';
   }
 
   // ===== Sustainability analysis for editorial framing =====
@@ -3979,7 +3999,7 @@
       else if (chartView === 'table') buildYearTable(p);
     }
     updatePrintSummary(p);
-    updatePlanBarLite(p);
+    updatePlanBarLite();
     var an = analyseProjection(p);
     updateOutcomeStrip(p, an);
     updateCanvasFoot();
