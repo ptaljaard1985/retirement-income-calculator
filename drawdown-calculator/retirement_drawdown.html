@@ -3289,6 +3289,13 @@
       var yScale = chart.scales.y;
       var xScale = chart.scales.x;
       var N = chart.data.labels.length;
+      // Slot width = distance between adjacent categorical x-positions. Computed
+      // once from the first pair and used uniformly, so the last year renders at
+      // the same width as every other. Previous `xNext = xScale.right` fallback
+      // collapsed the final step to a half-slot.
+      var slot = (N > 1)
+        ? (xScale.getPixelForValue(1) - xScale.getPixelForValue(0))
+        : (xScale.right - xScale.left);
       ctx.save();
       ctx.strokeStyle = '#a04438';
       ctx.lineWidth = 2.5;
@@ -3305,8 +3312,6 @@
           continue;
         }
         var x = xScale.getPixelForValue(i);
-        var xNext = (i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right;
-        var slot = xNext - x;
         var left = x - slot / 2;          // full-slot edges so adjacent years touch
         var right = x + slot / 2;
         var yTop = yScale.getPixelForValue(need);
@@ -3340,6 +3345,13 @@
       var yScale = chart.scales.y;
       var xScale = chart.scales.x;
       var N = chart.data.labels.length;
+      // Uniform slot width — matches targetBoxPlugin. The previous
+      // `xNext = xScale.right` fallback collapsed the last year's coral
+      // rectangle to a half-slot, which left visible white stripes at the
+      // left and right of the final column (the depleted-years region).
+      var slot = (N > 1)
+        ? (xScale.getPixelForValue(1) - xScale.getPixelForValue(0))
+        : (xScale.right - xScale.left);
       var shortfallStart = -1;
       ctx.save();
       ctx.fillStyle = 'rgba(160, 68, 56, 0.18)';
@@ -3351,11 +3363,9 @@
         var need = target.data[i] || 0;
         if (total < need - 100){
           var x = xScale.getPixelForValue(i);
-          var xNext = (i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right;
-          var barSpan = xNext - x;
           var yNeed = yScale.getPixelForValue(need);
           var yTotal = yScale.getPixelForValue(total);
-          ctx.fillRect(x - barSpan/2, yNeed, barSpan, yTotal - yNeed);
+          ctx.fillRect(x - slot/2, yNeed, slot, yTotal - yNeed);
           if (shortfallStart < 0) shortfallStart = i;
         }
       }
@@ -3454,14 +3464,20 @@
         datasets: [
           // Stack order follows array index: LA at the bottom, Tax on top.
           // Explicit `order:` values previously inverted this — removed deliberately.
+          // `categoryPercentage: 1.0, barPercentage: 1.0` makes adjacent years
+          // touch flush (no horizontal gap). Chart.js defaults (0.8 × 0.9) leave
+          // ~28% whitespace between bars; the editorial reference has bars flush.
           { type: 'bar', label: 'LA draw', data: bars.la,
             backgroundColor: '#2a6b6b', stack: 'income', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.la },
           { type: 'bar', label: 'Discretionary', data: bars.disc,
             backgroundColor: '#b8893c', stack: 'income', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.disc },
           { type: 'bar', label: 'Other income', data: bars.other,
             backgroundColor: '#38495b', stack: 'income', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.other },
           // Target dataset kept for legend toggle, tooltips, and plugin data access.
           // Visible rendering is handled by targetBoxPlugin (per-year box outlines).
@@ -3473,6 +3489,7 @@
           // Bar TOTAL = gross income. Dusty-rose reads as the "tax bite".
           { type: 'bar', label: 'Tax', data: bars.tax,
             backgroundColor: '#d27a88', stack: 'income', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0,
             hidden: !incomeSeriesVisible.tax }
         ]
       },
@@ -3537,17 +3554,22 @@
         labels: p.labels,
         datasets: [
           // Stack order follows array index: LA at the bottom, Tax on top.
+          // Flush bars (categoryPercentage + barPercentage at 1.0) match the main chart.
           { type: 'bar', label: 'LA', data: bars.la, backgroundColor: '#2a6b6b',
-            stack: 'cmp', borderWidth: 0 },
+            stack: 'cmp', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'bar', label: 'Disc', data: bars.disc, backgroundColor: '#b8893c',
-            stack: 'cmp', borderWidth: 0 },
+            stack: 'cmp', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'bar', label: 'Other', data: bars.other, backgroundColor: '#38495b',
-            stack: 'cmp', borderWidth: 0 },
+            stack: 'cmp', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0 },
           { type: 'line', label: 'Target', data: targetArr,
             borderColor: 'transparent', backgroundColor: 'transparent',
             tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0 },
           { type: 'bar', label: 'Tax', data: bars.tax, backgroundColor: '#d27a88',
-            stack: 'cmp', borderWidth: 0 }
+            stack: 'cmp', borderWidth: 0,
+            categoryPercentage: 1.0, barPercentage: 1.0 }
         ]
       },
       options: {
