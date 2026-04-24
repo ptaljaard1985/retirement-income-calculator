@@ -1227,7 +1227,7 @@ html, body {
         <tr>
           <td>Longevity horizon</td>
           <td class="num">100</td>
-          <td class="note">The projection runs to age 100 for the younger spouse. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.</td>
+          <td class="note" id="longevity-horizon-note">The projection runs to age 100 for the younger spouse. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.</td>
         </tr>
       </tbody>
     </table>
@@ -1614,7 +1614,7 @@ html, body {
     <div class="methodology-grid">
       <div class="method-col">
         <h3 class="method-h">What we model</h3>
-        <p class="prose">
+        <p class="prose" id="methodology-what-we-model">
           For each year from retirement to age 100 of the younger spouse, the projection
           computes the household's required income in <em>today's money</em>, converts it to
           nominal rands at the year's CPI-adjusted level, then fills it from three sources:
@@ -1927,6 +1927,22 @@ html, body {
   setField('returnPct', fmtPct(plan.returnPct, 2));
   setField('cpiPct', fmtPct(plan.cpiPct, 2));
   setField('autoTopUp', plan.autoTopUp ? 'On' : 'Off');
+
+  // Single-client mode: swap "younger spouse" / "of the younger spouse" copy
+  // on the methodology slides so a widow/widower's report reads cleanly.
+  if (plan.single){
+    var horizonNote = document.getElementById('longevity-horizon-note');
+    if (horizonNote) horizonNote.textContent = 'The projection runs to age 100 for the client. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.';
+    var methodBody = document.getElementById('methodology-what-we-model');
+    if (methodBody){
+      methodBody.innerHTML = 'For each year from retirement to age 100 of the client, the projection '
+        + 'computes the household’s required income in <em>today’s money</em>, converts it to '
+        + 'nominal rands at the year’s CPI-adjusted level, then fills it from three sources: '
+        + 'other income, a living-annuity draw inside the <span class="num">2.5–17.5%</span> '
+        + 'band, and (if auto top-up is on) a discretionary draw to cover any shortfall. Both '
+        + 'pots grow at the expected return, applied to the post-draw balance.';
+    }
+  }
 
   // Next-review default = preparedOn + 1 year
   function nextReviewLabel() {

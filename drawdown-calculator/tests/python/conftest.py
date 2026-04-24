@@ -256,8 +256,9 @@ def solve_topup(sA, sB, la_target_A, la_target_B, age_A, age_B, year_idx, target
         head_A = max(0, ceil_A - la_draw_A)
         head_B = max(0, ceil_B - la_draw_B)
         if head_A + head_B > 0:
-            wA2 = sA['laBalance'] / (sA['laBalance'] + sB['laBalance'])
-            wB2 = sB['laBalance'] / (sA['laBalance'] + sB['laBalance'])
+            total_la = sA['laBalance'] + sB['laBalance']
+            wA2 = sA['laBalance'] / total_la if total_la > 0 else 0
+            wB2 = sB['laBalance'] / total_la if total_la > 0 else 0
             # Baseline = Phase-1 draws; boost always relative to baseline (not cumulative)
             base_A = la_draw_A
             base_B = la_draw_B

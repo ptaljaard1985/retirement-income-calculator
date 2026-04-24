@@ -1013,6 +1013,13 @@
     letter-spacing: 0.3px;
   }
 
+  /* Client-mode toggle (Couple | Single client) sitting above the spouse setup. */
+  .client-mode-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 18px;
+  }
+
   /* Two-column spouse setup */
   .empty-setup {
     display: grid;
@@ -1025,6 +1032,16 @@
     min-height: 100%;
   }
   .empty-spouse { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Single-client mode: collapse every Spouse-B affordance. Elements that
+     should disappear on screen AND on paper carry `.spouse-b-only`; the grid
+     collapses to a single column so the sole client card spans full width. */
+  body[data-client-mode="single"] .spouse-b-only { display: none !important; }
+  body[data-client-mode="single"] .empty-setup { grid-template-columns: 1fr; }
+  /* Editorial label swap: show "Client" when single, "Spouse A" when couple. */
+  .label-single { display: none; }
+  body[data-client-mode="single"] .label-couple { display: none; }
+  body[data-client-mode="single"] .label-single { display: inline; }
   .empty-steplabel {
     font-family: var(--sans);
     font-size: 11px;
@@ -1808,7 +1825,7 @@
   }
 </style>
 </head>
-<body>
+<body data-client-mode="couple">
 <div class="page">
 
 <!-- ============= STATE 1: Empty / Setup ============= -->
@@ -1831,10 +1848,21 @@
       <div class="empty-date num">Prepared <span id="empty-date-val">—</span></div>
     </div>
 
+    <!-- Client mode: Couple (default) hides nothing; Single collapses the
+         Spouse B card + every downstream Spouse-B affordance via CSS. The
+         attribute on <body> is the single source of truth; isSingleClient()
+         reads it in JS. -->
+    <div class="client-mode-row">
+      <div class="seg mini" role="tablist" aria-label="Client mode">
+        <button id="mode-couple" class="on active" role="tab" aria-selected="true">Couple</button>
+        <button id="mode-single" role="tab" aria-selected="false">Single client</button>
+      </div>
+    </div>
+
     <!-- Spouse setup -->
     <div class="empty-setup">
       <div class="empty-spouse">
-        <div class="empty-steplabel"><span class="rom">I.</span> Spouse A</div>
+        <div class="empty-steplabel"><span class="rom">I.</span> <span class="label-couple">Spouse A</span><span class="label-single">Client</span></div>
         <div class="empty-nameage">
           <input type="text" id="hp-name-A" class="empty-name-input" value="" placeholder="Spouse A" maxlength="40" aria-label="Spouse A name">
           <span class="empty-age-wrap">
@@ -1856,9 +1884,9 @@
         </div>
       </div>
 
-      <div class="empty-divider" aria-hidden="true"></div>
+      <div class="empty-divider spouse-b-only" aria-hidden="true"></div>
 
-      <div class="empty-spouse">
+      <div class="empty-spouse spouse-b-only">
         <div class="empty-steplabel"><span class="rom">II.</span> Spouse B</div>
         <div class="empty-nameage">
           <input type="text" id="hp-name-B" class="empty-name-input" value="" placeholder="Spouse B" maxlength="40" aria-label="Spouse B name">
@@ -2203,7 +2231,7 @@
             </div>
           </div>
 
-          <div class="levers">
+          <div class="levers spouse-b-only">
             <h3 id="lev-name-B">Spouse B</h3>
             <div class="levers-grid">
               <div class="lever">
@@ -2288,7 +2316,7 @@
             <tr><td>Effective rate on gross income</td><td id="ta-eff">0.0%</td></tr>
           </table>
         </div>
-        <div class="tax-side">
+        <div class="tax-side spouse-b-only">
           <h4 id="tax-name-B">Spouse B</h4>
           <table class="tax-table">
             <tr><td>LA income</td><td id="tb-la">R0</td></tr>
@@ -2330,8 +2358,8 @@
       <tr><td>Annual discretionary withdrawal</td><td id="s-draw-A">—</td></tr>
     </table>
 
-    <h3 id="s-name-B">Spouse B — inputs</h3>
-    <table class="summary-table">
+    <h3 id="s-name-B" class="spouse-b-only">Spouse B — inputs</h3>
+    <table class="summary-table spouse-b-only">
       <tr><td>Current age</td><td id="s-age-B">—</td></tr>
       <tr><td>Living annuity balance</td><td id="s-la-B">—</td></tr>
       <tr><td>LA drawdown rate</td><td id="s-rate-B">—</td></tr>
@@ -2360,7 +2388,7 @@
       <tr><td>After-tax household income</td><td id="s-net">—</td></tr>
     </table>
 
-    <h3>Projected capital at youngest spouse's age 100</h3>
+    <h3><span class="label-couple">Projected capital at youngest spouse's age 100</span><span class="label-single">Projected capital at age 100</span></h3>
     <table class="summary-table">
       <tr><td>Nominal (future rands)</td><td id="s-end-nom">—</td></tr>
       <tr><td>Real (today's money)</td><td id="s-end-real">—</td></tr>
@@ -2580,6 +2608,12 @@
     return isFinite(n) ? n : 0;
   }
 
+  // Client mode: 'couple' (default) or 'single'. Lives on <body> so CSS can
+  // toggle Spouse-B visibility; project() reads it to zero out Spouse B.
+  function isSingleClient(){
+    return document.body.getAttribute('data-client-mode') === 'single';
+  }
+
   // ===== Read person from UI =====
   // `otherIncome` is NOT read here — it's resolved per year from the income
   // schedule inside project() and written onto sA/sB before any tax/solver call.
@@ -2598,12 +2632,21 @@
 
   // ===== Full projection =====
   function project(){
+    var single = isSingleClient();
     var pA = readPerson('A');
     var pB = readPerson('B');
     var rNom = read('return') / 100;
     var cpi = read('cpi') / 100;
     var ageA = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
     var ageB = parseInt(document.getElementById('hp-age-B').value, 10) || 65;
+    // Single-client mode: collapse Spouse B to a synthetic zero person BEFORE
+    // it enters the solver or the year loop. Horizon then anchors on ageA alone
+    // (Math.min(ageA, ageA) === ageA). The original UI values are untouched, so
+    // flipping back to Couple restores the prior projection exactly.
+    if (single){
+      pB = { laBalance: 0, laRate: 0, discBalance: 0, discBaseCost: 0, discDraw: 0, otherIncome: 0 };
+      ageB = ageA;
+    }
     // Chart anchors on the youngest spouse and runs to their age 100.
     var youngest = Math.min(ageA, ageB);
     var years = Math.max(0, 100 - youngest);
@@ -2731,8 +2774,12 @@
         var totalHead = headA + headB;
         if (totalHead > 0){
           // Proportional by LA balance, but don't ask a spouse for more than their headroom.
-          var wA2 = sA_in.laBalance / (sA_in.laBalance + sB_in.laBalance);
-          var wB2 = sB_in.laBalance / (sA_in.laBalance + sB_in.laBalance);
+          // Guard defensively: if both LA balances are zero the outer `totalHead > 0`
+          // check already short-circuits this branch, but keep the denominator safe so
+          // a future change to that guard can't silently leak NaN through wA2/wB2.
+          var totalLA = sA_in.laBalance + sB_in.laBalance;
+          var wA2 = totalLA > 0 ? sA_in.laBalance / totalLA : 0;
+          var wB2 = totalLA > 0 ? sB_in.laBalance / totalLA : 0;
           // CRITICAL: baseline is the Phase-1 clamped LA draw. Boost is always
           // measured relative to baseline; do NOT mutate laDrawA inside the loop.
           var baseA = laDrawA;
@@ -2974,6 +3021,7 @@
 
     return {
       years: years, startAge: youngest, horizonAge: 100,
+      single: single,
       ageA: ageA, ageB: ageB,
       pA: pA, pB: pB, taxA: taxA, taxB: taxB,
       rNom: rNom, cpi: cpi,
@@ -3104,7 +3152,7 @@
 
     set('s-return',  fmtPct(p.rNom * 100));
     set('s-cpi',     fmtPct(p.cpi * 100));
-    set('s-horizon', 'To youngest spouse age 100 (' + p.years + ' years, starting age ' + p.startAge + ')');
+    set('s-horizon', (p.single ? 'To age 100 (' : 'To youngest spouse age 100 (') + p.years + ' years, starting age ' + p.startAge + ')');
 
     var endIdx = p.nominal.total.length - 1;
     var capToday = p.nominal.total[0];
@@ -3676,16 +3724,19 @@
     function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     }); }
+    // Spouse B columns carry `spouse-b-only` so CSS collapses them in single mode
+    // (on screen AND on paper). Both the group-header and each sub-header cell
+    // need the class since `display: none` on a <th> hides just that one cell.
     thead.innerHTML =
       '<tr>' +
         '<th class="age" rowspan="2">Year</th>' +
         '<th class="group-A group-sep" colspan="6">' + esc(getName('A')) + '</th>' +
-        '<th class="group-B group-sep" colspan="6">' + esc(getName('B')) + '</th>' +
+        '<th class="group-B group-sep spouse-b-only" colspan="6">' + esc(getName('B')) + '</th>' +
         '<th class="group-HH group-sep" colspan="5">Household</th>' +
       '</tr>' +
       '<tr class="sub">' +
         '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th><th>Other</th>' +
-        '<th class="group-sep">Age</th><th>LA bal</th><th>LA draw</th><th>Disc bal</th><th>Disc draw</th><th>Other</th>' +
+        '<th class="group-sep spouse-b-only">Age</th><th class="spouse-b-only">LA bal</th><th class="spouse-b-only">LA draw</th><th class="spouse-b-only">Disc bal</th><th class="spouse-b-only">Disc draw</th><th class="spouse-b-only">Other</th>' +
         '<th class="group-sep">Gross</th><th>Tax</th><th>Net</th><th>Target</th><th>Gap</th>' +
       '</tr>';
 
@@ -3713,12 +3764,12 @@
           '<td>' + fmtR(discA_bal[i]) + '</td>' +
           '<td>' + fmtR(discA_draw[i]) + '</td>' +
           '<td>' + fmtR(otherA[i]) + '</td>' +
-          '<td class="sep">' + tbl.ageB[i] + '</td>' +
-          '<td>' + fmtR(laB_bal[i])  + '</td>' +
-          '<td class="' + cB.trim() + '">' + fmtR(laB_draw[i]) + '</td>' +
-          '<td>' + fmtR(discB_bal[i]) + '</td>' +
-          '<td>' + fmtR(discB_draw[i]) + '</td>' +
-          '<td>' + fmtR(otherB[i]) + '</td>' +
+          '<td class="sep spouse-b-only">' + tbl.ageB[i] + '</td>' +
+          '<td class="spouse-b-only">' + fmtR(laB_bal[i])  + '</td>' +
+          '<td class="spouse-b-only ' + cB.trim() + '">' + fmtR(laB_draw[i]) + '</td>' +
+          '<td class="spouse-b-only">' + fmtR(discB_bal[i]) + '</td>' +
+          '<td class="spouse-b-only">' + fmtR(discB_draw[i]) + '</td>' +
+          '<td class="spouse-b-only">' + fmtR(otherB[i]) + '</td>' +
           '<td class="sep">' + fmtR(gross)  + '</td>' +
           '<td>' + fmtR(tax)   + '</td>' +
           '<td>' + fmtR(net)   + '</td>' +
@@ -3790,7 +3841,12 @@
     if (capAge !== null){
       alerts.push('<span class="chart-alert cap">Both LAs at 17.5% ceiling from age ' + capAge + '</span>');
     } else if (singleCapAge !== null){
-      alerts.push('<span class="chart-alert cap">' + singleCapWho + ' LA at 17.5% ceiling from age ' + singleCapAge + '</span>');
+      // Drop the spouse-name prefix in single-client mode — there's no second
+      // LA to distinguish against.
+      var capCopy = p.single
+        ? 'LA at 17.5% ceiling from age ' + singleCapAge
+        : singleCapWho + ' LA at 17.5% ceiling from age ' + singleCapAge;
+      alerts.push('<span class="chart-alert cap">' + capCopy + '</span>');
     }
     if (discAge !== null){
       alerts.push('<span class="chart-alert disc">Discretionary exhausted from age ' + discAge + '</span>');
@@ -3882,7 +3938,7 @@
       if (an.verdict){
         primary.classList.add('teal'); primary.classList.remove('coral');
         if (primLabel) primLabel.textContent = 'Lifestyle sustainable until age';
-        if (primSub) primSub.textContent = 'youngest spouse · target fully met';
+        if (primSub) primSub.textContent = p.single ? 'target fully met to age 100' : 'youngest spouse · target fully met';
       } else {
         primary.classList.remove('teal');
         if (primLabel) primLabel.textContent = 'Target met until age';
@@ -4463,6 +4519,25 @@
     }
   });
 
+  // Client-mode radio (Couple / Single). Mirrors the pattern used for the
+  // Real|Nominal and Income|Capital|Table segmented controls elsewhere.
+  function setClientMode(m){
+    document.body.setAttribute('data-client-mode', m);
+    var cp = document.getElementById('mode-couple');
+    var sg = document.getElementById('mode-single');
+    if (cp){ cp.classList.toggle('active', m === 'couple'); cp.classList.toggle('on', m === 'couple'); cp.setAttribute('aria-selected', m === 'couple'); }
+    if (sg){ sg.classList.toggle('active', m === 'single'); sg.classList.toggle('on', m === 'single'); sg.setAttribute('aria-selected', m === 'single'); }
+    // Income chart caches its dataset list on first build; force a rebuild so
+    // the Spouse-B zero series flushes through when the mode flips.
+    if (chart){ chart.destroy(); chart = null; }
+    if (incomeChart){ incomeChart.destroy(); incomeChart = null; }
+    refresh();
+  }
+  var mCp = document.getElementById('mode-couple');
+  var mSg = document.getElementById('mode-single');
+  if (mCp) mCp.addEventListener('click', function(){ setClientMode('couple'); });
+  if (mSg) mSg.addEventListener('click', function(){ setClientMode('single'); });
+
   // Age inputs: plain integer, no currency formatting
   ['hp-age-A','hp-age-B'].forEach(function(id){
     document.getElementById(id).addEventListener('input', refresh);
@@ -4608,6 +4683,7 @@
   // PDF, fix it in the calculator's project(), not in the report binder.
   function buildReportSnapshot(){
     var p = project();
+    var single = !!p.single;
     var startYear = (new Date()).getFullYear();
     var ageA = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
     var ageB = parseInt(document.getElementById('hp-age-B').value, 10) || 65;
@@ -4632,16 +4708,18 @@
         discretionary: parseCurrency('hp-disc-A'),
         discBaseCost: parseCurrency('hp-base-A'),
         otherIncome: otherStreamsForSpouse('A', ageA)
-      },
-      {
+      }
+    ];
+    if (!single){
+      spouses.push({
         name: getName('B'),
         age: ageB,
         laBalance: parseCurrency('hp-la-B'),
         discretionary: parseCurrency('hp-disc-B'),
         discBaseCost: parseCurrency('hp-base-B'),
         otherIncome: otherStreamsForSpouse('B', ageB)
-      }
-    ];
+      });
+    }
 
     // Capital events: convert {year (years from now), amountPV, spouse} →
     // {year (absolute), label, forWhom, amount (today's money)}.
@@ -4720,12 +4798,10 @@
         effRate: t.effRate || 0
       };
     }
-    var taxByPerson = [
-      taxRow(p.taxA, getName('A'), ageA, 'A'),
-      taxRow(p.taxB, getName('B'), ageB, 'B')
-    ];
-    var hhGross = (p.taxA.grossIncome || 0) + (p.taxB.grossIncome || 0);
-    var hhTax = (p.taxA.tax || 0) + (p.taxB.tax || 0);
+    var taxByPerson = [taxRow(p.taxA, getName('A'), ageA, 'A')];
+    if (!single) taxByPerson.push(taxRow(p.taxB, getName('B'), ageB, 'B'));
+    var hhGross = (p.taxA.grossIncome || 0) + (single ? 0 : (p.taxB.grossIncome || 0));
+    var hhTax = (p.taxA.tax || 0) + (single ? 0 : (p.taxB.tax || 0));
 
     // Baseline (if locked) — derive its own milestones; only carry the
     // delta-relevant fields the report needs.
@@ -4752,7 +4828,8 @@
 
     var familySpan = document.getElementById('hl-family');
     var familyName = (familySpan && (familySpan.textContent || '').trim()) || (document.getElementById('client-name') || {}).value || 'Client';
-    var preparedFor = (document.getElementById('client-name') || {}).value || (getName('A') + ' & ' + getName('B'));
+    var preparedForFallback = single ? getName('A') : (getName('A') + ' & ' + getName('B'));
+    var preparedFor = (document.getElementById('client-name') || {}).value || preparedForFallback;
     var adviser = (document.getElementById('adviser-name') || {}).value || 'Simple Wealth (Pty) Ltd';
 
     return {
@@ -4762,6 +4839,7 @@
         preparedFor: preparedFor,
         preparedOn: preparedOnLabel(),
         adviser: adviser,
+        single: single,
         spouses: spouses,
         monthlyNeed: parseCurrency('needs-monthly'),
         annualLumpSums: parseCurrency('needs-lump'),
@@ -4784,7 +4862,9 @@
         discExhaustsAt: ms.discExhaustsAt,
         year1: rows[0],
         taxA: p.taxA,
-        taxB: p.taxB,
+        // Omit taxB entirely in single mode so the report's fallback tax-card
+        // builder doesn't materialise a phantom R0 Spouse B row.
+        taxB: single ? null : p.taxB,
         taxByPerson: taxByPerson,
         hhGross: hhGross,
         hhTax: hhTax,

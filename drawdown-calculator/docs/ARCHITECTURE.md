@@ -73,6 +73,8 @@ Pure helper that resolves the current `incomeStore` schedule to a single nominal
 
 Called on every refresh. Reads all inputs, runs the year loop, returns a structured result object. The loop iterates `y = 0` through `years − 1` (where `years = 100 − youngest_age`).
 
+**Single-client mode.** At the top of `project()`, `isSingleClient()` reads `document.body.dataset.clientMode`. When `'single'`, `pB` is replaced with a synthetic zero person (`laBalance: 0`, `discBalance: 0`, `discBaseCost: 0`, `discDraw: 0`, `otherIncome: 0`, `laRate: 0`) and `ageB` is set to `ageA`. The horizon then anchors on `ageA` alone (`Math.min(ageA, ageA) === ageA`). The UI's actual Spouse B inputs are never mutated, so flipping the toggle back to Couple restores the prior projection exactly. The result object carries `single: true|false` so every renderer branches without re-reading the DOM.
+
 Each iteration:
 
 1. Record start-of-year balances (`laA_start`, `discA_start`, etc.)
@@ -92,8 +94,9 @@ The return object exposes:
 ```js
 {
   years, startAge, horizonAge,
+  single,             // true when body[data-client-mode="single"]; Spouse B is zero-synthetic
   ageA, ageB,
-  pA, pB,             // original input states
+  pA, pB,             // original input states (pB is the synthetic zero in single mode)
   taxA, taxB,         // Y1 tax objects (for cards + tax panel)
   rNom, cpi,
   labels,             // ['Age 65', 'Age 66', ...]

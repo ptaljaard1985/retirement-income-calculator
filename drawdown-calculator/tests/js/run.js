@@ -338,6 +338,51 @@ test('REGRESSION: boost does NOT compound across iterations', () => {
 });
 
 
+console.log('\n== solveTopUp: single-client (Spouse B all zero) ==');
+
+test('single: B zero - Phase 1 only, no NaN, draw matches target', () => {
+  // Spouse B is a synthetic zero person (what project() produces in single mode).
+  // With a modest target that LA alone covers, expect Phase 1 to return cleanly.
+  const sA = person({ la: 6_000_000, disc: 2_000_000, base: 1_000_000 });
+  const sB = person({ la: 0, disc: 0, base: 0 });
+  const r = testAPI.solveTopUp(sA, sB, 300_000, 0, 68, 68, 0, 500_000);
+  assert.ok(!Number.isNaN(r.net), 'net is NaN');
+  assert.ok(!Number.isNaN(r.laDrawA), 'laDrawA is NaN');
+  assert.ok(!Number.isNaN(r.laDrawB), 'laDrawB is NaN');
+  assert.strictEqual(r.laDrawB, 0);
+  assert.strictEqual(r.discB, 0);
+  assert.strictEqual(r.clampB, 'empty');
+});
+
+test('single: B zero - Phase 3 LA boost stays finite (NaN guard)', () => {
+  // Force Phase 3 by giving A a tiny LA with no disc so boost must fire.
+  // Pre-fix, wA2/wB2 were 0/0 because sB.laBalance was 0 — this asserts the
+  // defensive guard now yields 0 instead of NaN.
+  const sA = person({ la: 1_500_000, disc: 0, base: 0 });
+  const sB = person({ la: 0, disc: 0, base: 0 });
+  const r = testAPI.solveTopUp(sA, sB, 50_000, 0, 68, 68, 0, 350_000);
+  assert.ok(!Number.isNaN(r.net), 'net is NaN');
+  assert.ok(!Number.isNaN(r.laDrawA), 'laDrawA is NaN');
+  // A's LA at 1.5m × 17.5% ceiling = 262,500 — solver should push there.
+  assert.ok(r.laDrawA > 50_000, `not boosted: ${r.laDrawA}`);
+  assert.ok(r.laDrawA <= 262_501, `above ceiling: ${r.laDrawA}`);
+  assert.strictEqual(r.clampA, 'cap');
+});
+
+test('single: both spouses fully depleted mid-year stays finite', () => {
+  // Pathological: both LA and disc zero for both. Solver should return all
+  // zeros and net = 0 without any NaN.
+  const sA = person({ la: 0, disc: 0, base: 0 });
+  const sB = person({ la: 0, disc: 0, base: 0 });
+  const r = testAPI.solveTopUp(sA, sB, 0, 0, 80, 80, 15, 500_000);
+  assert.ok(!Number.isNaN(r.net), 'net is NaN');
+  assert.strictEqual(r.laDrawA, 0);
+  assert.strictEqual(r.laDrawB, 0);
+  assert.strictEqual(r.discA, 0);
+  assert.strictEqual(r.discB, 0);
+});
+
+
 // ============================================================
 // Summary
 // ============================================================
