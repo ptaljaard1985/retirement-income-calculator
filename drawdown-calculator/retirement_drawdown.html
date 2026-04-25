@@ -981,9 +981,15 @@
      STATE 1 — Empty / Setup (editorial title plate + inputs)
      ============================================================= */
   .empty-canvas {
-    max-width: 920px;
+    max-width: 1300px;
     margin: 0 auto;
     padding: 28px 8px 48px;
+  }
+  .empty-ledgers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 36px;
   }
 
   /* Title plate */
@@ -1246,7 +1252,7 @@
     background: var(--paper-2);
     border: 1px solid var(--hairline);
     border-radius: var(--r-lg);
-    padding: 4px 0;
+    padding: 12px 14px;
     margin-top: 12px;
   }
   .empty-events-header {
@@ -1262,17 +1268,17 @@
   }
   .empty-events-ledger .events-empty,
   .empty-incomes-ledger .events-empty {
-    padding: 14px 20px;
+    padding: 6px 2px 8px;
     font-style: italic;
     color: var(--faint);
     font-family: var(--serif);
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 300;
   }
   .empty-events-ledger .add-btn,
   .empty-incomes-ledger .add-btn {
-    margin: 10px 16px 12px;
-    width: calc(100% - 32px);
+    margin: 4px 0 0;
+    width: 100%;
   }
 
   /* Top-up + client meta */
@@ -1844,10 +1850,10 @@
   @media (max-width: 820px) {
     .empty-setup { grid-template-columns: 1fr; gap: 28px; }
     .empty-divider { display: none; }
+    .empty-ledgers { grid-template-columns: 1fr; gap: 24px; }
     .empty-needs { grid-template-columns: 1fr; gap: 18px; }
     .empty-needs-cell { border-left: none; padding: 12px 0; border-top: 1px solid var(--hairline); }
     .empty-needs-cell:first-child { padding-top: 0; border-top: none; }
-    .empty-events-header { grid-template-columns: 80px 1fr 120px 100px; font-size: 9px; }
   }
 
   /* ===== Tab navigation (Session 15 redesign) =====
@@ -1965,7 +1971,7 @@
     padding: 14px 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
   .rail-section-head {
     font-family: var(--sans);
@@ -1974,9 +1980,24 @@
     letter-spacing: 1.6px;
     color: var(--mute);
     font-weight: 600;
-    margin-top: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
-  .rail-section-head:first-child { margin-top: 0; }
+  .rail-section-add {
+    background: transparent;
+    border: none;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    font-size: 16px;
+    color: var(--mute);
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: inherit;
+  }
+  .rail-section-add:hover { color: var(--ink); background: var(--surface-warm); }
   .rail-slider .lever-head {
     display: flex; justify-content: space-between; align-items: baseline;
     margin-bottom: 4px;
@@ -2001,8 +2022,10 @@
   }
   .rail-divider {
     height: 1px;
+    width: 50%;
     background: var(--hairline);
-    margin: 4px 0;
+    margin: 4px auto;
+    opacity: 0.55;
   }
   .rail-toggles {
     display: flex; flex-direction: column; gap: 8px;
@@ -2290,6 +2313,139 @@
   }
   .assumptions-prose p { margin: 0 0 10px; }
 
+  /* Add-entry modal (used for Add income / Add capital event). */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal-card {
+    width: 380px; max-width: calc(100vw - 32px);
+    background: var(--paper-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    padding: 20px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  }
+  .modal-card h3 {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 1.6px;
+    text-transform: uppercase; color: var(--mute); font-weight: 600;
+    margin: 0 0 14px;
+  }
+  .modal-body { display: flex; flex-direction: column; gap: 10px; }
+  .modal-body .event-col { display: block; }
+  .modal-body .event-col label {
+    display: block; font-size: 10px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--mute); margin-bottom: 4px;
+  }
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 16px;
+  }
+  .modal-error {
+    color: var(--coral); font-size: 11px; margin-top: 4px;
+  }
+  .modal-footer-left { margin-right: auto; }
+
+  /* Category modal — wide variant that lists every entry in a category
+     (incomes / events / goals) as a horizontal row of fields with a
+     delete affordance. Used by the rail row-click flow. */
+  .modal-card.modal-card--wide {
+    width: 1100px;
+    max-width: calc(100vw - 32px);
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+  }
+  .modal-card--wide .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+  .category-row {
+    display: grid;
+    align-items: end;
+    gap: 8px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+  }
+  .category-row .event-col label {
+    font-size: 9.5px;
+  }
+  .category-row .input-wrap input,
+  .category-row .input-wrap select {
+    font-size: 12px;
+  }
+  .category-row .row-delete {
+    align-self: end;
+    background: transparent;
+    border: none;
+    color: var(--mute);
+    font-size: 16px;
+    line-height: 1;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .category-row .row-delete:hover { color: var(--coral); background: var(--paper-2); }
+  .category-row.row--income {
+    grid-template-columns: 1fr 130px 70px 110px 75px 65px 55px 28px;
+  }
+  .category-row.row--event {
+    grid-template-columns: 100px 1fr 140px 28px;
+  }
+  .category-row.row--goal {
+    grid-template-columns: 1fr 130px 80px 80px 80px 28px;
+  }
+  .category-add-row {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px;
+    background: transparent;
+    border: 1px dashed var(--line);
+    border-radius: var(--r-sm);
+    color: var(--mute);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .category-add-row:hover { color: var(--ink); border-color: var(--ink-2); }
+  .category-empty {
+    text-align: center;
+    padding: 16px 0;
+    color: var(--faint);
+    font-style: italic;
+    font-size: 13px;
+    font-family: var(--serif);
+  }
+
+  /* Compact 1-line entry rows (rail + Info ledgers). Clickable to re-open
+     the modal in edit mode; small × deletes. */
+  .entry-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    background: var(--paper-2);
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--ink-2);
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .entry-row:hover { background: var(--surface); border-color: var(--line); }
+  .entry-row .entry-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry-row .entry-summary .num { color: var(--ink); font-weight: 500; }
+  .entry-row .entry-delete {
+    background: transparent; border: none; color: var(--mute);
+    font-size: 14px; line-height: 1; padding: 2px 6px; cursor: pointer;
+    border-radius: 4px;
+  }
+  .entry-row .entry-delete:hover { color: var(--coral); background: var(--surface); }
+
   /* Print: tab nav hides, force Planning panel visible. */
   @media print {
     .tab-nav { display: none !important; }
@@ -2300,6 +2456,7 @@
     [data-tab-panel="planning"] { display: block !important; }
     .rail-canvas-shell { grid-template-columns: 1fr !important; display: block !important; }
     .rail { display: none !important; }
+    .modal-backdrop { display: none !important; }
   }
 </style>
 </head>
@@ -2406,6 +2563,46 @@
       </div>
     </div>
 
+    <!-- Other income + Capital events placed above the fold (after spouse setup,
+         before household needs). Two-column on wide screens; collapses below 820px. -->
+    <div class="empty-ledgers">
+      <div class="empty-incomes">
+        <div class="empty-steplabel">
+          <span class="rom">VI.</span> Other taxable income
+          <span class="empty-subhint">DB pensions, rental, trust distributions &mdash; today's money</span>
+        </div>
+        <div class="empty-incomes-ledger">
+          <div id="incomes-list" class="events-list"></div>
+          <div id="incomes-empty" class="events-empty">No other income streams yet.</div>
+          <button type="button" id="incomes-add" class="add-btn">&#xFF0B; Add income source</button>
+        </div>
+      </div>
+
+      <div class="empty-events">
+        <div class="empty-steplabel">
+          <span class="rom">VII.</span> Family capital events
+          <span class="empty-subhint">one-off inflows along the timeline &mdash; property sales, inheritances, maturing policies</span>
+        </div>
+        <div class="empty-events-ledger">
+          <div id="events-list" class="events-list"></div>
+          <div id="events-empty" class="events-empty">No capital events yet.</div>
+          <button type="button" id="events-add" class="add-btn">&#xFF0B; Add capital event</button>
+        </div>
+      </div>
+
+      <div class="empty-goals">
+        <div class="empty-steplabel">
+          <span class="rom">VIII.</span> Goals
+          <span class="empty-subhint">recurring household expenses &mdash; travel, cars, holidays</span>
+        </div>
+        <div class="empty-events-ledger">
+          <div id="goals-list" class="events-list"></div>
+          <div id="goals-empty" class="events-empty">No goals yet.</div>
+          <button type="button" id="goals-add" class="add-btn">&#xFF0B; Add goal</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Household needs + market assumptions strip -->
     <div class="empty-needs">
       <div class="empty-needs-cell">
@@ -2430,35 +2627,6 @@
           <span class="empty-assum"><input type="range" id="cpi" min="2" max="10" step="0.25" value="5" aria-label="Inflation CPI"><span class="num" id="cpi-out">5.00%</span></span>
         </div>
         <div class="hint">return &middot; CPI</div>
-      </div>
-    </div>
-
-    <!-- Other taxable income streams -->
-    <div class="empty-incomes">
-      <div class="empty-steplabel">
-        <span class="rom">VI.</span> Other taxable income
-        <span class="empty-subhint">DB pensions, rental, trust distributions &mdash; today's money</span>
-      </div>
-      <div class="empty-incomes-ledger">
-        <div id="incomes-list" class="events-list"></div>
-        <div id="incomes-empty" class="events-empty">No other income streams yet.</div>
-        <button type="button" id="incomes-add" class="add-btn">&#xFF0B; Add income source</button>
-      </div>
-    </div>
-
-    <!-- Family capital events ledger -->
-    <div class="empty-events">
-      <div class="empty-steplabel">
-        <span class="rom">VII.</span> Family capital events
-        <span class="empty-subhint">one-off inflows along the timeline &mdash; property sales, inheritances, maturing policies</span>
-      </div>
-      <div class="empty-events-ledger">
-        <div class="empty-events-header">
-          <span>When</span><span>Event</span><span>For whom</span><span>Amount</span>
-        </div>
-        <div id="events-list" class="events-list"></div>
-        <div id="events-empty" class="events-empty">No capital events yet.</div>
-        <button type="button" id="events-add" class="add-btn">&#xFF0B; Add capital event</button>
       </div>
     </div>
 
@@ -2489,7 +2657,7 @@
 <div class="rail-canvas-shell">
 
   <aside class="rail" id="planning-rail" aria-label="Live levers">
-    <div class="rail-section-head">Drawdown levers <button class="btn ghost" id="btn-solve" style="float: right; font-size: 10px; padding: 2px 8px;">Solve to target</button></div>
+    <div class="rail-section-head">Drawdown levers</div>
 
     <div class="rail-slider">
       <div class="lever-head">
@@ -2551,40 +2719,25 @@
     </div>
 
     <div class="rail-divider"></div>
-    <div class="rail-section-head">Display</div>
-    <div class="rail-toggles">
-      <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
-        <span class="sw" aria-hidden="true"></span>
-        <span>Auto-top-up</span>
-      </label>
+    <div class="rail-section-head">
+      <span>Goals</span>
+      <button type="button" id="goals-add-c" class="rail-section-add" aria-label="Add goal">&#xFF0B;</button>
     </div>
+    <div id="goals-list-c" class="events-list rail-ledger"></div>
 
     <div class="rail-divider"></div>
-    <div class="rail-section-head">Schedules</div>
-
-    <div class="sub-section rail-sub">
-      <div class="section-header collapsible collapsed rail-collapsible" data-target="incomes-body-c">
-        <span class="caret"></span>
-        <span>Other income <span id="incomes-count-c" class="rail-count">(0)</span></span>
-      </div>
-      <div id="incomes-body-c" class="collapsible-body collapsed rail-collapsible-body">
-        <div id="incomes-list-c" class="events-list rail-ledger"></div>
-        <div id="incomes-empty-c" class="events-empty rail-events-empty">No income streams yet.</div>
-        <button type="button" id="incomes-add-c" class="add-btn rail-add">&#xFF0B; Add income source</button>
-      </div>
+    <div class="rail-section-head">
+      <span>Other income</span>
+      <button type="button" id="incomes-add-c" class="rail-section-add" aria-label="Add income source">&#xFF0B;</button>
     </div>
+    <div id="incomes-list-c" class="events-list rail-ledger"></div>
 
-    <div class="sub-section rail-sub">
-      <div class="section-header collapsible collapsed rail-collapsible" data-target="events-body-c">
-        <span class="caret"></span>
-        <span>Capital events <span id="events-count-c" class="rail-count">(0)</span></span>
-      </div>
-      <div id="events-body-c" class="collapsible-body collapsed rail-collapsible-body">
-        <div id="events-list-c" class="events-list rail-ledger"></div>
-        <div id="events-empty-c" class="events-empty rail-events-empty">No capital events yet.</div>
-        <button type="button" id="events-add-c" class="add-btn rail-add">&#xFF0B; Add capital event</button>
-      </div>
+    <div class="rail-divider"></div>
+    <div class="rail-section-head">
+      <span>Capital events</span>
+      <button type="button" id="events-add-c" class="rail-section-add" aria-label="Add capital event">&#xFF0B;</button>
     </div>
+    <div id="events-list-c" class="events-list rail-ledger"></div>
 
     <div class="rail-divider"></div>
     <div class="rail-actions">
@@ -2642,9 +2795,15 @@
         <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
         <button id="btn-view-tax" role="tab" aria-selected="false">Tax</button>
       </div>
-      <div class="seg mini" role="tablist" aria-label="Real or Nominal">
-        <button id="btn-real" role="tab" aria-selected="false">Real</button>
-        <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
+      <div class="controls-row-right">
+        <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
+          <span class="sw" aria-hidden="true"></span>
+          <span>Auto-top-up</span>
+        </label>
+        <div class="seg mini" role="tablist" aria-label="Real or Nominal">
+          <button id="btn-real" role="tab" aria-selected="false">Real</button>
+          <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
+        </div>
       </div>
     </div>
 
@@ -2705,7 +2864,8 @@
                 <h4><span id="tax-name-A">Spouse A</span> <span class="tax-side-age">&middot; age <span id="ta-age" class="num">—</span></span></h4>
                 <table class="tax-table">
                   <tr><td>LA income</td><td id="ta-la">R0</td></tr>
-                  <tr><td>Other taxable income</td><td id="ta-other">R0</td></tr>
+                  <tr><td>Other income &middot; taxable</td><td id="ta-other">R0</td></tr>
+                  <tr class="sub"><td>Other income &middot; tax-free</td><td id="ta-other-tf">R0</td></tr>
                   <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
                   <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="ta-incl">R0</td></tr>
                   <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
@@ -2719,7 +2879,8 @@
                 <h4><span id="tax-name-B">Spouse B</span> <span class="tax-side-age">&middot; age <span id="tb-age" class="num">—</span></span></h4>
                 <table class="tax-table">
                   <tr><td>LA income</td><td id="tb-la">R0</td></tr>
-                  <tr><td>Other taxable income</td><td id="tb-other">R0</td></tr>
+                  <tr><td>Other income &middot; taxable</td><td id="tb-other">R0</td></tr>
+                  <tr class="sub"><td>Other income &middot; tax-free</td><td id="tb-other-tf">R0</td></tr>
                   <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
                   <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="tb-incl">R0</td></tr>
                   <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
@@ -2949,6 +3110,18 @@
 
 </div>
 
+<div id="add-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="add-modal-title" hidden>
+  <div class="modal-card">
+    <h3 id="add-modal-title">Add</h3>
+    <form id="add-modal-form" class="modal-body" autocomplete="off"><!-- populated by JS --></form>
+    <div class="modal-footer">
+      <button type="button" class="btn ghost modal-footer-left" id="add-modal-delete" hidden>Delete</button>
+      <button type="button" class="btn ghost" id="add-modal-cancel">Cancel</button>
+      <button type="button" class="btn primary" id="add-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 (function(){
@@ -2984,6 +3157,8 @@
   var baseline = null;     // frozen snapshot for Scenarios; populated on Lock as baseline
   function setTab(next){
     if (next === activeTab) return;
+    if (typeof closeAddModal === 'function') closeAddModal();
+    if (typeof closeCategoryModal === 'function') closeCategoryModal();
     var prev = activeTab;
     activeTab = next;
     document.body.setAttribute('data-tab', next);
@@ -2998,6 +3173,7 @@
     // Repaint the store-backed lists.
     if (typeof renderEvents === 'function') renderEvents();
     if (typeof renderIncomes === 'function') renderIncomes();
+    if (typeof renderGoals === 'function') renderGoals();
     if (typeof refresh === 'function') refresh();
     // Force the viewport to the very top — fire immediately AND after the next
     // paint, because Chart.js may resize after refresh() returns and that can
@@ -3099,19 +3275,44 @@
     return CGT.exclusion * Math.pow(1 + BRACKET_CREEP, yearIdx);
   }
 
-  // Resolve an other-income schedule to a single nominal rand for one spouse
-  // in year (yearIdx + 1). Active when age is in [startAge, startAge+duration);
-  // nominal = amountPV × (1+cpi)^yearIdx if escalates else amountPV.
-  function otherIncomeForYear(store, suffix, age, yearIdx, cpi){
+  // Resolve household goals (recurring expenses like travel) to a single
+  // nominal rand for this projection year. Each goal: {label, amountPV,
+  // everyNYears, startAge, endAge}. Active when age in [startAge, endAge]
+  // AND (age - startAge) % everyN == 0. Nominal escalates by CPI.
+  function goalsForYear(store, age, yearIdx, cpi){
     var total = 0;
+    if (!store) return 0;
+    for (var i = 0; i < store.length; i++){
+      var g = store[i];
+      var every = g.everyNYears || 0;
+      if (every < 1) continue;
+      if (age < g.startAge) continue;
+      if (age > g.endAge) continue;
+      if ((age - g.startAge) % every !== 0) continue;
+      total += g.amountPV * Math.pow(1 + cpi, yearIdx);
+    }
+    return total;
+  }
+
+  // Resolve an other-income schedule for one spouse in year (yearIdx + 1).
+  // Each item carries pctTaxable (0–100, default 100); the taxable portion
+  // enters the tax base while the tax-free portion is cash flow only.
+  // Returns {total, taxable, taxFree}.
+  function otherIncomeForYear(store, suffix, age, yearIdx, cpi){
+    var total = 0, taxable = 0;
     for (var i = 0; i < store.length; i++){
       var it = store[i];
       if (it.spouse !== suffix) continue;
       if (age < it.startAge) continue;
       if (age >= it.startAge + it.duration) continue;
-      total += it.escalates ? it.amountPV * Math.pow(1 + cpi, yearIdx) : it.amountPV;
+      var nominal = it.escalates ? it.amountPV * Math.pow(1 + cpi, yearIdx) : it.amountPV;
+      var pct = it.pctTaxable;
+      if (pct === undefined || pct === null) pct = 100;
+      if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
+      total += nominal;
+      taxable += nominal * (pct / 100);
     }
-    return total;
+    return { total: total, taxable: taxable, taxFree: total - taxable };
   }
 
   // ===== Yearly projection for one person =====
@@ -3196,7 +3397,7 @@
     // (Math.min(ageA, ageA) === ageA). The original UI values are untouched, so
     // flipping back to Couple restores the prior projection exactly.
     if (single){
-      pB = { laBalance: 0, laRate: 0, discBalance: 0, discBaseCost: 0, discDraw: 0, otherIncome: 0 };
+      pB = { laBalance: 0, laRate: 0, discBalance: 0, discBaseCost: 0, discDraw: 0, otherIncome: 0, otherTaxable: 0, otherTaxFree: 0 };
       ageB = ageA;
     }
     // Chart anchors on the youngest spouse and runs to their age 100.
@@ -3214,6 +3415,7 @@
     var autoTopup = document.getElementById('needs-topup').checked;
     var events = readEvents();
     var incomes = readIncomes();
+    var goals = readGoals();
 
     // Solve discretionary top-up to meet the year's target.
     // Given spouse states (disc balance + base cost), their LA draws and LA tax
@@ -3242,7 +3444,8 @@
         }
         var exclY = cgtExclusionYear(yearIdx);
         var inclusion = Math.max(0, (gain - exclY) * CGT.inclusion);
-        var taxable = laDraw + p.otherIncome + inclusion;
+        var otherTaxable = (p.otherTaxable !== undefined) ? p.otherTaxable : (p.otherIncome || 0);
+        var taxable = laDraw + otherTaxable + inclusion;
         return { tax: incomeTaxYear(taxable, age, yearIdx), gain: gain };
       }
 
@@ -3384,7 +3587,8 @@
     function taxForYear(p, age, laDraw, discDraw, gainRealised, yearIdx){
       var exclY = cgtExclusionYear(yearIdx);
       var inclusion = Math.max(0, (gainRealised - exclY) * CGT.inclusion);
-      var taxable = laDraw + p.otherIncome + inclusion;
+      var otherTaxable = (p.otherTaxable !== undefined) ? p.otherTaxable : (p.otherIncome || 0);
+      var taxable = laDraw + otherTaxable + inclusion;
       return incomeTaxYear(taxable, age, yearIdx);
     }
 
@@ -3397,6 +3601,12 @@
     // Run projection year by year
     var sA = Object.assign({}, pA);
     var sB = Object.assign({}, pB);
+    // Legacy scalar otherIncome → fully taxable. Schedule-driven path overwrites
+    // these per year inside the loop.
+    if (sA.otherTaxable === undefined) sA.otherTaxable = sA.otherIncome || 0;
+    if (sA.otherTaxFree === undefined) sA.otherTaxFree = 0;
+    if (sB.otherTaxable === undefined) sB.otherTaxable = sB.otherIncome || 0;
+    if (sB.otherTaxFree === undefined) sB.otherTaxFree = 0;
 
     // Series arrays. Position i represents year i+1 of retirement.
     //   labels[i]:       age during year i+1
@@ -3430,16 +3640,26 @@
       var ageThisYearB = ageB + y;
 
       // Resolve other-income schedule to this year's nominal rand per spouse.
-      // Every downstream read of sA.otherIncome / sB.otherIncome (solver, step,
-      // tax, yearDraw) uses the value we set here.
-      sA.otherIncome = otherIncomeForYear(incomes, 'A', ageThisYearA, y, cpi);
-      sB.otherIncome = otherIncomeForYear(incomes, 'B', ageThisYearB, y, cpi);
+      // otherIncome = total cash flow; otherTaxable = portion that enters the
+      // tax base (driven by each item's pctTaxable). Solver/tax reads pick the
+      // appropriate field (tax base uses Taxable, gross/net uses total).
+      var rA_other = otherIncomeForYear(incomes, 'A', ageThisYearA, y, cpi);
+      var rB_other = otherIncomeForYear(incomes, 'B', ageThisYearB, y, cpi);
+      sA.otherIncome = rA_other.total;
+      sA.otherTaxable = rA_other.taxable;
+      sA.otherTaxFree = rA_other.taxFree;
+      sB.otherIncome = rB_other.total;
+      sB.otherTaxable = rB_other.taxable;
+      sB.otherTaxFree = rB_other.taxFree;
 
       // Target LA rand for this year: Y1 draw × (1 + CPI)^y
       var targetA = laTargetA_Y1 * Math.pow(1 + cpi, y);
       var targetB = laTargetB_Y1 * Math.pow(1 + cpi, y);
       // Nominal target expense for this year
       var yearTargetNom = targetPVAnnual * Math.pow(1 + cpi, y);
+      // Household goals (recurring expenses) bump the target in qualifying
+      // years. Anchored on youngest spouse's age (matches projection horizon).
+      yearTargetNom += goalsForYear(goals, Math.min(ageThisYearA, ageThisYearB), y, cpi);
 
       // Decide LA & disc draws for this year
       var finalTargetA = targetA;
@@ -3520,8 +3740,8 @@
       var exclY = cgtExclusionYear(y);
       var inclA = Math.max(0, (rA.gainRealised - exclY) * CGT.inclusion);
       var inclB = Math.max(0, (rB.gainRealised - exclY) * CGT.inclusion);
-      var taxableA = rA.laDraw + sA.otherIncome + inclA;
-      var taxableB = rB.laDraw + sB.otherIncome + inclB;
+      var taxableA = rA.laDraw + sA.otherTaxable + inclA;
+      var taxableB = rB.laDraw + sB.otherTaxable + inclB;
       var grossA = incomeTaxPreRebateYear(taxableA, y);
       var grossB = incomeTaxPreRebateYear(taxableB, y);
       var rebA = rebateYear(ageThisYearA, y);
@@ -3530,6 +3750,7 @@
       var grossIncomeB = rB.laDraw + rB.discDraw + sB.otherIncome;
       taxA_obj_series.push({
         laDraw: rA.laDraw, otherIncome: sA.otherIncome,
+        otherTaxable: sA.otherTaxable, otherTaxFree: sA.otherTaxFree,
         gain: rA.gainRealised, inclusion: inclA,
         taxable: taxableA, grossPreRebate: grossA, rebate: rebA,
         tax: taxY_A, grossIncome: grossIncomeA,
@@ -3538,6 +3759,7 @@
       });
       taxB_obj_series.push({
         laDraw: rB.laDraw, otherIncome: sB.otherIncome,
+        otherTaxable: sB.otherTaxable, otherTaxFree: sB.otherTaxFree,
         gain: rB.gainRealised, inclusion: inclB,
         taxable: taxableB, grossPreRebate: grossB, rebate: rebB,
         tax: taxY_B, grossIncome: grossIncomeB,
@@ -3687,8 +3909,14 @@
   // ===== Tax panel =====
   function updateTaxPanel(p){
     function paint(prefix, t){
+      // Back-compat: legacy tax objects (Y1-only path) carry only otherIncome
+      // and treat the whole stream as taxable. Schedule-driven runs expose
+      // otherTaxable / otherTaxFree explicitly.
+      var taxablePart = (t.otherTaxable !== undefined) ? t.otherTaxable : (t.otherIncome || 0);
+      var taxFreePart = (t.otherTaxFree !== undefined) ? t.otherTaxFree : 0;
       set(prefix+'-la', fmtR(t.laDraw));
-      set(prefix+'-other', fmtR(t.otherIncome));
+      set(prefix+'-other', fmtR(taxablePart));
+      set(prefix+'-other-tf', fmtR(taxFreePart));
       set(prefix+'-gain', fmtR(t.gain));
       set(prefix+'-incl', fmtR(t.inclusion));
       set(prefix+'-taxable', fmtR(t.taxable));
@@ -4101,7 +4329,7 @@
       incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.other;
       incomeChart.data.datasets[3].hidden = !incomeSeriesVisible.target;
       incomeChart.data.datasets[4].hidden = !incomeSeriesVisible.tax;
-      incomeChart.update('none');
+      incomeChart.update();
       return;
     }
 
@@ -4209,7 +4437,7 @@
       ref.data.datasets[2].data = bars.other;
       ref.data.datasets[3].data = targetArr;
       ref.data.datasets[4].data = bars.tax;
-      ref.update('none');
+      ref.update();
       return;
     }
 
@@ -4372,86 +4600,11 @@
   }
 
   // ===== Refresh =====
-  // Build plan-health alerts from the projection. Scan the per-year series and
-  // surface the earliest age at which each constraint binds:
-  //   - LA cap: both spouses simultaneously at 17.5% ceiling
-  //   - Disc exhausted: both disc pots at zero
-  //   - Real shortfall: net income below target (only flags when top-up is on,
-  //     because otherwise a shortfall is the default expected state)
   function updateAlerts(p){
     var host = document.getElementById('chart-alerts');
-    var alerts = [];
-    var tbl = p.table;
-    var autoTopup = document.getElementById('needs-topup').checked;
-
-    // First year both spouses hit LA cap
-    var capAge = null;
-    for (var i = 0; i < p.labels.length; i++){
-      if (tbl.clampA[i] === 'cap' && tbl.clampB[i] === 'cap'){
-        capAge = p.startAge + i;
-        break;
-      }
-    }
-    // Single-spouse cap is also useful to flag (one-sided strain)
-    var singleCapAge = null;
-    var singleCapWho = null;
-    if (!capAge){
-      for (var j = 0; j < p.labels.length; j++){
-        if (tbl.clampA[j] === 'cap' || tbl.clampB[j] === 'cap'){
-          singleCapAge = p.startAge + j;
-          singleCapWho = tbl.clampA[j] === 'cap' ? getName('A') : getName('B');
-          break;
-        }
-      }
-    }
-
-    // First year both disc pots are zero (only relevant if there was disc to start)
-    var discAge = null;
-    var startingDisc = p.pA.discBalance + p.pB.discBalance;
-    if (startingDisc > 0){
-      for (var k = 0; k < p.labels.length; k++){
-        if (tbl.discA_bal[k] < 1 && tbl.discB_bal[k] < 1){
-          discAge = p.startAge + k;
-          break;
-        }
-      }
-    }
-
-    // First year real shortfall (only interesting with top-up on)
-    var shortAge = null;
-    if (autoTopup){
-      for (var m = 0; m < p.labels.length; m++){
-        if (p.nominal.net[m] < p.nominal.target[m] - 100){
-          shortAge = p.startAge + m;
-          break;
-        }
-      }
-    }
-
-    if (capAge !== null){
-      alerts.push('<span class="chart-alert cap">Both LAs at 17.5% ceiling from age ' + capAge + '</span>');
-    } else if (singleCapAge !== null){
-      // Drop the spouse-name prefix in single-client mode — there's no second
-      // LA to distinguish against.
-      var capCopy = p.single
-        ? 'LA at 17.5% ceiling from age ' + singleCapAge
-        : singleCapWho + ' LA at 17.5% ceiling from age ' + singleCapAge;
-      alerts.push('<span class="chart-alert cap">' + capCopy + '</span>');
-    }
-    if (discAge !== null){
-      alerts.push('<span class="chart-alert disc">Discretionary exhausted from age ' + discAge + '</span>');
-    }
-    if (shortAge !== null){
-      alerts.push('<span class="chart-alert shortfall">Real shortfall vs target from age ' + shortAge + '</span>');
-    }
-
-    var hideOnView = (chartView === 'table' || chartView === 'tax');
-    if (alerts.length === 0 || hideOnView){
+    if (host){
       host.style.display = 'none';
       host.innerHTML = '';
-    } else {
-      host.style.display = '';
-      host.innerHTML = alerts.join('');
     }
   }
 
@@ -4902,92 +5055,581 @@
     }
     empties.forEach(function(e){ if (e) e.style.display = 'none'; });
     eventsStore.forEach(function(ev, idx){
-      var html =
-        '<div class="event-col">' +
-          '<label>Years from now</label>' +
-          '<div class="input-wrap"><input type="number" min="1" max="40" step="1" value="' + ev.year + '" data-idx="' + idx + '" data-field="year"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Amount (today&rsquo;s money)</label>' +
-          '<div class="input-wrap"><span class="pfx">R</span><input type="text" inputmode="numeric" value="' + Math.round(ev.amountPV).toLocaleString('en-ZA').replace(/,/g, ' ') + '" data-idx="' + idx + '" data-field="amountPV"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Lands in</label>' +
-          '<div class="input-wrap">' +
-            '<select data-idx="' + idx + '" data-field="spouse">' +
-              '<option value="A"' + (ev.spouse === 'A' ? ' selected' : '') + '>' + getName('A') + ' disc</option>' +
-              '<option value="B"' + (ev.spouse === 'B' ? ' selected' : '') + '>' + getName('B') + ' disc</option>' +
-            '</select>' +
-          '</div>' +
-        '</div>' +
-        '<button type="button" class="event-delete" data-idx="' + idx + '" title="Remove event" aria-label="Remove event">×</button>';
+      var amountFmt = 'R ' + Math.round(ev.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
+      var name = getName(ev.spouse) || ev.spouse;
+      var summary = '<span class="num">' + amountFmt + '</span> &middot; year ' + ev.year + ' &middot; ' + name + ' disc';
       hosts.forEach(function(host){
         if (!host) return;
         var row = document.createElement('div');
-        row.className = 'event-row';
-        row.innerHTML = html;
+        row.className = 'entry-row';
+        row.setAttribute('data-idx', idx);
+        row.setAttribute('data-kind', 'event');
+        row.innerHTML = '<span class="entry-summary">' + summary + '</span>'
+          + '<button type="button" class="entry-delete" data-idx="' + idx + '" title="Remove event" aria-label="Remove event">×</button>';
         host.appendChild(row);
       });
     });
   }
 
-  // Delegated handlers — attached to every host so edits from State 1 and
-  // from the scenario mirror both mutate the same in-memory store.
-  function eventsInputHandler(e){
-    var t = e.target;
-    var idx = parseInt(t.getAttribute('data-idx'), 10);
-    var field = t.getAttribute('data-field');
-    if (isNaN(idx) || !field) return;
-    if (field === 'year'){
-      eventsStore[idx].year = parseInt(t.value, 10) || 0;
-    } else if (field === 'amountPV'){
-      var n = parseFloat((t.value || '').replace(/[^0-9.\-]/g, ''));
-      eventsStore[idx].amountPV = isFinite(n) ? n : 0;
-    } else if (field === 'spouse'){
-      eventsStore[idx].spouse = t.value;
-    }
-    refresh();
-  }
-  function eventsChangeHandler(e){
-    if (e.target.tagName === 'SELECT'){
-      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-      if (!isNaN(idx)){
-        eventsStore[idx].spouse = e.target.value;
-        refresh();
-      }
-    }
-  }
   function eventsClickHandler(e){
-    if (e.target.classList.contains('event-delete')){
-      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-      if (!isNaN(idx)){
-        eventsStore.splice(idx, 1);
+    var del = e.target.closest('.entry-delete');
+    if (del){
+      e.stopPropagation();
+      var dIdx = parseInt(del.getAttribute('data-idx'), 10);
+      if (!isNaN(dIdx)){
+        eventsStore.splice(dIdx, 1);
         renderEvents();
         refresh();
       }
+      return;
     }
+    var row = e.target.closest('.entry-row[data-kind="event"]');
+    if (row) openCategoryModal('event');
   }
-  function eventsBlurHandler(e){
-    if (e.target.tagName === 'INPUT' && e.target.getAttribute('data-field') === 'amountPV'){
-      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-      if (!isNaN(idx)){
-        var val = eventsStore[idx].amountPV;
-        e.target.value = Math.round(val).toLocaleString('en-ZA').replace(/,/g, ' ');
+  // ===== Add-entry modal =====
+  // Shared modal opened by the four "+" triggers (events-add, events-add-c,
+  // incomes-add, incomes-add-c). Replaces the old "push hardcoded defaults
+  // straight into the store" UX so adds are explicit and fields start blank.
+  var addModalEl = document.getElementById('add-modal');
+  var addModalForm = document.getElementById('add-modal-form');
+  var addModalTitle = document.getElementById('add-modal-title');
+
+  function escAttr(s){ return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
+  function fmtAmountInput(n){ return Math.round(n || 0).toLocaleString('en-ZA').replace(/,/g, ' '); }
+
+  function renderAddModalForm(mode, prefill){
+    var p = prefill || {};
+    if (mode === 'goal'){
+      var gLabelVal = (p.label !== undefined && p.label !== null) ? ' value="' + escAttr(p.label) + '"' : '';
+      var gAmtVal = (p.amountPV !== undefined && p.amountPV !== null) ? ' value="' + escAttr(fmtAmountInput(p.amountPV)) + '"' : '';
+      var gEveryVal = (p.everyNYears !== undefined && p.everyNYears !== null) ? ' value="' + escAttr(p.everyNYears) + '"' : '';
+      var gStartVal = (p.startAge !== undefined && p.startAge !== null) ? ' value="' + escAttr(p.startAge) + '"' : '';
+      var gEndVal = (p.endAge !== undefined && p.endAge !== null) ? ' value="' + escAttr(p.endAge) + '"' : '';
+      return ''
+        + '<div class="event-col"><label>Label</label>'
+          + '<div class="input-wrap"><input type="text" maxlength="40" name="label" placeholder="e.g. Travel, Car"' + gLabelVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Amount (today&rsquo;s money)</label>'
+          + '<div class="input-wrap"><span class="pfx">R</span>'
+          + '<input type="text" inputmode="numeric" name="amountPV" placeholder="0"' + gAmtVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Every N years</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="40" step="1" name="everyNYears" placeholder="e.g. 5"' + gEveryVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Start age</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" name="startAge" placeholder="e.g. 65"' + gStartVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>End age</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" name="endAge" placeholder="e.g. 100"' + gEndVal + '></div>'
+        + '</div>';
+    }
+    if (mode === 'event'){
+      var yearVal = (p.year !== undefined && p.year !== null) ? ' value="' + escAttr(p.year) + '"' : '';
+      var amtVal = (p.amountPV !== undefined && p.amountPV !== null) ? ' value="' + escAttr(fmtAmountInput(p.amountPV)) + '"' : '';
+      var spA = p.spouse === 'B' ? '' : ' selected';
+      var spB = p.spouse === 'B' ? ' selected' : '';
+      return ''
+        + '<div class="event-col"><label>Years from now</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="40" step="1" name="year" placeholder="e.g. 5"' + yearVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Amount (today&rsquo;s money)</label>'
+          + '<div class="input-wrap"><span class="pfx">R</span>'
+          + '<input type="text" inputmode="numeric" name="amountPV" placeholder="0"' + amtVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Lands in</label>'
+          + '<div class="input-wrap"><select name="spouse">'
+          + '<option value="A"' + spA + '>' + getName('A') + ' disc</option>'
+          + '<option value="B"' + spB + '>' + getName('B') + ' disc</option>'
+          + '</select></div>'
+        + '</div>';
+    }
+    var labelVal = (p.label !== undefined && p.label !== null) ? ' value="' + escAttr(p.label) + '"' : '';
+    var amtIVal = (p.amountPV !== undefined && p.amountPV !== null) ? ' value="' + escAttr(fmtAmountInput(p.amountPV)) + '"' : '';
+    var pctVal = (p.pctTaxable !== undefined && p.pctTaxable !== null) ? p.pctTaxable : 100;
+    var startVal = (p.startAge !== undefined && p.startAge !== null) ? ' value="' + escAttr(p.startAge) + '"' : '';
+    var durVal = (p.duration !== undefined && p.duration !== null) ? ' value="' + escAttr(p.duration) + '"' : '';
+    var escChk = (p.escalates === false) ? '' : ' checked';
+    var spIA = p.spouse === 'B' ? '' : ' selected';
+    var spIB = p.spouse === 'B' ? ' selected' : '';
+    return ''
+      + '<div class="event-col"><label>Label</label>'
+        + '<div class="input-wrap"><input type="text" maxlength="40" name="label" placeholder="e.g. Rental, Pension"' + labelVal + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Amount p.a. (today)</label>'
+        + '<div class="input-wrap"><span class="pfx">R</span>'
+        + '<input type="text" inputmode="numeric" name="amountPV" placeholder="0"' + amtIVal + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>% taxable</label>'
+        + '<div class="input-wrap"><input type="number" min="0" max="100" step="1" name="pctTaxable" value="' + pctVal + '"></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Spouse</label>'
+        + '<div class="input-wrap"><select name="spouse">'
+        + '<option value="A"' + spIA + '>' + getName('A') + '</option>'
+        + '<option value="B"' + spIB + '>' + getName('B') + '</option>'
+        + '</select></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Start age</label>'
+        + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" name="startAge" placeholder="e.g. 65"' + startVal + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Years</label>'
+        + '<div class="input-wrap"><input type="number" min="1" max="60" step="1" name="duration" placeholder="e.g. 20"' + durVal + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Escalate with CPI</label>'
+        + '<label class="escalate-toggle"><input type="checkbox" name="escalates"' + escChk + '> escalates annually</label>'
+      + '</div>';
+  }
+
+  function clearAddModalErrors(){
+    var errs = addModalForm.querySelectorAll('.modal-error');
+    for (var i = 0; i < errs.length; i++) errs[i].parentNode.removeChild(errs[i]);
+  }
+
+  function paintAddModalError(fieldName, message){
+    var input = addModalForm.querySelector('[name="' + fieldName + '"]');
+    if (!input) return;
+    var col = input.closest('.event-col');
+    if (!col) return;
+    var err = document.createElement('div');
+    err.className = 'modal-error';
+    err.textContent = message;
+    col.appendChild(err);
+  }
+
+  function isCategoryView(){ return addModalEl.dataset.view === 'category'; }
+  function escHandler(e){
+    if (e.key !== 'Escape') return;
+    if (isCategoryView()) closeCategoryModal();
+    else closeAddModal();
+  }
+  var addModalDeleteBtn = document.getElementById('add-modal-delete');
+
+  function openAddModal(mode, idx){
+    var editing = (typeof idx === 'number' && idx >= 0);
+    addModalEl.dataset.mode = mode;
+    addModalEl.dataset.editIdx = editing ? String(idx) : '';
+    var titles = {
+      add: { event: 'Add capital event', income: 'Add income source', goal: 'Add goal' },
+      edit: { event: 'Edit capital event', income: 'Edit income source', goal: 'Edit goal' }
+    };
+    addModalTitle.textContent = titles[editing ? 'edit' : 'add'][mode];
+    var prefill = null;
+    if (editing){
+      if (mode === 'event') prefill = eventsStore[idx];
+      else if (mode === 'goal') prefill = goalsStore[idx];
+      else prefill = incomeStore[idx];
+    }
+    addModalForm.innerHTML = renderAddModalForm(mode, prefill);
+    addModalDeleteBtn.hidden = !editing;
+    addModalEl.hidden = false;
+    document.addEventListener('keydown', escHandler);
+    var first = addModalForm.querySelector('input, select');
+    if (first) first.focus();
+  }
+
+  function closeAddModal(){
+    addModalEl.hidden = true;
+    addModalEl.dataset.mode = '';
+    addModalEl.dataset.editIdx = '';
+    addModalForm.innerHTML = '';
+    addModalDeleteBtn.hidden = true;
+    document.removeEventListener('keydown', escHandler);
+  }
+
+  function parseMoneyField(raw){
+    var n = parseFloat((raw || '').replace(/[^0-9.\-]/g, ''));
+    return isFinite(n) ? n : NaN;
+  }
+
+  function saveAddModal(){
+    clearAddModalErrors();
+    var mode = addModalEl.dataset.mode;
+    var editIdxRaw = addModalEl.dataset.editIdx;
+    var editIdx = (editIdxRaw === '' || editIdxRaw === undefined) ? -1 : parseInt(editIdxRaw, 10);
+    var fields = {};
+    var inputs = addModalForm.querySelectorAll('input, select');
+    for (var i = 0; i < inputs.length; i++){
+      var el = inputs[i];
+      if (el.type === 'checkbox') fields[el.name] = el.checked;
+      else fields[el.name] = el.value;
+    }
+    var ok = true;
+    if (mode === 'event'){
+      var year = parseInt(fields.year, 10);
+      var amt = parseMoneyField(fields.amountPV);
+      var spouse = fields.spouse === 'B' ? 'B' : 'A';
+      if (!(year >= 1)){ paintAddModalError('year', 'Enter a year (1 or more)'); ok = false; }
+      if (!(amt > 0)){ paintAddModalError('amountPV', 'Enter an amount greater than zero'); ok = false; }
+      if (!ok) return;
+      var evObj = { year: year, amountPV: amt, spouse: spouse };
+      if (editIdx >= 0) eventsStore[editIdx] = evObj;
+      else eventsStore.push(evObj);
+      renderEvents();
+    } else if (mode === 'goal'){
+      var gAmt = parseMoneyField(fields.amountPV);
+      var gEvery = parseInt(fields.everyNYears, 10);
+      var gStart = parseInt(fields.startAge, 10);
+      var gEnd = parseInt(fields.endAge, 10);
+      if (!(gAmt > 0)){ paintAddModalError('amountPV', 'Enter an amount greater than zero'); ok = false; }
+      if (!(gEvery >= 1)){ paintAddModalError('everyNYears', 'Enter a cadence (1 or more)'); ok = false; }
+      if (!(gStart >= 1)){ paintAddModalError('startAge', 'Enter a start age'); ok = false; }
+      if (!(gEnd >= 1)){ paintAddModalError('endAge', 'Enter an end age'); ok = false; }
+      if (ok && gEnd < gStart){ paintAddModalError('endAge', 'End age must be ≥ start age'); ok = false; }
+      if (!ok) return;
+      var goalObj = {
+        label: (fields.label || '').trim(),
+        amountPV: gAmt,
+        everyNYears: gEvery,
+        startAge: gStart,
+        endAge: gEnd
+      };
+      if (editIdx >= 0) goalsStore[editIdx] = goalObj;
+      else goalsStore.push(goalObj);
+      renderGoals();
+    } else {
+      var amtI = parseMoneyField(fields.amountPV);
+      var startAge = parseInt(fields.startAge, 10);
+      var duration = parseInt(fields.duration, 10);
+      var spouseI = fields.spouse === 'B' ? 'B' : 'A';
+      var pct = parseInt(fields.pctTaxable, 10);
+      if (isNaN(pct)) pct = 100;
+      pct = Math.max(0, Math.min(100, pct));
+      if (!(amtI > 0)){ paintAddModalError('amountPV', 'Enter an amount greater than zero'); ok = false; }
+      if (!(startAge >= 1)){ paintAddModalError('startAge', 'Enter a start age'); ok = false; }
+      if (!(duration >= 1)){ paintAddModalError('duration', 'Enter a duration in years'); ok = false; }
+      if (!ok) return;
+      var incObj = {
+        label: (fields.label || '').trim(),
+        spouse: spouseI,
+        amountPV: amtI,
+        startAge: startAge,
+        duration: duration,
+        escalates: !!fields.escalates,
+        pctTaxable: pct
+      };
+      if (editIdx >= 0) incomeStore[editIdx] = incObj;
+      else incomeStore.push(incObj);
+      renderIncomes();
+    }
+    refresh();
+    closeAddModal();
+  }
+
+  function deleteFromAddModal(){
+    var mode = addModalEl.dataset.mode;
+    var editIdxRaw = addModalEl.dataset.editIdx;
+    var idx = (editIdxRaw === '' || editIdxRaw === undefined) ? -1 : parseInt(editIdxRaw, 10);
+    if (idx < 0) return;
+    if (mode === 'event'){ eventsStore.splice(idx, 1); renderEvents(); }
+    else if (mode === 'goal'){ goalsStore.splice(idx, 1); renderGoals(); }
+    else { incomeStore.splice(idx, 1); renderIncomes(); }
+    refresh();
+    closeAddModal();
+  }
+
+  // ===== Category modal =====
+  // Wide variant of the add-modal that renders every entry in a category
+  // (incomes / events / goals) as an editable horizontal row. Clicking any
+  // rail row OR the section "+" trigger opens this modal so the adviser can
+  // see + edit the whole category at once.
+  var addModalCard = addModalEl.querySelector('.modal-card');
+  var categoryStaged = null;   // active staging array; replaces store on Save
+  var categoryMode = null;     // 'event' | 'income' | 'goal' while open
+
+  function categoryTitleFor(mode){
+    if (mode === 'event') return 'Capital events';
+    if (mode === 'goal') return 'Goals';
+    return 'Other income';
+  }
+
+  function blankEntryFor(mode){
+    if (mode === 'event') return { year: '', amountPV: '', spouse: 'A' };
+    if (mode === 'goal') return { label: '', amountPV: '', everyNYears: '', startAge: '', endAge: '' };
+    return { label: '', amountPV: '', pctTaxable: 100, spouse: 'A',
+             startAge: '', duration: '', escalates: true };
+  }
+
+  function renderCategoryRow(mode, entry, idx){
+    var p = entry || {};
+    var amtRaw = (p.amountPV === '' || p.amountPV === undefined || p.amountPV === null) ? '' : fmtAmountInput(p.amountPV);
+    var amtVal = ' value="' + escAttr(amtRaw) + '"';
+    var commonDel = '<button type="button" class="row-delete" data-row-del="' + idx + '" title="Remove" aria-label="Remove">×</button>';
+    if (mode === 'event'){
+      var yearVal = (p.year === '' || p.year === undefined || p.year === null) ? '' : ' value="' + escAttr(p.year) + '"';
+      var spA = p.spouse === 'B' ? '' : ' selected';
+      var spB = p.spouse === 'B' ? ' selected' : '';
+      return '<div class="category-row row--event" data-row-idx="' + idx + '">'
+        + '<div class="event-col"><label>Year</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="40" step="1" data-field="year" placeholder="e.g. 5"' + yearVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Amount (today)</label>'
+          + '<div class="input-wrap"><span class="pfx">R</span>'
+          + '<input type="text" inputmode="numeric" data-field="amountPV" placeholder="0"' + amtVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Lands in</label>'
+          + '<div class="input-wrap"><select data-field="spouse">'
+          + '<option value="A"' + spA + '>' + getName('A') + ' disc</option>'
+          + '<option value="B"' + spB + '>' + getName('B') + ' disc</option>'
+          + '</select></div>'
+        + '</div>'
+        + commonDel
+        + '</div>';
+    }
+    if (mode === 'goal'){
+      var gLabel = ' value="' + escAttr(p.label || '') + '"';
+      var gEvery = (p.everyNYears === '' || p.everyNYears === undefined || p.everyNYears === null) ? '' : ' value="' + escAttr(p.everyNYears) + '"';
+      var gStart = (p.startAge === '' || p.startAge === undefined || p.startAge === null) ? '' : ' value="' + escAttr(p.startAge) + '"';
+      var gEnd = (p.endAge === '' || p.endAge === undefined || p.endAge === null) ? '' : ' value="' + escAttr(p.endAge) + '"';
+      return '<div class="category-row row--goal" data-row-idx="' + idx + '">'
+        + '<div class="event-col"><label>Label</label>'
+          + '<div class="input-wrap"><input type="text" maxlength="40" data-field="label" placeholder="e.g. Travel"' + gLabel + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Amount (today)</label>'
+          + '<div class="input-wrap"><span class="pfx">R</span>'
+          + '<input type="text" inputmode="numeric" data-field="amountPV" placeholder="0"' + amtVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Every N yr</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="40" step="1" data-field="everyNYears" placeholder="5"' + gEvery + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Start age</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" data-field="startAge" placeholder="65"' + gStart + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>End age</label>'
+          + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" data-field="endAge" placeholder="100"' + gEnd + '></div>'
+        + '</div>'
+        + commonDel
+        + '</div>';
+    }
+    // income
+    var iLabel = ' value="' + escAttr(p.label || '') + '"';
+    var iPct = (p.pctTaxable === undefined || p.pctTaxable === null || isNaN(p.pctTaxable)) ? 100 : p.pctTaxable;
+    var iStart = (p.startAge === '' || p.startAge === undefined || p.startAge === null) ? '' : ' value="' + escAttr(p.startAge) + '"';
+    var iDur = (p.duration === '' || p.duration === undefined || p.duration === null) ? '' : ' value="' + escAttr(p.duration) + '"';
+    var iEscChk = (p.escalates === false) ? '' : ' checked';
+    var iSpA = p.spouse === 'B' ? '' : ' selected';
+    var iSpB = p.spouse === 'B' ? ' selected' : '';
+    return '<div class="category-row row--income" data-row-idx="' + idx + '">'
+      + '<div class="event-col"><label>Label</label>'
+        + '<div class="input-wrap"><input type="text" maxlength="40" data-field="label" placeholder="e.g. Rental"' + iLabel + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Amount p.a.</label>'
+        + '<div class="input-wrap"><span class="pfx">R</span>'
+        + '<input type="text" inputmode="numeric" data-field="amountPV" placeholder="0"' + amtVal + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>% taxable</label>'
+        + '<div class="input-wrap"><input type="number" min="0" max="100" step="1" data-field="pctTaxable" value="' + iPct + '"></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Spouse</label>'
+        + '<div class="input-wrap"><select data-field="spouse">'
+        + '<option value="A"' + iSpA + '>' + getName('A') + '</option>'
+        + '<option value="B"' + iSpB + '>' + getName('B') + '</option>'
+        + '</select></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Start age</label>'
+        + '<div class="input-wrap"><input type="number" min="1" max="120" step="1" data-field="startAge" placeholder="65"' + iStart + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Years</label>'
+        + '<div class="input-wrap"><input type="number" min="1" max="60" step="1" data-field="duration" placeholder="20"' + iDur + '></div>'
+      + '</div>'
+      + '<div class="event-col"><label>Esc.</label>'
+        + '<label class="escalate-toggle" title="Grow with CPI"><input type="checkbox" data-field="escalates"' + iEscChk + '></label>'
+      + '</div>'
+      + commonDel
+      + '</div>';
+  }
+
+  function renderCategoryModalBody(){
+    var html = '';
+    if (categoryStaged.length === 0){
+      html += '<div class="category-empty">No entries yet. Add one below.</div>';
+    } else {
+      for (var i = 0; i < categoryStaged.length; i++){
+        html += renderCategoryRow(categoryMode, categoryStaged[i], i);
       }
     }
+    var addLabel = (categoryMode === 'event') ? '+ Add capital event'
+                 : (categoryMode === 'goal') ? '+ Add goal'
+                 : '+ Add income source';
+    html += '<button type="button" class="category-add-row" id="category-add-row">' + addLabel + '</button>';
+    addModalForm.innerHTML = html;
   }
-  function addEventAction(){
-    eventsStore.push({ year: 5, amountPV: 1000000, spouse: 'A' });
-    renderEvents();
+
+  function syncStagedFromDOM(){
+    // Walk the DOM rows and write current input values back into categoryStaged.
+    // Used before "Add row" / "Delete row" so user's in-progress edits aren't lost
+    // when the form re-renders.
+    var rows = addModalForm.querySelectorAll('.category-row');
+    var next = [];
+    for (var i = 0; i < rows.length; i++){
+      var row = rows[i];
+      var entry = {};
+      var inputs = row.querySelectorAll('input, select');
+      for (var j = 0; j < inputs.length; j++){
+        var el = inputs[j];
+        var f = el.getAttribute('data-field');
+        if (!f) continue;
+        if (el.type === 'checkbox') entry[f] = el.checked;
+        else entry[f] = el.value;
+      }
+      next.push(entry);
+    }
+    categoryStaged = next;
+  }
+
+  function openCategoryModal(mode, opts){
+    categoryMode = mode;
+    addModalEl.dataset.mode = mode;
+    addModalEl.dataset.view = 'category';
+    addModalCard.classList.add('modal-card--wide');
+    addModalTitle.textContent = categoryTitleFor(mode);
+    // Snapshot the relevant store into a staged copy.
+    var src = (mode === 'event') ? eventsStore
+            : (mode === 'goal') ? goalsStore
+            : incomeStore;
+    categoryStaged = src.map(function(it){ return Object.assign({}, it); });
+    // When opened from a "+" trigger on an empty category, seed one blank row.
+    if (opts && opts.addBlankIfEmpty && categoryStaged.length === 0){
+      categoryStaged.push(blankEntryFor(mode));
+    }
+    addModalDeleteBtn.hidden = true; // per-entry delete suppressed in category view
+    renderCategoryModalBody();
+    addModalEl.hidden = false;
+    document.addEventListener('keydown', escHandler);
+    var first = addModalForm.querySelector('input, select');
+    if (first) first.focus();
+  }
+
+  function closeCategoryModal(){
+    addModalEl.hidden = true;
+    addModalEl.dataset.mode = '';
+    addModalEl.dataset.view = '';
+    addModalCard.classList.remove('modal-card--wide');
+    addModalForm.innerHTML = '';
+    categoryStaged = null;
+    categoryMode = null;
+    document.removeEventListener('keydown', escHandler);
+  }
+
+  function paintCategoryRowError(rowIdx, fieldName, message){
+    var row = addModalForm.querySelector('.category-row[data-row-idx="' + rowIdx + '"]');
+    if (!row) return;
+    var input = row.querySelector('[data-field="' + fieldName + '"]');
+    if (!input) return;
+    var col = input.closest('.event-col');
+    if (!col) return;
+    var err = document.createElement('div');
+    err.className = 'modal-error';
+    err.textContent = message;
+    col.appendChild(err);
+  }
+
+  function clearCategoryErrors(){
+    var errs = addModalForm.querySelectorAll('.modal-error');
+    for (var i = 0; i < errs.length; i++) errs[i].parentNode.removeChild(errs[i]);
+  }
+
+  function saveCategoryModal(){
+    clearCategoryErrors();
+    syncStagedFromDOM();
+    var ok = true;
+    var clean = [];
+    for (var i = 0; i < categoryStaged.length; i++){
+      var s = categoryStaged[i];
+      if (categoryMode === 'event'){
+        var year = parseInt(s.year, 10);
+        var amt = parseMoneyField(s.amountPV);
+        if (!(year >= 1)){ paintCategoryRowError(i, 'year', 'Year ≥ 1'); ok = false; continue; }
+        if (!(amt > 0)){ paintCategoryRowError(i, 'amountPV', 'Amount > 0'); ok = false; continue; }
+        clean.push({ year: year, amountPV: amt, spouse: s.spouse === 'B' ? 'B' : 'A' });
+      } else if (categoryMode === 'goal'){
+        var gAmt = parseMoneyField(s.amountPV);
+        var gEvery = parseInt(s.everyNYears, 10);
+        var gStart = parseInt(s.startAge, 10);
+        var gEnd = parseInt(s.endAge, 10);
+        if (!(gAmt > 0)){ paintCategoryRowError(i, 'amountPV', 'Amount > 0'); ok = false; continue; }
+        if (!(gEvery >= 1)){ paintCategoryRowError(i, 'everyNYears', 'Cadence ≥ 1'); ok = false; continue; }
+        if (!(gStart >= 1)){ paintCategoryRowError(i, 'startAge', 'Start age'); ok = false; continue; }
+        if (!(gEnd >= 1)){ paintCategoryRowError(i, 'endAge', 'End age'); ok = false; continue; }
+        if (gEnd < gStart){ paintCategoryRowError(i, 'endAge', '≥ start age'); ok = false; continue; }
+        clean.push({ label: (s.label || '').trim(), amountPV: gAmt,
+                     everyNYears: gEvery, startAge: gStart, endAge: gEnd });
+      } else {
+        var amtI = parseMoneyField(s.amountPV);
+        var startAge = parseInt(s.startAge, 10);
+        var duration = parseInt(s.duration, 10);
+        var pct = parseInt(s.pctTaxable, 10);
+        if (isNaN(pct)) pct = 100;
+        pct = Math.max(0, Math.min(100, pct));
+        if (!(amtI > 0)){ paintCategoryRowError(i, 'amountPV', 'Amount > 0'); ok = false; continue; }
+        if (!(startAge >= 1)){ paintCategoryRowError(i, 'startAge', 'Start age'); ok = false; continue; }
+        if (!(duration >= 1)){ paintCategoryRowError(i, 'duration', 'Years ≥ 1'); ok = false; continue; }
+        clean.push({
+          label: (s.label || '').trim(),
+          spouse: s.spouse === 'B' ? 'B' : 'A',
+          amountPV: amtI,
+          startAge: startAge,
+          duration: duration,
+          escalates: !!s.escalates,
+          pctTaxable: pct
+        });
+      }
+    }
+    if (!ok) return;
+    if (categoryMode === 'event'){ eventsStore = clean; renderEvents(); }
+    else if (categoryMode === 'goal'){ goalsStore = clean; renderGoals(); }
+    else { incomeStore = clean; renderIncomes(); }
     refresh();
+    closeCategoryModal();
   }
+
+  // Delegate row delete + add-row clicks.
+  addModalForm.addEventListener('click', function(e){
+    if (addModalEl.dataset.view !== 'category') return;
+    var del = e.target.closest('.row-delete');
+    if (del){
+      e.preventDefault();
+      syncStagedFromDOM();
+      var idx = parseInt(del.getAttribute('data-row-del'), 10);
+      if (!isNaN(idx)){
+        categoryStaged.splice(idx, 1);
+        renderCategoryModalBody();
+      }
+      return;
+    }
+    if (e.target.id === 'category-add-row'){
+      e.preventDefault();
+      syncStagedFromDOM();
+      categoryStaged.push(blankEntryFor(categoryMode));
+      renderCategoryModalBody();
+      // Focus the first input of the new row.
+      var rows = addModalForm.querySelectorAll('.category-row');
+      var last = rows[rows.length - 1];
+      if (last){
+        var firstInput = last.querySelector('input, select');
+        if (firstInput) firstInput.focus();
+      }
+    }
+  });
+
+  document.getElementById('add-modal-cancel').addEventListener('click', function(){
+    if (isCategoryView()) closeCategoryModal();
+    else closeAddModal();
+  });
+  document.getElementById('add-modal-save').addEventListener('click', function(){
+    if (isCategoryView()) saveCategoryModal();
+    else saveAddModal();
+  });
+  addModalDeleteBtn.addEventListener('click', deleteFromAddModal);
+  addModalEl.addEventListener('click', function(e){
+    if (e.target !== addModalEl) return;
+    if (isCategoryView()) closeCategoryModal();
+    else closeAddModal();
+  });
+
+  function addEventAction(){ openCategoryModal('event', { addBlankIfEmpty: true }); }
   EVENTS_HOSTS.forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', eventsInputHandler);
-    el.addEventListener('change', eventsChangeHandler);
     el.addEventListener('click', eventsClickHandler);
-    el.addEventListener('blur', eventsBlurHandler, true);
   });
   ['events-add', 'events-add-c'].forEach(function(id){
     var el = document.getElementById(id);
@@ -5005,13 +5647,17 @@
              (it.spouse === 'A' || it.spouse === 'B') &&
              it.startAge >= 1 && it.duration >= 1;
     }).map(function(it){
+      var pct = it.pctTaxable;
+      if (pct === undefined || pct === null || isNaN(pct)) pct = 100;
+      pct = Math.max(0, Math.min(100, Math.round(pct)));
       return {
         label: (it.label || '').toString().trim(),
         spouse: it.spouse,
         amountPV: Math.round(it.amountPV),
         startAge: Math.round(it.startAge),
         duration: Math.round(it.duration),
-        escalates: !!it.escalates
+        escalates: !!it.escalates,
+        pctTaxable: pct
       };
     });
   }
@@ -5031,120 +5677,129 @@
     }
     empties.forEach(function(e){ if (e) e.style.display = 'none'; });
     incomeStore.forEach(function(it, idx){
-      var amountFmt = Math.round(it.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
-      var labelEsc = (it.label || '').toString().replace(/"/g, '&quot;');
-      var html =
-        '<div class="event-col">' +
-          '<label>Label</label>' +
-          '<div class="input-wrap"><input type="text" maxlength="40" placeholder="e.g. Rental, Pension" value="' + labelEsc + '" data-idx="' + idx + '" data-field="label"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Amount p.a. (today)</label>' +
-          '<div class="input-wrap"><span class="pfx">R</span><input type="text" inputmode="numeric" value="' + amountFmt + '" data-idx="' + idx + '" data-field="amountPV"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Spouse</label>' +
-          '<div class="input-wrap">' +
-            '<select data-idx="' + idx + '" data-field="spouse">' +
-              '<option value="A"' + (it.spouse === 'A' ? ' selected' : '') + '>' + getName('A') + '</option>' +
-              '<option value="B"' + (it.spouse === 'B' ? ' selected' : '') + '>' + getName('B') + '</option>' +
-            '</select>' +
-          '</div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Start age</label>' +
-          '<div class="input-wrap"><input type="number" min="18" max="120" step="1" value="' + it.startAge + '" data-idx="' + idx + '" data-field="startAge"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Years</label>' +
-          '<div class="input-wrap"><input type="number" min="1" max="50" step="1" value="' + it.duration + '" data-idx="' + idx + '" data-field="duration"></div>' +
-        '</div>' +
-        '<div class="event-col">' +
-          '<label>Escalate</label>' +
-          '<label class="escalate-toggle" title="Grow with CPI">' +
-            '<input type="checkbox" data-idx="' + idx + '" data-field="escalates"' + (it.escalates ? ' checked' : '') + '>' +
-          '</label>' +
-        '</div>' +
-        '<button type="button" class="event-delete" data-idx="' + idx + '" title="Remove income stream" aria-label="Remove income stream">×</button>';
+      var amountFmt = 'R ' + Math.round(it.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
+      var labelEsc = (it.label || '').toString().trim().replace(/</g, '&lt;');
+      var labelText = labelEsc || 'Other income';
+      var name = getName(it.spouse) || it.spouse;
+      var endAge = (it.startAge || 0) + (it.duration || 0);
+      var pct = (it.pctTaxable === undefined || it.pctTaxable === null || isNaN(it.pctTaxable)) ? 100 : it.pctTaxable;
+      var taxTag = (pct === 0) ? ' &middot; tax-free' : (pct < 100 ? ' &middot; ' + pct + '% taxable' : '');
+      var summary = labelText + ' &middot; <span class="num">' + amountFmt + '</span>/yr &middot; ' + (it.startAge || '?') + '–' + endAge + ' &middot; ' + name + taxTag;
       hosts.forEach(function(host){
         if (!host) return;
         var row = document.createElement('div');
-        row.className = 'event-row income-row';
-        row.innerHTML = html;
+        row.className = 'entry-row';
+        row.setAttribute('data-idx', idx);
+        row.setAttribute('data-kind', 'income');
+        row.innerHTML = '<span class="entry-summary">' + summary + '</span>'
+          + '<button type="button" class="entry-delete" data-idx="' + idx + '" title="Remove income stream" aria-label="Remove income stream">×</button>';
         host.appendChild(row);
       });
     });
   }
 
-  function incomesInputHandler(e){
-    var t = e.target;
-    var idx = parseInt(t.getAttribute('data-idx'), 10);
-    var field = t.getAttribute('data-field');
-    if (isNaN(idx) || !field) return;
-    if (field === 'label'){
-      incomeStore[idx].label = t.value;
-    } else if (field === 'amountPV'){
-      var n = parseFloat((t.value || '').replace(/[^0-9.\-]/g, ''));
-      incomeStore[idx].amountPV = isFinite(n) ? n : 0;
-    } else if (field === 'startAge'){
-      incomeStore[idx].startAge = parseInt(t.value, 10) || 0;
-    } else if (field === 'duration'){
-      incomeStore[idx].duration = parseInt(t.value, 10) || 0;
-    }
-    refresh();
-  }
-  function incomesChangeHandler(e){
-    var t = e.target;
-    var idx = parseInt(t.getAttribute('data-idx'), 10);
-    var field = t.getAttribute('data-field');
-    if (isNaN(idx) || !field) return;
-    if (field === 'spouse'){
-      incomeStore[idx].spouse = t.value;
-      refresh();
-    } else if (field === 'escalates'){
-      incomeStore[idx].escalates = !!t.checked;
-      refresh();
-    }
-  }
   function incomesClickHandler(e){
-    if (e.target.classList.contains('event-delete')){
-      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-      if (!isNaN(idx)){
-        incomeStore.splice(idx, 1);
+    var del = e.target.closest('.entry-delete');
+    if (del){
+      e.stopPropagation();
+      var dIdx = parseInt(del.getAttribute('data-idx'), 10);
+      if (!isNaN(dIdx)){
+        incomeStore.splice(dIdx, 1);
         renderIncomes();
         refresh();
       }
+      return;
     }
+    var row = e.target.closest('.entry-row[data-kind="income"]');
+    if (row) openCategoryModal('income');
   }
-  function incomesBlurHandler(e){
-    if (e.target.tagName === 'INPUT' && e.target.getAttribute('data-field') === 'amountPV'){
-      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-      if (!isNaN(idx)){
-        var val = incomeStore[idx].amountPV;
-        e.target.value = Math.round(val).toLocaleString('en-ZA').replace(/,/g, ' ');
-      }
-    }
-  }
-  function addIncomeAction(){
-    var defaultAge = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
-    incomeStore.push({
-      label: '', spouse: 'A', amountPV: 120000,
-      startAge: defaultAge, duration: 20, escalates: true
-    });
-    renderIncomes();
-    refresh();
-  }
+  function addIncomeAction(){ openCategoryModal('income', { addBlankIfEmpty: true }); }
   INCOMES_HOSTS.forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', incomesInputHandler);
-    el.addEventListener('change', incomesChangeHandler);
     el.addEventListener('click', incomesClickHandler);
-    el.addEventListener('blur', incomesBlurHandler, true);
   });
   ['incomes-add', 'incomes-add-c'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.addEventListener('click', addIncomeAction);
+  });
+
+  // ===== Recurring household goals =====
+  // Each item: { label, amountPV, everyNYears, startAge, endAge }.
+  // Household-wide (no spouse field). Read by readGoals() inside project().
+  var goalsStore = [];
+
+  function readGoals(){
+    return goalsStore.filter(function(g){
+      return g && g.amountPV > 0 && g.everyNYears >= 1
+          && g.startAge >= 1 && g.endAge >= g.startAge;
+    }).map(function(g){
+      return {
+        label: (g.label || '').toString().trim(),
+        amountPV: Math.round(g.amountPV),
+        everyNYears: Math.round(g.everyNYears),
+        startAge: Math.round(g.startAge),
+        endAge: Math.round(g.endAge)
+      };
+    });
+  }
+
+  var GOALS_HOSTS = ['goals-list', 'goals-list-c'];
+  var GOALS_EMPTIES = ['goals-empty', 'goals-empty-c'];
+
+  function renderGoals(){
+    var hosts = GOALS_HOSTS.map(function(id){ return document.getElementById(id); });
+    var empties = GOALS_EMPTIES.map(function(id){ return document.getElementById(id); });
+    hosts.forEach(function(h){ if (h) h.innerHTML = ''; });
+    if (goalsStore.length === 0){
+      empties.forEach(function(e){ if (e) e.style.display = ''; });
+      return;
+    }
+    empties.forEach(function(e){ if (e) e.style.display = 'none'; });
+    goalsStore.forEach(function(g, idx){
+      var amountFmt = 'R ' + Math.round(g.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
+      var labelEsc = (g.label || '').toString().trim().replace(/</g, '&lt;');
+      var labelText = labelEsc || 'Goal';
+      var cadence = (g.everyNYears === 1) ? 'every year' : 'every ' + g.everyNYears + ' yr';
+      var summary = labelText + ' &middot; <span class="num">' + amountFmt + '</span> &middot; '
+                  + cadence + ' &middot; ' + (g.startAge || '?') + '–' + (g.endAge || '?');
+      hosts.forEach(function(host){
+        if (!host) return;
+        var row = document.createElement('div');
+        row.className = 'entry-row';
+        row.setAttribute('data-idx', idx);
+        row.setAttribute('data-kind', 'goal');
+        row.innerHTML = '<span class="entry-summary">' + summary + '</span>'
+          + '<button type="button" class="entry-delete" data-idx="' + idx + '" title="Remove goal" aria-label="Remove goal">×</button>';
+        host.appendChild(row);
+      });
+    });
+  }
+
+  function goalsClickHandler(e){
+    var del = e.target.closest('.entry-delete');
+    if (del){
+      e.stopPropagation();
+      var dIdx = parseInt(del.getAttribute('data-idx'), 10);
+      if (!isNaN(dIdx)){
+        goalsStore.splice(dIdx, 1);
+        renderGoals();
+        refresh();
+      }
+      return;
+    }
+    var row = e.target.closest('.entry-row[data-kind="goal"]');
+    if (row) openCategoryModal('goal');
+  }
+  function addGoalAction(){ openCategoryModal('goal', { addBlankIfEmpty: true }); }
+  GOALS_HOSTS.forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', goalsClickHandler);
+  });
+  ['goals-add', 'goals-add-c'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', addGoalAction);
   });
 
   // ===== Number-input formatting =====
@@ -5310,20 +5965,9 @@
     });
   });
 
-  // Solve-for LA rates
-  document.getElementById('btn-solve').addEventListener('click', function(){
-    var btn = document.getElementById('btn-solve');
-    var original = btn.textContent;
-    var r = solveLARate();
-    if (!r.ok && r.reason === 'above-max'){
-      btn.textContent = 'Target unreachable at 17.5% cap';
-      setTimeout(function(){ btn.textContent = original; }, 2500);
-    } else if (!r.ok){
-      btn.textContent = 'Enter a target first';
-      setTimeout(function(){ btn.textContent = original; }, 2500);
-    }
-    refresh();
-  });
+  // solveLARate() (defined above) is retained as the methodology for solving
+  // LA rates to a target net income. The UI button was retired; reattach to a
+  // control if/when needed.
 
   function setMode(m){
     mode = m;
