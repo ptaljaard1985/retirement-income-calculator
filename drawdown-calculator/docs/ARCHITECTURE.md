@@ -10,25 +10,31 @@ There is no module system, no build, no bundler. The cost is that the file is ~2
 
 Chart.js is the only runtime dependency, loaded from `cdnjs.cloudflare.com`.
 
-## Top-to-bottom page structure
+## Top-to-bottom page structure (post-Session 15)
 
 ```
-<header>              Simple Wealth brand + document title + print button
-<title-block>         H1, subtitle
-<client-bar>          Prepared for / Meeting date / Adviser
-<household-position>  Per-spouse name + age, LA balance, disc balance, disc base cost
-<household-needs>     Monthly expenses, lump sum, auto-top-up toggle
-<income-streams>      Optional list of other taxable income streams (see below)
-<capital-events>      Optional list: year / amount / destination spouse
-<summary-cards>       Y1 gross, tax, net, gap — four cards, navy highlight on first
-<chart-controls>      Capital/Income/Table toggle + Real/Nominal toggle
-<chart-card>          Legends, alerts bar, chart canvas(es) or table
-<drawdown-levers>     Per-spouse sliders: initial LA rate, disc withdrawal
-<market-assumptions>  Sliders: return, CPI
-<tax-panel>           Per-spouse Y1 tax breakdown
-<print-summary>       Compliance-ready tables: inputs, outputs, methodology, disclaimer
-<footer>
+<nav class="tab-nav">             Brand + family + 5 tab buttons + Export report
+<section data-tab-panel="info">   Today's "State 1" setup screen, kept as-is
+<div class="rail-canvas-shell">   2-col grid: 240px rail + 1fr canvas
+  <aside class="rail">              Sticky live levers (Drawdown, Markets,
+                                    Spending, Display, Schedules, Lock CTA)
+  <section data-tab-panel="planning">   Planning canvas: chart-controls + chart-card
+                                        (Income | Capital | Table | Tax views)
+                                        + canvas-foot
+  <section data-tab-panel="scenarios">  Scenarios canvas: compact head + 2-up
+                                        baseline/scenario mini-charts + tax strip
+<section data-tab-panel="comparison">    Static decision-summary page
+<section data-tab-panel="assumptions">   SARS reference + read-only readouts
+<div id="print-summary">           Hidden on screen, surfaced on Cmd+P only
 ```
+
+Visibility is driven by `body[data-tab="..."]` attribute selectors:
+
+- `body[data-tab="info"] [data-tab-panel]:not([data-tab-panel="info"]) { display: none }` (and four more, one per tab) hides every panel that doesn't match the active tab.
+- `body:not([data-tab="planning"]):not([data-tab="scenarios"]) .rail-canvas-shell { display: none }` hides the rail+canvas shell entirely on Info / Comparison / Assumptions.
+- The rail itself is `position: sticky; top: 14px; max-height: calc(100vh - 40px); overflow-y: auto` so heavy content (expanded ledgers, multi-row capital events) scrolls within the rail rather than the page.
+
+The legacy 3-state vocabulary (`empty/single/compare`, `data-state`, `is-hidden`) is retired but `setAppState()` survives as a back-compat shim for `beforeprint`/`afterprint` and any straggler call sites.
 
 Every top-level section has a corresponding `section-header` div. Collapsible sections use a `.collapsible-body` child with inline `max-height` for CSS transition.
 

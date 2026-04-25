@@ -80,17 +80,19 @@ Fraunces is used with optical sizing. All monospace numeric readouts carry `font
 
 ## Three-state flow
 
-The app is a single HTML file; state is driven by a `data-app-state` attribute on `<body>` and one of three `<section>` containers visible at a time.
+The app is a single HTML file; the visible content is driven by `body[data-tab="..."]` and one of five tab panels. (Pre-Session-15 the same file used a 3-state `data-app-state` flow; that machinery is retired but `setAppState()` survives as a back-compat shim.)
 
-| State | Container | Content |
+| Tab | Container | Content |
 |---|---|---|
-| Empty | `#state-empty` | Editorial title plate, spouse setup, household needs strip, other-income + capital-events ledgers, centered `Build the projection →` CTA |
-| Single | `#state-single` | Plan-bar (brand + Family/Prepared facts + Export report + Edit plan), outcome strip, chart controls row (view selector + Auto-top-up + Real/Nominal + Lock as baseline), chart card, canvas footer |
-| Compare | `#state-compare` | Compact head, baseline vs scenario two-up cards with delta chips |
+| Info | `#state-empty` (`data-tab-panel="info"`) | Editorial title plate, spouse setup, household needs strip, other-income + capital-events ledgers, centered `Build the projection →` CTA. **Kept as-is** from the pre-Session-15 State 1. |
+| Planning | `#state-single` (`data-tab-panel="planning"`) | Chart-controls row (Income / Capital / Table / Tax views + Real/Nominal seg) + chart-card + canvas-foot. Lives inside `.rail-canvas-shell` alongside the shared rail. |
+| Scenarios | `#state-compare` (`data-tab-panel="scenarios"`) | Compact head + baseline-vs-scenario two-up mini-charts with delta chip + tax strip + Re-lock/Clear buttons. Same rail-canvas-shell home. |
+| Comparison Summary | `[data-tab-panel="comparison"]` | Static decision page: Baseline/Scenario one-line summaries, bulleted Key Changes (computed by `diffPlanForSummary`), verdict line, Export-PDF + Re-open-Scenarios CTAs. New screen. |
+| Assumptions | `[data-tab-panel="assumptions"]` | Read-only readouts of live Return / CPI / Auto-top-up + SARS 2026/27 reference table + methodology prose + FSP disclaimer. New screen. |
 
-A **shared chrome** block (`#shared-chrome`) holds the Financial-levers block and the full tax panel. It's visible in Single + Compare, hidden in Empty (`body[data-app-state="empty"] #shared-chrome { display: none; }`). Financial levers contains, top-to-bottom: (1) **Drawdown levers** — per-spouse `Initial LA drawdown rate` + `Annual discretionary withdrawal` sliders, with the `Solve LA rates to target` button in the sub-heading (folded in at the top in Session 10); (2) Return slider; (3) Monthly household need + Annual lump sums; (4) collapsible Other-income and Capital-events ledgers. The scalar `-c`-suffixed inputs (`#return-c`, `#needs-monthly-c`, `#needs-lump-c`) are bi-directionally synced to their State-1 canonical counterparts. `project()` reads from the canonical IDs only — the mirror is purely a UX affordance so an adviser can strategise from Compare without bouncing back to Empty. The block's wrapper CSS class remains `.scenario-adjust` for internal identification.
+A **shared rail** (`<aside class="rail">`) lives inside `.rail-canvas-shell` (a 2-col grid `[240px 1fr]`) and is visible only on Planning + Scenarios. Top-to-bottom the rail holds: (1) **Drawdown levers** — per-spouse LA-rate + disc-draw sliders, with `Solve to target` in the head; (2) **Markets** — Return slider (`#return-c`, mirror of canonical `#return` on Info); (3) **Spending** — `Monthly need` and `Annual lumps` ±-swing sliders that anchor to Info-tab values via `setupRailSpendingSlider`; (4) **Display** — Auto-top-up pill; (5) **Schedules** — collapsible Other income + Capital events sub-sections (count badges in headers, internal-scroll-capped bodies); (6) **Lock as baseline →** / **Continue → Summary** CTA pair (visibility CSS swaps which is shown per tab). The rail is `position: sticky; top: 14px; max-height: calc(100vh - 40px); overflow-y: auto` so its content scrolls internally when ledgers expand — the page itself never scrolls.
 
-Crossfade on state change is a simple `opacity` + `display` swap via `.state.is-hidden`. The `setAppState(next)` helper does **not** persist — every page refresh resets to State 1 (`appState = 'empty'`), so an adviser opening the calculator at the start of a meeting always lands on the blank setup view.
+Visibility on tab change is a simple `display` swap via `body[data-tab="..."] [data-tab-panel]:not([data-tab-panel="..."]) { display: none !important }`. The `setTab(next)` helper does **not** persist to `localStorage` — every page refresh resets to `info`, so an adviser opening the calculator always lands on the blank setup view. Three layers of scroll-snap-to-top (`history.scrollRestoration = 'manual'`, `overflow-anchor: none`, triple-fired `scrollTo(0,0)`) ensure no rebuild ever lands the viewport mid-page.
 
 ## Layout
 

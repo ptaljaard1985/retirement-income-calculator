@@ -165,10 +165,13 @@
   .state.is-fading { opacity: 0; }
 
   .page {
-    max-width: 1100px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 32px 48px;
   }
+  /* Disable scroll anchoring — when tabs swap, the browser otherwise tries to
+     keep some visual element stable and pulls the viewport down past the nav. */
+  html, body { overflow-anchor: none; }
 
   /* Header */
   .header {
@@ -361,7 +364,7 @@
   .chart-legend button.series-toggle .swatch.line {
     height: 0; border-top: 2px dashed currentColor;
   }
-  .chart-wrap { position: relative; width: 100%; height: 340px; }
+  .chart-wrap { position: relative; width: 100%; height: 480px; }
 
   /* Plan-health alerts above the chart — surface constraints that the Capital
      view would otherwise hide (LA cap, disc exhausted, real shortfall). */
@@ -400,13 +403,13 @@
   }
   .chart-alert.shortfall::before { content: '⚠'; font-size: 10px; }
 
-  /* Year-by-year table (occupies the same slot as the charts when active) */
+  /* Year-by-year table (occupies the same slot as the charts when active).
+     Absolute-positioned inside .chart-wrap so it fills the 480px canvas exactly
+     and scrolls internally — no inner border (the chart-card already has one). */
   .year-table-wrap {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    inset: 0;
     overflow: auto;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
     background: var(--surface);
   }
   .year-table {
@@ -1494,54 +1497,72 @@
   }
   .toggle-pill.on .sw::after { transform: translateX(10px); }
 
-  /* Outcome strip */
-  .outcome-strip {
+  /* Ledger strip — Other income + Capital events as dropdown buttons. */
+  .outcome-strip.ledger-strip {
     display: flex;
-    border: 1px solid var(--hairline);
-    border-radius: var(--r-lg);
-    margin-bottom: 22px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    min-height: 36px;
+    flex-wrap: wrap;
+  }
+  .strip-ledger { position: relative; }
+  .strip-ledger-btn {
+    appearance: none;
     background: var(--surface);
-    overflow: hidden;
-  }
-  .outcome-cell {
-    flex: 1;
-    padding: 14px 20px;
-    border-right: 1px solid var(--hairline);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .outcome-cell:last-child { border-right: none; }
-  .outcome-cell.primary { background: var(--navy); color: var(--paper); }
-  .outcome-cell.primary.teal { background: var(--teal); color: #fff; }
-  .outcome-cell.primary.teal .ocap,
-  .outcome-cell.primary.teal .osub { color: rgba(255,255,255,0.75); }
-  .outcome-cell .ocap {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.7px;
-    color: var(--mute);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    padding: 7px 14px;
+    font-family: var(--sans);
+    font-size: 11px;
     font-weight: 600;
-  }
-  .outcome-cell .oval {
-    display: flex;
-    align-items: baseline;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--mute);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
-    font-size: 22px;
-    line-height: 1.05;
-    color: var(--ink);
+    transition: background 120ms, color 120ms, border-color 120ms;
   }
-  .outcome-cell.primary .oval { color: #fff; }
-  .outcome-cell .oval .num-italic { font-size: 26px; }
-  .outcome-cell .oval .unit { font-size: 12px; color: inherit; opacity: 0.85; }
-  .outcome-cell .oval.split { font-size: 15px; letter-spacing: 0.3px; }
-  .outcome-cell .osub {
+  .strip-ledger-btn:hover { background: var(--paper-2); color: var(--ink); }
+  .strip-ledger-btn[aria-expanded="true"] {
+    background: var(--paper-2);
+    color: var(--ink);
+    border-color: var(--ink-2);
+  }
+  .strip-ledger-btn .rail-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .strip-ledger-btn .strip-caret {
     font-size: 10px;
     color: var(--mute);
-    font-style: italic;
-    font-family: var(--serif);
-    font-weight: 300;
+    transition: transform 120ms;
   }
+  .strip-ledger-btn[aria-expanded="true"] .strip-caret { transform: rotate(180deg); }
+  .strip-ledger-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 360px;
+    max-height: 380px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    padding: 12px;
+    z-index: 50;
+  }
+  .strip-ledger-panel.is-hidden { display: none; }
 
   /* Narrative */
   .narrative {
@@ -1757,14 +1778,12 @@
     margin: 4px 0 18px;
   }
 
-  /* Shared chrome visibility: hide when in empty state. */
-  body[data-app-state="empty"] #shared-chrome { display: none; }
+  /* Shared chrome visibility: hide except on Planning + Scenarios tabs. */
+  body:not([data-tab="planning"]):not([data-tab="scenarios"]) #shared-chrome { display: none; }
 
-  /* Print summary lives outside #state-single so it can sit BELOW the
-     shared chrome (levers + tax panel) in State 2's reading order. Hide
-     it on screen everywhere except single mode; @media print forces it
-     visible on paper regardless of app state. */
-  body:not([data-app-state="single"]) #print-summary { display: none; }
+  /* Print summary is paper-only — never shown on screen, surfaced on Cmd+P
+     via the @media print override below. */
+  #print-summary { display: none; }
 
   @media (max-width: 820px) {
     .compare-grid { grid-template-columns: 1fr; gap: 18px; }
@@ -1823,13 +1842,418 @@
     .empty-needs-cell:first-child { padding-top: 0; border-top: none; }
     .empty-events-header { grid-template-columns: 80px 1fr 120px 100px; font-size: 9px; }
   }
+
+  /* ===== Tab navigation (Session 15 redesign) =====
+     5 tabs: Info | Planning | Scenarios | Comparison Summary | Assumptions.
+     Body[data-tab="X"] gates which panel is visible. The rail (shared sliders)
+     is shown only on Planning + Scenarios via attribute selectors. */
+
+  .tab-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    background: var(--paper-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 10px 18px;
+    margin-top: 18px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tab-nav-brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .tab-nav-brand .eyebrow { color: var(--mute); }
+  .tab-nav-brand .tab-nav-family {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .tab-nav-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .tab-nav-tab {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r);
+    padding: 6px 12px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    color: var(--mute);
+    cursor: pointer;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .tab-nav-tab:hover { color: var(--ink); background: var(--surface); }
+  .tab-nav-tab.active {
+    color: var(--paper);
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+  .tab-nav-actions { display: inline-flex; gap: 10px; }
+
+  /* Panel visibility: hide every panel that doesn't match body[data-tab].
+     Active panel keeps its own native display value (block / grid / etc),
+     so .rail-canvas's grid layout survives. */
+  body[data-tab="info"] [data-tab-panel]:not([data-tab-panel="info"]),
+  body[data-tab="planning"] [data-tab-panel]:not([data-tab-panel="planning"]),
+  body[data-tab="scenarios"] [data-tab-panel]:not([data-tab-panel="scenarios"]),
+  body[data-tab="comparison"] [data-tab-panel]:not([data-tab-panel="comparison"]),
+  body[data-tab="assumptions"] [data-tab-panel]:not([data-tab-panel="assumptions"]) {
+    display: none !important;
+  }
+
+  /* Rail+canvas shell — shared between Planning and Scenarios.
+     Hidden on Info / Comparison / Assumptions; grid-2-col on Planning + Scenarios. */
+  .rail-canvas-shell {
+    display: none;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  body[data-tab="planning"] .rail-canvas-shell,
+  body[data-tab="scenarios"] .rail-canvas-shell {
+    display: grid;
+  }
+  /* Both panels overlay on the second column; visibility CSS shows only the
+     active one. State-single defaults to grid-column 2 because of source order;
+     state-compare needs an explicit placement. */
+  .rail-canvas-shell > .rail {
+    grid-column: 1; grid-row: 1;
+    align-self: start;
+    position: sticky;
+    top: 14px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  .rail-canvas-shell > [data-tab-panel] { grid-column: 2; grid-row: 1; }
+  @media (max-width: 980px) {
+    .rail-canvas-shell { grid-template-columns: 1fr; }
+    .rail-canvas-shell > .rail,
+    .rail-canvas-shell > [data-tab-panel] { grid-column: 1; }
+    .rail-canvas-shell > .rail {
+      position: static;
+      max-height: none;
+      overflow-y: visible;
+    }
+  }
+  /* Rail actions: show Lock-as-baseline only on Planning, Continue only on Scenarios. */
+  body[data-tab="planning"] #btn-lock-baseline { display: inline-flex; }
+  body[data-tab="planning"] #btn-continue-comparison { display: none !important; }
+  body[data-tab="scenarios"] #btn-lock-baseline { display: none !important; }
+  body[data-tab="scenarios"] #btn-continue-comparison { display: inline-flex !important; }
+
+  .rail {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 14px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rail-section-head {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--mute);
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .rail-section-head:first-child { margin-top: 0; }
+  .rail-slider .lever-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .rail-slider .lever-head label {
+    font-size: 11px; color: var(--ink-2); letter-spacing: 0.1px;
+  }
+  .rail-slider .lever-head .val {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail-slider input[type="range"] { width: 100%; }
+  .rail-slider .rail-swing {
+    font-size: 9.5px;
+    font-family: var(--mono);
+    color: var(--mute);
+    margin-left: 4px;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .rail-divider {
+    height: 1px;
+    background: var(--hairline);
+    margin: 4px 0;
+  }
+  .rail-toggles {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .rail-toggles .toggle-pill,
+  .rail-toggles .seg.mini {
+    width: 100%;
+    justify-content: center;
+  }
+  .rail-actions { display: flex; flex-direction: column; gap: 8px; }
+  .rail-actions .btn { width: 100%; justify-content: center; }
+
+  /* Rail-side ledgers (Capital events + Other income mirrors). */
+  .rail-sub { margin: 0; }
+  .rail-collapsible {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--mute);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    padding: 4px 0;
+    user-select: none;
+  }
+  .rail-collapsible .rail-count {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--mute);
+    margin-left: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .rail-collapsible-body { padding: 0; }
+  .rail-collapsible-body:not(.collapsed) {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  /* Stack canonical 4-col event row into a single column inside the rail. */
+  .rail-ledger .event-row {
+    grid-template-columns: 1fr !important;
+    gap: 6px;
+    padding: 8px 24px 8px 8px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    margin-bottom: 6px;
+    background: var(--paper-2);
+    position: relative;
+    align-items: stretch;
+  }
+  .rail-ledger .event-row.income-row { grid-template-columns: 1fr !important; }
+  .rail-ledger .event-col { min-width: 0; }
+  .rail-ledger .event-col label { font-size: 10px; }
+  .rail-ledger .event-col .input-wrap input,
+  .rail-ledger .event-col .input-wrap select { font-size: 12px; padding: 4px 6px; }
+  .rail-ledger .event-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    font-size: 14px;
+  }
+  .rail-events-empty {
+    font-size: 10.5px;
+    color: var(--mute);
+    padding: 4px 0;
+    font-style: italic;
+  }
+  .rail-add { width: 100%; font-size: 11px; padding: 6px 8px; }
+
+  /* Tax view inside the chart-card (4th view alongside Income / Capital / Table). */
+  .tax-view-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    padding: 12px 8px;
+    background: var(--surface);
+    box-sizing: border-box;
+  }
+  .tax-view-wrap .tax-panel {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  .tax-view-wrap .tax-sub {
+    font-size: 11.5px;
+    color: var(--mute);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .tax-view-wrap .tax-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 22px;
+  }
+  body[data-client-mode="single"] .tax-view-wrap .tax-grid { grid-template-columns: 1fr; }
+
+  /* Comparison Summary panel */
+  .comparison-panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 26px 30px 24px;
+  }
+  .comparison-panel .eyebrow { margin-bottom: 14px; }
+  .comparison-panel h2 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 28px;
+    line-height: 1.15;
+    letter-spacing: -0.3px;
+    margin: 0 0 18px;
+    color: var(--ink);
+  }
+  .comparison-lines {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 22px;
+  }
+  .comparison-line {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .comparison-line .lbl {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--mute);
+    font-weight: 600;
+    align-self: center;
+  }
+  .comparison-section-head {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--mute);
+    font-weight: 600;
+    margin: 12px 0 8px;
+  }
+  .comparison-changes {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .comparison-changes li::before {
+    content: "• ";
+    color: var(--gold-2);
+    margin-right: 6px;
+  }
+  .comparison-changes li.empty::before { content: ""; }
+  .comparison-verdict {
+    background: var(--paper-2);
+    border-left: 3px solid var(--gold);
+    padding: 12px 16px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 22px;
+  }
+  .comparison-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* Assumptions panel */
+  .assumptions-panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 36px;
+  }
+  @media (max-width: 820px) {
+    .assumptions-panel { grid-template-columns: 1fr; }
+  }
+  .assumptions-block h3 {
+    font-family: var(--sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--mute);
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+  .assumptions-block .lever { margin-bottom: 12px; }
+  .assumptions-block table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .assumptions-block table td {
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--hairline);
+    color: var(--ink-2);
+  }
+  .assumptions-block table td:last-child { text-align: right; color: var(--ink); }
+  .assumptions-prose {
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    grid-column: 1 / -1;
+  }
+  .assumptions-prose p { margin: 0 0 10px; }
+
+  /* Print: tab nav hides, force Planning panel visible. */
+  @media print {
+    .tab-nav { display: none !important; }
+    [data-tab-panel="info"],
+    [data-tab-panel="scenarios"],
+    [data-tab-panel="comparison"],
+    [data-tab-panel="assumptions"] { display: none !important; }
+    [data-tab-panel="planning"] { display: block !important; }
+    .rail-canvas-shell { grid-template-columns: 1fr !important; display: block !important; }
+    .rail { display: none !important; }
+  }
 </style>
 </head>
-<body data-client-mode="couple">
+<body data-client-mode="couple" data-tab="info">
 <div class="page">
 
+<!-- ============= Tab navigation (Session 15) ============= -->
+<nav class="tab-nav no-print" role="tablist" aria-label="App navigation">
+  <div class="tab-nav-brand">
+    <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
+    <span class="tab-nav-family">Family <span id="tn-family">—</span></span>
+  </div>
+  <div class="tab-nav-tabs">
+    <button type="button" class="tab-nav-tab active" data-tab-target="info" role="tab" aria-selected="true">Info</button>
+    <button type="button" class="tab-nav-tab" data-tab-target="planning" role="tab" aria-selected="false">Planning</button>
+    <button type="button" class="tab-nav-tab" data-tab-target="scenarios" role="tab" aria-selected="false">Scenarios</button>
+    <button type="button" class="tab-nav-tab" data-tab-target="comparison" role="tab" aria-selected="false">Comparison</button>
+    <button type="button" class="tab-nav-tab" data-tab-target="assumptions" role="tab" aria-selected="false">Assumptions</button>
+  </div>
+  <div class="tab-nav-actions">
+    <button type="button" class="btn ghost" id="btn-export-report-nav" title="Open the editorial client report in a new tab">Export report &rarr;</button>
+  </div>
+</nav>
+
 <!-- ============= STATE 1: Empty / Setup ============= -->
-<section id="state-empty" class="state" data-state="empty">
+<section id="state-empty" class="state" data-state="empty" data-tab-panel="info">
   <div class="empty-canvas">
 
     <!-- Title plate -->
@@ -1986,353 +2410,382 @@
   </div>
 </section>
 
-<!-- ============= STATE 2: Single scenario projection ============= -->
-<section id="state-single" class="state is-hidden" data-state="single">
+<!-- ============= Rail+canvas shell (Planning + Scenarios) =============
+     Single shared rail (live levers Pierre moves with the client watching),
+     positioned beside whichever of Planning / Scenarios is the active tab.
+     Hidden entirely on Info / Comparison / Assumptions. -->
+<div class="rail-canvas-shell">
 
-  <!-- Plan inputs summary bar. Doubles as the top-nav menu on State 2: holds
-       the Export report and Edit plan actions alongside the brand + facts. -->
-  <div class="plan-bar-lite">
-    <div class="plan-bar-lite-left">
-      <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
-      <span class="plan-bar-lite-fact"><label>Family</label><span id="pb-family" class="num">—</span></span>
-      <span class="plan-bar-lite-fact"><label>Prepared</label><span id="doc-date" class="num">—</span></span>
-    </div>
-    <div class="plan-bar-lite-actions">
-      <button type="button" class="btn ghost no-print" id="btn-export-report" title="Open the editorial client report in a new tab">Export report &rarr;</button>
-      <button type="button" class="btn ghost" id="btn-edit-plan">Edit plan &darr;</button>
-    </div>
-  </div>
+  <aside class="rail" id="planning-rail" aria-label="Live levers">
+    <div class="rail-section-head">Drawdown levers <button class="btn ghost" id="btn-solve" style="float: right; font-size: 10px; padding: 2px 8px;">Solve to target</button></div>
 
-  <!-- Outcome strip -->
-  <div class="outcome-strip">
-    <div class="outcome-cell primary teal" id="outcome-primary">
-      <div class="ocap" id="out-primary-label">Lifestyle sustainable until age</div>
-      <div class="oval"><span id="out-age" class="num-italic">—</span><span class="unit">&middot; <span id="out-years" class="num">—</span> years</span></div>
-      <div class="osub" id="out-primary-sub">youngest spouse &middot; target fully met</div>
+    <div class="rail-slider">
+      <div class="lever-head">
+        <label id="rail-la-A-label">LA rate &middot; A</label>
+        <span class="val" id="la-rate-A-out">5.00%</span>
+      </div>
+      <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
     </div>
-    <div class="outcome-cell">
-      <div class="ocap">Year-1 income need</div>
-      <div class="oval"><span id="out-need" class="num">—</span></div>
-      <div class="osub">per month &middot; after tax</div>
-    </div>
-    <div class="outcome-cell">
-      <div class="ocap">Funded by</div>
-      <div class="oval split"><span id="out-mix" class="num">—</span></div>
-      <div class="osub">year-1 income mix</div>
-    </div>
-  </div>
 
-  <!-- Legacy summary-cards (kept in DOM for updateCards() to write into; hidden from view but printed for compliance) -->
-  <div class="summary legacy-summary" aria-hidden="true" style="display: none;">
-    <div class="summary-card primary">
-      <div class="label">Household capital today</div>
-      <div class="value" id="sum-capital">R0</div>
-      <div class="sub-value" id="sum-capital-sub">—</div>
+    <div class="rail-slider">
+      <div class="lever-head">
+        <label id="rail-disc-A-label">Disc draw &middot; A</label>
+        <span class="val" id="disc-draw-A-out">R0</span>
+      </div>
+      <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
     </div>
-    <div class="summary-card">
-      <div class="label">Gross income, year 1</div>
-      <div class="value" id="sum-gross">R0</div>
-      <div class="sub-value">LA + discretionary drawdown</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">After-tax income, year 1</div>
-      <div class="value" id="sum-net">R0</div>
-      <div class="sub-value" id="sum-net-sub">—</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Surplus / shortfall</div>
-      <div class="value" id="sum-gap">R0</div>
-      <div class="sub-value" id="sum-gap-sub">vs household target</div>
-    </div>
-  </div>
 
-  <!-- Chart controls: view segmented on the left; auto-top-up + Real/Nominal +
-       Lock as baseline on the right. Lock sits here (not the plan-bar) because
-       it's a scenario-level action tied to the current projection rather than
-       a plan/navigation action. -->
-  <div class="controls-row">
-    <div class="seg" role="tablist" aria-label="Chart view">
-      <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
-      <button id="btn-view-capital" role="tab" aria-selected="false">Capital</button>
-      <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
+    <div class="rail-slider spouse-b-only">
+      <div class="lever-head">
+        <label id="rail-la-B-label">LA rate &middot; B</label>
+        <span class="val" id="la-rate-B-out">5.00%</span>
+      </div>
+      <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
     </div>
-    <div class="controls-row-right">
+
+    <div class="rail-slider spouse-b-only">
+      <div class="lever-head">
+        <label id="rail-disc-B-label">Disc draw &middot; B</label>
+        <span class="val" id="disc-draw-B-out">R0</span>
+      </div>
+      <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
+    </div>
+
+    <div class="rail-divider"></div>
+    <div class="rail-section-head">Markets</div>
+    <div class="rail-slider">
+      <div class="lever-head">
+        <label>Expected return</label>
+        <span class="val" id="return-c-out">9.00%</span>
+      </div>
+      <input type="range" min="2" max="15" step="0.25" value="9" id="return-c">
+    </div>
+
+    <div class="rail-divider"></div>
+    <div class="rail-section-head">Spending</div>
+    <div class="rail-slider">
+      <div class="lever-head">
+        <label>Monthly need <span class="rail-swing">&plusmn;R30k</span></label>
+        <span class="val" id="needs-monthly-rail-out">R0</span>
+      </div>
+      <input type="range" min="0" max="100000" step="500" value="50000" id="needs-monthly-rail">
+    </div>
+    <div class="rail-slider">
+      <div class="lever-head">
+        <label>Annual lumps <span class="rail-swing">&plusmn;R100k</span></label>
+        <span class="val" id="needs-lump-rail-out">R0</span>
+      </div>
+      <input type="range" min="0" max="500000" step="5000" value="100000" id="needs-lump-rail">
+    </div>
+
+    <div class="rail-divider"></div>
+    <div class="rail-section-head">Display</div>
+    <div class="rail-toggles">
       <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
         <span class="sw" aria-hidden="true"></span>
         <span>Auto-top-up</span>
       </label>
+    </div>
+
+    <div class="rail-divider"></div>
+    <div class="rail-section-head">Schedules</div>
+
+    <div class="sub-section rail-sub">
+      <div class="section-header collapsible collapsed rail-collapsible" data-target="incomes-body-c">
+        <span class="caret"></span>
+        <span>Other income <span id="incomes-count-c" class="rail-count">(0)</span></span>
+      </div>
+      <div id="incomes-body-c" class="collapsible-body collapsed rail-collapsible-body">
+        <div id="incomes-list-c" class="events-list rail-ledger"></div>
+        <div id="incomes-empty-c" class="events-empty rail-events-empty">No income streams yet.</div>
+        <button type="button" id="incomes-add-c" class="add-btn rail-add">&#xFF0B; Add income source</button>
+      </div>
+    </div>
+
+    <div class="sub-section rail-sub">
+      <div class="section-header collapsible collapsed rail-collapsible" data-target="events-body-c">
+        <span class="caret"></span>
+        <span>Capital events <span id="events-count-c" class="rail-count">(0)</span></span>
+      </div>
+      <div id="events-body-c" class="collapsible-body collapsed rail-collapsible-body">
+        <div id="events-list-c" class="events-list rail-ledger"></div>
+        <div id="events-empty-c" class="events-empty rail-events-empty">No capital events yet.</div>
+        <button type="button" id="events-add-c" class="add-btn rail-add">&#xFF0B; Add capital event</button>
+      </div>
+    </div>
+
+    <div class="rail-divider"></div>
+    <div class="rail-actions">
+      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
+      <button type="button" class="btn primary" id="btn-continue-comparison" style="display:none;">Continue &rarr; Summary</button>
+    </div>
+  </aside>
+
+  <!-- ============= PLANNING canvas — base scenario chart + outcome ============= -->
+  <section id="state-single" class="state" data-state="single" data-tab-panel="planning">
+
+  <div class="canvas">
+
+    <!-- Legacy outcome-cell DOM (kept hidden so updateOutcomeStrip's writes are safe no-ops). -->
+    <div hidden aria-hidden="true">
+      <span id="outcome-primary"></span>
+      <span id="out-primary-label"></span><span id="out-age"></span><span id="out-years"></span><span id="out-primary-sub"></span>
+      <span id="out-need"></span><span id="out-mix"></span>
+    </div>
+
+    <!-- Hidden plan-bar fact span used by buildReportSnapshot via updatePlanBarLite. -->
+    <span id="pb-family" hidden>—</span><span id="doc-date" hidden>—</span>
+    <button type="button" id="btn-export-report" hidden>Export report</button>
+    <button type="button" id="btn-edit-plan" hidden>Edit plan</button>
+
+    <!-- Legacy summary-cards (kept in DOM for updateCards() to write into; hidden from view but printed for compliance) -->
+    <div class="summary legacy-summary" aria-hidden="true" style="display: none;">
+      <div class="summary-card primary">
+        <div class="label">Household capital today</div>
+        <div class="value" id="sum-capital">R0</div>
+        <div class="sub-value" id="sum-capital-sub">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Gross income, year 1</div>
+        <div class="value" id="sum-gross">R0</div>
+        <div class="sub-value">LA + discretionary drawdown</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">After-tax income, year 1</div>
+        <div class="value" id="sum-net">R0</div>
+        <div class="sub-value" id="sum-net-sub">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Surplus / shortfall</div>
+        <div class="value" id="sum-gap">R0</div>
+        <div class="sub-value" id="sum-gap-sub">vs household target</div>
+      </div>
+    </div>
+
+    <!-- Chart-view selector only on the canvas; live levers all moved to the rail. -->
+    <div class="controls-row">
+      <div class="seg" role="tablist" aria-label="Chart view">
+        <button id="btn-view-income" class="on active" role="tab" aria-selected="true">Income</button>
+        <button id="btn-view-capital" role="tab" aria-selected="false">Capital</button>
+        <button id="btn-view-table" role="tab" aria-selected="false">Table</button>
+        <button id="btn-view-tax" role="tab" aria-selected="false">Tax</button>
+      </div>
       <div class="seg mini" role="tablist" aria-label="Real or Nominal">
         <button id="btn-real" role="tab" aria-selected="false">Real</button>
         <button id="btn-nom" class="on" role="tab" aria-selected="true">Nominal</button>
       </div>
-      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
     </div>
-  </div>
 
-  <div class="chart-card">
-    <!-- Capital view legend (hidden by default — Income is the new default view) -->
-    <div class="chart-legend" id="legend-capital" role="toolbar" aria-label="Capital chart series toggles" style="display: none;">
-      <button type="button" class="series-toggle" id="tog-la" data-series="la" aria-pressed="true">
-        <span class="swatch" style="background:#2a6b6b;"></span>Living annuities
-      </button>
-      <button type="button" class="series-toggle" id="tog-disc" data-series="disc" aria-pressed="true">
-        <span class="swatch" style="background:#b8893c;"></span>Discretionary
-      </button>
-      <button type="button" class="series-toggle" id="tog-rate" data-series="rate" aria-pressed="true" style="color:#a04438;">
-        <span class="swatch line" style="color:#a04438;"></span>Household withdrawal rate
-      </button>
-    </div>
-    <!-- Income view legend (default visible; Capital view toggles this) -->
-    <div class="chart-legend" id="legend-income" role="toolbar" aria-label="Income chart series toggles">
-      <button type="button" class="series-toggle" id="tog-inc-la" data-series="la" aria-pressed="true">
-        <span class="swatch" style="background:#2a6b6b;"></span>LA draw
-      </button>
-      <button type="button" class="series-toggle" id="tog-inc-disc" data-series="disc" aria-pressed="true">
-        <span class="swatch" style="background:#b8893c;"></span>Discretionary
-      </button>
-      <button type="button" class="series-toggle" id="tog-inc-other" data-series="other" aria-pressed="true">
-        <span class="swatch" style="background:#38495b;"></span>Other income
-      </button>
-      <button type="button" class="series-toggle" id="tog-inc-tax" data-series="tax" aria-pressed="true">
-        <span class="swatch" style="background:#d27a88;"></span>Tax
-      </button>
-      <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#1f2d3d;">
-        <span class="swatch line" style="color:#1f2d3d;"></span>Target need
-      </button>
-    </div>
-    <!-- Plan-health alerts (populated dynamically; hidden if no alerts) -->
-    <div id="chart-alerts" class="chart-alerts" style="display: none;"></div>
-    <div class="chart-wrap">
-      <canvas id="chart" role="img" aria-label="Stacked bar chart of household capital split by living annuity and discretionary, with household withdrawal rate as a percentage line on the secondary axis." style="display: none;">Capital projection chart.</canvas>
-      <canvas id="chart-income" role="img" aria-label="Stacked bar chart of household income sources (living annuity, discretionary, other) versus the target need line, year by year.">Income projection chart.</canvas>
-      <div id="year-table-wrap" class="year-table-wrap" style="display: none;" role="region" aria-label="Year-by-year projection table">
-        <table class="year-table" id="year-table">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+    <div class="chart-card">
+      <!-- Capital view legend (hidden by default — Income is the new default view) -->
+      <div class="chart-legend" id="legend-capital" role="toolbar" aria-label="Capital chart series toggles" style="display: none;">
+        <button type="button" class="series-toggle" id="tog-la" data-series="la" aria-pressed="true">
+          <span class="swatch" style="background:#2a6b6b;"></span>Living annuities
+        </button>
+        <button type="button" class="series-toggle" id="tog-disc" data-series="disc" aria-pressed="true">
+          <span class="swatch" style="background:#b8893c;"></span>Discretionary
+        </button>
+        <button type="button" class="series-toggle" id="tog-rate" data-series="rate" aria-pressed="true" style="color:#a04438;">
+          <span class="swatch line" style="color:#a04438;"></span>Household withdrawal rate
+        </button>
       </div>
-    </div>
-  </div>
-
-  <!-- Canvas footer -->
-  <div class="canvas-foot">
-    <span>Illustrative only &middot; 2026/27 SARS tables &middot; <span id="foot-topup">auto-top-up on</span> &middot; <span id="foot-mode">real terms</span></span>
-    <span class="canvas-foot-actions">
-      <button type="button" class="btn ghost" id="btn-show-table">Year-by-year table</button>
-    </span>
-  </div>
-
-  </section>
-  <!-- /state-single -->
-
-  <!-- ============= STATE 3: Compare ============= -->
-  <section id="state-compare" class="state is-hidden" data-state="compare">
-
-    <!-- Plan inputs summary bar (mirrors state-single) -->
-    <div class="plan-bar-lite">
-      <div class="plan-bar-lite-left">
-        <span class="eyebrow">Simple Wealth &middot; Retirement Drawdown</span>
-        <span class="plan-bar-lite-fact"><label>Household</label><span id="pb-household-c" class="num">—</span></span>
-        <span class="plan-bar-lite-fact"><label>Baseline</label><span id="pb-baseline-c" class="num">—</span></span>
+      <!-- Income view legend (default visible; Capital view toggles this) -->
+      <div class="chart-legend" id="legend-income" role="toolbar" aria-label="Income chart series toggles">
+        <button type="button" class="series-toggle" id="tog-inc-la" data-series="la" aria-pressed="true">
+          <span class="swatch" style="background:#2a6b6b;"></span>LA draw
+        </button>
+        <button type="button" class="series-toggle" id="tog-inc-disc" data-series="disc" aria-pressed="true">
+          <span class="swatch" style="background:#b8893c;"></span>Discretionary
+        </button>
+        <button type="button" class="series-toggle" id="tog-inc-other" data-series="other" aria-pressed="true">
+          <span class="swatch" style="background:#38495b;"></span>Other income
+        </button>
+        <button type="button" class="series-toggle" id="tog-inc-tax" data-series="tax" aria-pressed="true">
+          <span class="swatch" style="background:#d27a88;"></span>Tax
+        </button>
+        <button type="button" class="series-toggle" id="tog-inc-target" data-series="target" aria-pressed="true" style="color:#1f2d3d;">
+          <span class="swatch line" style="color:#1f2d3d;"></span>Target need
+        </button>
       </div>
-      <button type="button" class="btn ghost" id="btn-edit-plan-compare">Edit plan &darr;</button>
-    </div>
-
-    <!-- Compact head -->
-    <div class="canvas-head compact">
-      <div class="canvas-head-left">
-        <div class="eyebrow canvas-head-eyebrow">Scenario compare &middot; baseline locked</div>
-        <h1 class="headline" style="font-size: 36px;">
-          What if we <span class="gold-under" id="cmp-tweak">nudge the levers</span>?
-        </h1>
-      </div>
-      <div class="canvas-head-actions">
-        <label class="toggle-pill" id="toggle-topup-pill-c" role="switch" aria-checked="false" tabindex="0">
-          <span class="sw" aria-hidden="true"></span>
-          <span>Auto-top-up</span>
-        </label>
-        <div class="seg mini" role="tablist" aria-label="Real or Nominal (compare)">
-          <button id="btn-real-c" role="tab" aria-selected="false">Real</button>
-          <button id="btn-nom-c" class="on" role="tab" aria-selected="true">Nominal</button>
+      <!-- Plan-health alerts (populated dynamically; hidden if no alerts) -->
+      <div id="chart-alerts" class="chart-alerts" style="display: none;"></div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="Stacked bar chart of household capital split by living annuity and discretionary, with household withdrawal rate as a percentage line on the secondary axis." style="display: none;">Capital projection chart.</canvas>
+        <canvas id="chart-income" role="img" aria-label="Stacked bar chart of household income sources (living annuity, discretionary, other) versus the target need line, year by year.">Income projection chart.</canvas>
+        <div id="year-table-wrap" class="year-table-wrap" style="display: none;" role="region" aria-label="Year-by-year projection table">
+          <table class="year-table" id="year-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
         </div>
-        <button type="button" class="btn ghost" id="btn-clear-baseline">Clear baseline</button>
-        <button type="button" class="btn primary" id="btn-relock-baseline">Re-lock as new baseline</button>
-      </div>
-    </div>
-
-    <!-- Two-up cards -->
-    <div class="compare-grid">
-      <div class="compare-card baseline" id="compare-baseline">
-        <div class="compare-card-head">
-          <span class="compare-tag">Baseline &middot; current plan</span>
-          <span class="compare-lock">Locked</span>
-        </div>
-        <div class="compare-bigval">age <span id="base-age" class="num-italic">—</span> <span class="unit">&middot; <span id="base-years" class="num">—</span> years</span></div>
-        <div class="compare-sub" id="base-sub">—</div>
-        <div class="compare-mini-chart"><canvas id="cmp-chart-baseline" role="img" aria-label="Baseline income projection chart."></canvas></div>
-        <div class="compare-meta" id="base-meta"></div>
-      </div>
-      <div class="compare-card scenario" id="compare-scenario">
-        <div class="compare-card-head">
-          <span class="compare-tag">Planned scenario</span>
-          <span class="delta-chip" id="cmp-delta-chip">&mdash;</span>
-        </div>
-        <div class="compare-bigval">age <span id="cmp-age" class="num-italic">—</span> <span class="unit">&middot; <span id="cmp-years" class="num">—</span> years</span></div>
-        <div class="compare-sub" id="cmp-sub">—</div>
-        <div class="compare-mini-chart"><canvas id="cmp-chart-scenario" role="img" aria-label="Scenario income projection chart."></canvas></div>
-        <div class="compare-meta" id="cmp-meta"></div>
-      </div>
-    </div>
-
-    <div class="compare-helper">
-      Use the scenario levers below to adjust this plan. Baseline stays locked until you re-lock or clear it.
-    </div>
-
-  </section>
-
-  <!-- ============= Shared chrome (visible in State 2 and State 3) =============
-       Hidden in State 1 via [data-state-active="empty"] rule. -->
-  <div id="shared-chrome">
-
-    <!-- Financial levers: the strategy-board controls for live client meetings.
-         Inputs are -c duplicates of State 1's setup inputs; two-way sync keeps
-         project() reading from the canonical IDs. CSS class `.scenario-adjust`
-         is retained as an internal identifier. -->
-    <div class="scenario-adjust">
-      <div class="section-header">Financial levers</div>
-
-      <!-- Drawdown levers: folded in at the top of Financial levers so per-spouse
-           LA rate / disc draw / Solve sit alongside the other strategy-board
-           controls in one block. -->
-      <div class="drawdown-levers-inline">
-        <div class="section-header drawdown-levers-head">
-          <span>Drawdown levers</span>
-          <button class="btn ghost" id="btn-solve" style="font-size: 12px;">Solve LA rates to target</button>
-        </div>
-        <div class="levers-two-col">
-
-          <div class="levers">
-            <h3 id="lev-name-A">Spouse A</h3>
-            <div class="levers-grid">
-              <div class="lever">
-                <div class="lever-head">
-                  <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
-                  <span class="val" id="la-rate-A-out">5.00%</span>
-                </div>
-                <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-A">
+        <!-- Tax view: full per-spouse Y1 tax breakdown. Same DOM was previously a
+             below-the-fold panel in #shared-chrome; now a clickable view inside
+             the chart-card alongside Income / Capital / Table. -->
+        <div id="tax-view-wrap" class="tax-view-wrap" style="display: none;" role="region" aria-label="Year-1 income tax breakdown">
+          <div class="tax-panel">
+            <div class="tax-sub">Tax is computed on each spouse individually at 2026/27 SARS rates. Living annuity income is fully taxable. Discretionary withdrawals trigger CGT on the gain portion (proportional to base cost), included at 40% into taxable income with a R50 000 annual exclusion applied per person.</div>
+            <div class="tax-grid">
+              <div class="tax-side">
+                <h4 id="tax-name-A">Spouse A</h4>
+                <table class="tax-table">
+                  <tr><td>LA income</td><td id="ta-la">R0</td></tr>
+                  <tr><td>Other taxable income (year 1)</td><td id="ta-other">R0</td></tr>
+                  <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
+                  <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="ta-incl">R0</td></tr>
+                  <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
+                  <tr><td>Income tax before rebates</td><td id="ta-gross">R0</td></tr>
+                  <tr class="sub"><td>less primary + age rebates</td><td id="ta-rebate">R0</td></tr>
+                  <tr class="total"><td>Tax payable</td><td id="ta-payable">R0</td></tr>
+                  <tr><td>Effective rate on gross income</td><td id="ta-eff">0.0%</td></tr>
+                </table>
               </div>
-              <div class="lever">
-                <div class="lever-head">
-                  <label>Annual discretionary withdrawal</label>
-                  <span class="val" id="disc-draw-A-out">R0</span>
-                </div>
-                <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-A">
-              </div>
-            </div>
-          </div>
-
-          <div class="levers spouse-b-only">
-            <h3 id="lev-name-B">Spouse B</h3>
-            <div class="levers-grid">
-              <div class="lever">
-                <div class="lever-head">
-                  <label>Initial LA drawdown rate <span style="color:var(--mute);">(rand escalates at CPI thereafter)</span></label>
-                  <span class="val" id="la-rate-B-out">5.00%</span>
-                </div>
-                <input type="range" min="2.5" max="17.5" step="0.25" value="5" id="la-rate-B">
-              </div>
-              <div class="lever">
-                <div class="lever-head">
-                  <label>Annual discretionary withdrawal</label>
-                  <span class="val" id="disc-draw-B-out">R0</span>
-                </div>
-                <input type="range" min="0" max="2000000" step="10000" value="0" id="disc-draw-B">
+              <div class="tax-side spouse-b-only">
+                <h4 id="tax-name-B">Spouse B</h4>
+                <table class="tax-table">
+                  <tr><td>LA income</td><td id="tb-la">R0</td></tr>
+                  <tr><td>Other taxable income (year 1)</td><td id="tb-other">R0</td></tr>
+                  <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
+                  <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="tb-incl">R0</td></tr>
+                  <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
+                  <tr><td>Income tax before rebates</td><td id="tb-gross">R0</td></tr>
+                  <tr class="sub"><td>less primary + age rebates</td><td id="tb-rebate">R0</td></tr>
+                  <tr class="total"><td>Tax payable</td><td id="tb-payable">R0</td></tr>
+                  <tr><td>Effective rate on gross income</td><td id="tb-eff">0.0%</td></tr>
+                </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="scenario-adjust-row scenario-adjust-row-divider">
-        <div class="lever">
-          <div class="lever-head">
-            <label>Expected nominal return <span style="color:var(--mute);">(portfolio mix)</span></label>
-            <span class="val" id="return-c-out">9.00%</span>
-          </div>
-          <input type="range" min="2" max="15" step="0.25" value="9" id="return-c">
-        </div>
-      </div>
-
-      <div class="scenario-adjust-row two-col" style="margin-top: 16px;">
-        <div class="scenario-adjust-field">
-          <label>Monthly household need</label>
-          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="needs-monthly-c" value="50 000" inputmode="numeric" aria-label="Monthly household need (scenario)"></div>
-        </div>
-        <div class="scenario-adjust-field">
-          <label>Annual lump sums</label>
-          <div class="input-wrap"><span class="pfx">R</span><input type="text" id="needs-lump-c" value="100 000" inputmode="numeric" aria-label="Annual lump sums (scenario)"></div>
-        </div>
-      </div>
-
-      <div class="sub-section">
-        <div class="section-header collapsible collapsed" data-target="incomes-body-c">
-          <span class="caret"></span><span>Other taxable income</span>
-        </div>
-        <div id="incomes-body-c" class="collapsible-body collapsed">
-          <div id="incomes-list-c" class="events-list"></div>
-          <div id="incomes-empty-c" class="events-empty">No other income streams yet.</div>
-          <button type="button" id="incomes-add-c" class="add-btn">&#xFF0B; Add income source</button>
-        </div>
-      </div>
-
-      <div class="sub-section">
-        <div class="section-header collapsible collapsed" data-target="events-body-c">
-          <span class="caret"></span><span>Capital events</span>
-        </div>
-        <div id="events-body-c" class="collapsible-body collapsed">
-          <div id="events-list-c" class="events-list"></div>
-          <div id="events-empty-c" class="events-empty">No capital events yet.</div>
-          <button type="button" id="events-add-c" class="add-btn">&#xFF0B; Add capital event</button>
-        </div>
-      </div>
     </div>
 
-    <!-- Tax panel -->
-    <div class="section-header" style="margin-top: 28px;">Year 1 income tax projection (2026/27 tables)</div>
-    <div class="tax-panel">
-      <div class="tax-sub">Tax is computed on each spouse individually at 2026/27 SARS rates. Living annuity income is fully taxable. Discretionary withdrawals trigger CGT on the gain portion (proportional to base cost), included at 40% into taxable income with a R50 000 annual exclusion applied per person.</div>
-      <div class="tax-grid">
-        <div class="tax-side">
-          <h4 id="tax-name-A">Spouse A</h4>
-          <table class="tax-table">
-            <tr><td>LA income</td><td id="ta-la">R0</td></tr>
-            <tr><td>Other taxable income (year 1)</td><td id="ta-other">R0</td></tr>
-            <tr><td>Capital gain realised</td><td id="ta-gain">R0</td></tr>
-            <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="ta-incl">R0</td></tr>
-            <tr><td>Taxable income</td><td id="ta-taxable">R0</td></tr>
-            <tr><td>Income tax before rebates</td><td id="ta-gross">R0</td></tr>
-            <tr class="sub"><td>less primary + age rebates</td><td id="ta-rebate">R0</td></tr>
-            <tr class="total"><td>Tax payable</td><td id="ta-payable">R0</td></tr>
-            <tr><td>Effective rate on gross income</td><td id="ta-eff">0.0%</td></tr>
-          </table>
-        </div>
-        <div class="tax-side spouse-b-only">
-          <h4 id="tax-name-B">Spouse B</h4>
-          <table class="tax-table">
-            <tr><td>LA income</td><td id="tb-la">R0</td></tr>
-            <tr><td>Other taxable income (year 1)</td><td id="tb-other">R0</td></tr>
-            <tr><td>Capital gain realised</td><td id="tb-gain">R0</td></tr>
-            <tr class="sub"><td>CGT inclusion (40% &times; [gain &minus; R50k])</td><td id="tb-incl">R0</td></tr>
-            <tr><td>Taxable income</td><td id="tb-taxable">R0</td></tr>
-            <tr><td>Income tax before rebates</td><td id="tb-gross">R0</td></tr>
-            <tr class="sub"><td>less primary + age rebates</td><td id="tb-rebate">R0</td></tr>
-            <tr class="total"><td>Tax payable</td><td id="tb-payable">R0</td></tr>
-            <tr><td>Effective rate on gross income</td><td id="tb-eff">0.0%</td></tr>
-          </table>
-        </div>
-      </div>
+    <!-- Canvas footer -->
+    <div class="canvas-foot">
+      <span>Illustrative only &middot; 2026/27 SARS tables &middot; <span id="foot-topup">auto-top-up on</span> &middot; <span id="foot-mode">real terms</span></span>
+      <span class="canvas-foot-actions">
+        <button type="button" class="btn ghost" id="btn-show-table">Year-by-year table</button>
+      </span>
     </div>
+
   </div>
+  <!-- /canvas -->
+
+  </section>
+  <!-- /state-single (Planning) -->
+
+  <!-- ============= SCENARIOS canvas — what-if workspace ============= -->
+  <section id="state-compare" class="state" data-state="compare" data-tab-panel="scenarios">
+
+    <div class="canvas">
+
+      <!-- Compact head -->
+      <div class="canvas-head compact">
+        <div class="canvas-head-left">
+          <div class="eyebrow canvas-head-eyebrow">Scenario compare &middot; baseline locked</div>
+          <h1 class="headline" style="font-size: 32px;">
+            What if we <span class="gold-under" id="cmp-tweak">nudge the levers</span>?
+          </h1>
+        </div>
+        <div class="canvas-head-actions">
+          <button type="button" class="btn ghost" id="btn-clear-baseline">Clear baseline</button>
+          <button type="button" class="btn ghost" id="btn-relock-baseline">Re-lock baseline</button>
+        </div>
+      </div>
+
+      <!-- Two-up cards -->
+      <div class="compare-grid">
+        <div class="compare-card baseline" id="compare-baseline">
+          <div class="compare-card-head">
+            <span class="compare-tag">Baseline &middot; locked</span>
+            <span class="compare-lock">Locked</span>
+          </div>
+          <div class="compare-bigval">age <span id="base-age" class="num-italic">—</span> <span class="unit">&middot; <span id="base-years" class="num">—</span> years</span></div>
+          <div class="compare-sub" id="base-sub">—</div>
+          <div class="compare-mini-chart"><canvas id="cmp-chart-baseline" role="img" aria-label="Baseline income projection chart."></canvas></div>
+          <div class="compare-meta" id="base-meta"></div>
+        </div>
+        <div class="compare-card scenario" id="compare-scenario">
+          <div class="compare-card-head">
+            <span class="compare-tag">Live scenario</span>
+            <span class="delta-chip" id="cmp-delta-chip">&mdash;</span>
+          </div>
+          <div class="compare-bigval">age <span id="cmp-age" class="num-italic">—</span> <span class="unit">&middot; <span id="cmp-years" class="num">—</span> years</span></div>
+          <div class="compare-sub" id="cmp-sub">—</div>
+          <div class="compare-mini-chart"><canvas id="cmp-chart-scenario" role="img" aria-label="Scenario income projection chart."></canvas></div>
+          <div class="compare-meta" id="cmp-meta"></div>
+        </div>
+      </div>
+
+      <div class="compare-helper">
+        Move the rail levers to play with the live scenario. Baseline stays locked until you re-lock or clear it.
+        <button type="button" class="btn primary" id="btn-edit-plan-compare" style="float: right;">Edit plan &darr;</button>
+      </div>
+
+    </div>
+    <!-- /canvas -->
+
+  </section>
+
+</div>
+<!-- /rail-canvas-shell -->
+
+<!-- ============= COMPARISON SUMMARY tab — decision-ready delta readout ============= -->
+<section data-tab-panel="comparison" class="comparison-panel" aria-label="Comparison summary">
+  <div class="eyebrow">Decision summary &middot; <span id="cmp-summary-date">—</span></div>
+  <h2>What we&rsquo;re recommending</h2>
+
+  <div class="comparison-lines">
+    <div class="comparison-line"><span class="lbl">Baseline</span><span id="cmp-summary-baseline">—</span></div>
+    <div class="comparison-line"><span class="lbl">Scenario</span><span id="cmp-summary-scenario">—</span></div>
+  </div>
+
+  <div class="comparison-section-head">Key changes</div>
+  <ul class="comparison-changes" id="cmp-summary-changes">
+    <li class="empty">No changes yet &mdash; lock a baseline on Planning, then play with the scenario levers.</li>
+  </ul>
+
+  <div class="comparison-section-head">Verdict</div>
+  <div class="comparison-verdict" id="cmp-summary-verdict">&mdash;</div>
+
+  <div class="comparison-actions">
+    <button type="button" class="btn primary" id="btn-export-from-summary">Export report PDF &rarr;</button>
+    <button type="button" class="btn ghost" id="btn-back-to-scenarios">Re-open Scenarios</button>
+  </div>
+</section>
+
+<!-- ============= ASSUMPTIONS tab — methodology + market defaults =============
+     Read-only on this tab; canonical Return + CPI inputs live on Info,
+     Return is also on the Planning rail for meeting-time adjustment. -->
+<section data-tab-panel="assumptions" class="assumptions-panel" aria-label="Assumptions and methodology">
+  <div class="assumptions-block">
+    <h3>Market assumptions (live)</h3>
+    <table>
+      <tr><td>Expected nominal return</td><td><span id="asm-return-readout">9.00%</span></td></tr>
+      <tr><td>Expected CPI</td><td><span id="asm-cpi-readout">5.00%</span></td></tr>
+      <tr><td>Auto-top-up</td><td><span id="asm-topup-readout">off</span></td></tr>
+    </table>
+    <p style="font-size: 11px; color: var(--mute); margin-top: 10px;">Adjust on Info (setup) or the Planning rail (live).</p>
+  </div>
+
+  <div class="assumptions-block">
+    <h3>SARS 2026/27 reference</h3>
+    <table>
+      <tr><td>Bracket creep (annual)</td><td>3.0%</td></tr>
+      <tr><td>CGT inclusion (individuals)</td><td>40%</td></tr>
+      <tr><td>CGT annual exclusion</td><td>R 50 000</td></tr>
+      <tr><td>Living-annuity drawdown band</td><td>2.5% &ndash; 17.5%</td></tr>
+      <tr><td>Primary rebate</td><td>R 17 235</td></tr>
+      <tr><td>Secondary rebate (65+)</td><td>R 9 444</td></tr>
+      <tr><td>Tertiary rebate (75+)</td><td>R 3 145</td></tr>
+    </table>
+  </div>
+
+  <div class="assumptions-prose">
+    <p>The calculator projects each year independently from each spouse&rsquo;s starting age to the youngest spouse&rsquo;s age 100, applying SARS 2026/27 income tax with bracket creep, CGT on discretionary gains, and the legislated 2.5%&ndash;17.5% living-annuity withdrawal band. LA draws escalate in rand terms at CPI each year, clamped into the band. Discretionary draws trigger CGT on the realised gain portion (proportional to base cost), included at 40% into taxable income with a R 50 000 annual exclusion per person. Tax is computed per spouse; auto-top-up solves a three-phase apportionment to meet the lifestyle target after tax.</p>
+    <p style="font-size: 11px; color: var(--mute); margin-top: 16px;">Simple Wealth (Pty) Ltd is an authorised financial services provider, FSP 50637. This projection is illustrative; actual outcomes depend on market returns, longevity, regulatory change, and adviser-led adjustments not modelled here. Discuss with your adviser before acting on these figures.</p>
+  </div>
+</section>
+
 
   <!-- Print summary — top-level sibling so it reads BELOW the levers + tax
        panel in State 2. Hidden in State 1 / State 3 via the
@@ -2438,32 +2891,51 @@
   var chart = null;
   var seriesVisible = { la: true, disc: true, rate: true };
 
-  // ===== App state (three-state flow: empty → single → compare) =====
-  var appState = 'empty';  // 'empty' | 'single' | 'compare' — refresh always starts at the setup view
-  var baseline = null;     // frozen snapshot for Compare; populated on Lock as baseline
-  function setAppState(next){
-    if (next === appState) return;
-    var prev = appState;
-    appState = next;
-    document.body.setAttribute('data-app-state', next);
-    var states = document.querySelectorAll('[data-state]');
-    for (var i = 0; i < states.length; i++){
-      var el = states[i];
-      var match = el.getAttribute('data-state') === next;
-      el.classList.toggle('is-hidden', !match);
+  // ===== Tab state (Session 15: 5-tab nav) =====
+  // Tabs: 'info' | 'planning' | 'scenarios' | 'comparison' | 'assumptions'
+  // - info        → setup screen (today's State 1, kept as-is)
+  // - planning    → base scenario, chart + levers (rail+canvas)
+  // - scenarios   → what-if workspace (lock baseline, two-up compare)
+  // - comparison  → decision-ready delta readout
+  // - assumptions → methodology, SARS, return/CPI defaults, FSP disclaimer
+  // Visibility is driven purely by body[data-tab] + CSS attribute selectors;
+  // the legacy data-state / .is-hidden machinery is retired.
+  var activeTab = 'info';
+  var baseline = null;     // frozen snapshot for Scenarios; populated on Lock as baseline
+  function setTab(next){
+    if (next === activeTab) return;
+    var prev = activeTab;
+    activeTab = next;
+    document.body.setAttribute('data-tab', next);
+    // Update the tab-nav button states.
+    var btns = document.querySelectorAll('.tab-nav-tab');
+    for (var k = 0; k < btns.length; k++){
+      var b = btns[k];
+      var on = b.getAttribute('data-tab-target') === next;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
     }
-    // Repaint the store-backed lists so canonical and scenario-mirror
-    // rows both reflect the current store (in case the user edited one
-    // side while the other was hidden).
+    // Repaint the store-backed lists.
     if (typeof renderEvents === 'function') renderEvents();
     if (typeof renderIncomes === 'function') renderIncomes();
     if (typeof refresh === 'function') refresh();
-    // Browsers keep the scroll position across display-swap state changes,
-    // which lands the user near the bottom when moving from the short empty
-    // state to the taller single state (and vice versa). Reset on every
-    // transition so each state lands at the top of the page.
-    try { window.scrollTo(0, 0); } catch (_) {}
+    // Force the viewport to the very top — fire immediately AND after the next
+    // paint, because Chart.js may resize after refresh() returns and that can
+    // trigger CSS scroll anchoring to nudge the page down.
+    var snapTop = function(){
+      try { window.scrollTo(0, 0); } catch (_) {}
+      try { document.documentElement.scrollTop = 0; } catch (_) {}
+      try { document.body.scrollTop = 0; } catch (_) {}
+    };
+    snapTop();
+    try { requestAnimationFrame(snapTop); } catch (_) {}
+    try { setTimeout(snapTop, 50); } catch (_) {}
     return prev;
+  }
+  // Backwards-compat shim — call sites we haven't migrated still pass legacy names.
+  function setAppState(legacy){
+    var m = { empty: 'info', single: 'planning', compare: 'scenarios' };
+    return setTab(m[legacy] || legacy);
   }
 
   // ===== Formatting =====
@@ -3053,12 +3525,20 @@
   // directly each refresh, so they are not listed here.
   function updateNameLabels(){
     var nA = getName('A'), nB = getName('B');
-    set('lev-name-A', nA);
-    set('lev-name-B', nB);
+    var legacyLevA = document.getElementById('lev-name-A');
+    if (legacyLevA) legacyLevA.textContent = nA;
+    var legacyLevB = document.getElementById('lev-name-B');
+    if (legacyLevB) legacyLevB.textContent = nB;
     set('tax-name-A', nA);
     set('tax-name-B', nB);
     set('s-name-A', nA + ' — inputs');
     set('s-name-B', nB + ' — inputs');
+    // Planning rail compact slider labels.
+    function railLabel(id, txt){ var el = document.getElementById(id); if (el) el.textContent = txt; }
+    railLabel('rail-la-A-label', 'LA rate · ' + nA);
+    railLabel('rail-la-B-label', 'LA rate · ' + nB);
+    railLabel('rail-disc-A-label', 'Disc draw · ' + nA);
+    railLabel('rail-disc-B-label', 'Disc draw · ' + nB);
   }
 
   // ===== Label updates =====
@@ -3655,6 +4135,7 @@
             tension: 0, pointRadius: 0, pointHoverRadius: 0, borderWidth: 0 },
           { type: 'bar', label: 'Tax', data: bars.tax, backgroundColor: '#d27a88',
             stack: 'cmp',
+            hidden: true,
             borderColor: '#ffffff',
             borderWidth: { top: 0, right: 1, bottom: 0, left: 0 },
             borderSkipped: false,
@@ -3869,6 +4350,8 @@
     var surname = familySpan ? (familySpan.textContent || '').trim() : '';
     var phF = document.getElementById('pb-family');
     if (phF) phF.textContent = surname || '—';
+    var tnF = document.getElementById('tn-family');
+    if (tnF) tnF.textContent = surname || '—';
   }
 
   // ===== Sustainability analysis for editorial framing =====
@@ -3951,6 +4434,10 @@
         }
       }
     }
+    // Strip-level coral cue when shortfall — preserves the at-a-glance verdict
+    // signal now that the primary cell no longer has its own background.
+    var strip = document.querySelector('.outcome-strip');
+    if (strip) strip.classList.toggle('is-shortfall', !an.verdict);
   }
 
   function updateCanvasFoot(){
@@ -3959,6 +4446,110 @@
     var onEl = document.getElementById('needs-topup');
     if (topupEl) topupEl.textContent = (onEl && onEl.checked) ? 'auto-top-up on' : 'auto-top-up off';
     if (modeEl) modeEl.textContent = (mode === 'real') ? 'real terms' : 'nominal terms';
+  }
+
+  // Assumptions tab: read-only readouts of the live market assumptions.
+  function updateAssumptionsReadouts(p){
+    var rEl = document.getElementById('asm-return-readout');
+    var cEl = document.getElementById('asm-cpi-readout');
+    var tEl = document.getElementById('asm-topup-readout');
+    var sEl = document.getElementById('asm-start-age');
+    if (rEl) rEl.textContent = (p.rNom * 100).toFixed(2) + '%';
+    if (cEl) cEl.textContent = (p.cpi * 100).toFixed(2) + '%';
+    if (tEl){
+      var cb = document.getElementById('needs-topup');
+      tEl.textContent = (cb && cb.checked) ? 'on' : 'off';
+    }
+    if (sEl) sEl.textContent = p.startAge;
+  }
+
+  // Comparison Summary: decision-ready delta between locked baseline and live scenario.
+  function summariseSnapshot(s, fallbackLabel){
+    if (!s) return fallbackLabel || '— (no scenario yet)';
+    var an = analyseProjection(s);
+    var monthly = (s.targetPVAnnual || 0) / 12;
+    var ageStr = an.sustainableAge ? ('sustainable to age ' + an.sustainableAge) : 'shortfall before horizon';
+    return fmtR(monthly) + '/month · ' + ageStr + ' · Return ' + (s.rNom * 100).toFixed(1) + '% · CPI ' + (s.cpi * 100).toFixed(1) + '%';
+  }
+  function diffPlanForSummary(base, cur){
+    var changes = [];
+    if (!base) return changes;
+    function pct(v){ return (v * 100).toFixed(1) + '%'; }
+    if (Math.abs((base.rNom||0) - (cur.rNom||0)) > 0.0005){
+      changes.push('Expected return ' + pct(base.rNom) + ' → ' + pct(cur.rNom));
+    }
+    if (Math.abs((base.cpi||0) - (cur.cpi||0)) > 0.0005){
+      changes.push('CPI ' + pct(base.cpi) + ' → ' + pct(cur.cpi));
+    }
+    var bM = (base.targetPVAnnual||0) / 12;
+    var cM = (cur.targetPVAnnual||0) / 12;
+    if (Math.abs(bM - cM) >= 1){
+      changes.push('Monthly need ' + fmtR(bM) + ' → ' + fmtR(cM));
+    }
+    function laRate(p, who){ return (p && p['p'+who] && p['p'+who].laRate) || 0; }
+    function discDraw(p, who){ return (p && p['p'+who] && p['p'+who].discDraw) || 0; }
+    ['A','B'].forEach(function(who){
+      var bRate = laRate(base, who), cRate = laRate(cur, who);
+      if (Math.abs(bRate - cRate) > 0.0005 && (cur.pA || cur.pB)){
+        changes.push(getName(who) + ' LA rate ' + pct(bRate) + ' → ' + pct(cRate));
+      }
+      var bDraw = discDraw(base, who), cDraw = discDraw(cur, who);
+      if (Math.abs(bDraw - cDraw) >= 1000){
+        changes.push(getName(who) + ' disc draw ' + fmtR(bDraw) + ' → ' + fmtR(cDraw));
+      }
+    });
+    function evCount(p){ return (p && p.events && p.events.length) || 0; }
+    var bn = evCount(base), cn = evCount(cur);
+    if (bn !== cn){
+      var sign = cn > bn ? '+' : '';
+      changes.push('Capital events ' + bn + ' → ' + cn + ' (' + sign + (cn - bn) + ')');
+    }
+    return changes;
+  }
+  function updateComparisonSummary(p){
+    var dateEl = document.getElementById('cmp-summary-date');
+    if (dateEl){
+      var d = new Date();
+      dateEl.textContent = d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    var bEl = document.getElementById('cmp-summary-baseline');
+    var sEl = document.getElementById('cmp-summary-scenario');
+    if (bEl) bEl.textContent = summariseSnapshot(baseline, '— (lock a baseline on Planning first)');
+    if (sEl) sEl.textContent = summariseSnapshot(p, '—');
+    var ul = document.getElementById('cmp-summary-changes');
+    if (ul){
+      var changes = diffPlanForSummary(baseline, p);
+      if (!baseline){
+        ul.innerHTML = '<li class="empty">No baseline locked yet — head to Planning, find the base scenario, then click <em>Lock as baseline</em>.</li>';
+      } else if (changes.length === 0){
+        ul.innerHTML = '<li class="empty">No changes vs baseline yet — adjust scenario levers on Scenarios.</li>';
+      } else {
+        ul.innerHTML = changes.map(function(c){ return '<li>' + c + '</li>'; }).join('');
+      }
+    }
+    var vEl = document.getElementById('cmp-summary-verdict');
+    if (vEl){
+      var an = analyseProjection(p);
+      var msg;
+      if (!baseline){
+        msg = 'Lock a baseline first — the verdict reads as a delta against it.';
+      } else {
+        var bAn = analyseProjection(baseline);
+        var bAge = bAn.sustainableAge || 0;
+        var cAge = an.sustainableAge || 0;
+        var dy = cAge - bAge;
+        if (cAge >= 100){
+          msg = 'Lifestyle target met to age 100, no shortfall.';
+        } else if (dy > 0){
+          msg = 'Scenario adds ' + dy + ' more year' + (dy === 1 ? '' : 's') + ' of runway vs baseline (sustains to age ' + cAge + ').';
+        } else if (dy < 0){
+          msg = 'Scenario shortens runway by ' + Math.abs(dy) + ' year' + (Math.abs(dy) === 1 ? '' : 's') + ' (sustains to age ' + cAge + ').';
+        } else {
+          msg = 'Scenario sustains to the same age as baseline (age ' + cAge + ').';
+        }
+      }
+      vEl.textContent = msg;
+    }
   }
 
   function syncTopupPill(){
@@ -4105,9 +4696,9 @@
     updateCards(p);
     updateTaxPanel(p);
     updateAlerts(p);
-    // Chart canvas lives inside #state-single; when other states are active, the
-    // canvas is display:none — Chart.js tolerates this but skip renders in 'empty'.
-    if (appState !== 'empty'){
+    // Chart canvas lives inside the Planning panel; skip Chart.js when not
+    // viewing a chart-bearing tab.
+    if (activeTab === 'planning' || activeTab === 'scenarios'){
       if (chartView === 'capital') buildChart(p);
       else if (chartView === 'income') buildIncomeChart(p);
       else if (chartView === 'table') buildYearTable(p);
@@ -4118,11 +4709,17 @@
     updateOutcomeStrip(p, an);
     updateCanvasFoot();
     syncTopupPill();
-    if (appState === 'compare'){
+    if (activeTab === 'scenarios'){
       updateCompareCards(p);
       // Both sides: baseline reads from the locked snapshot, scenario from the live run.
       if (baseline) buildCompareMiniChart('baseline', baseline);
       buildCompareMiniChart('scenario', p);
+    }
+    if (activeTab === 'comparison'){
+      updateComparisonSummary(p);
+    }
+    if (activeTab === 'assumptions'){
+      updateAssumptionsReadouts(p);
     }
   }
 
@@ -4184,6 +4781,8 @@
   function renderEvents(){
     var hosts = EVENTS_HOSTS.map(function(id){ return document.getElementById(id); });
     var empties = EVENTS_EMPTIES.map(function(id){ return document.getElementById(id); });
+    var countEl = document.getElementById('events-count-c');
+    if (countEl) countEl.textContent = '(' + eventsStore.length + ')';
     hosts.forEach(function(h){ if (h) h.innerHTML = ''; });
     if (eventsStore.length === 0){
       empties.forEach(function(e){ if (e) e.style.display = ''; });
@@ -4311,6 +4910,8 @@
   function renderIncomes(){
     var hosts = INCOMES_HOSTS.map(function(id){ return document.getElementById(id); });
     var empties = INCOMES_EMPTIES.map(function(id){ return document.getElementById(id); });
+    var countEl = document.getElementById('incomes-count-c');
+    if (countEl) countEl.textContent = '(' + incomeStore.length + ')';
     hosts.forEach(function(h){ if (h) h.innerHTML = ''; });
     if (incomeStore.length === 0){
       empties.forEach(function(e){ if (e) e.style.display = ''; });
@@ -4481,10 +5082,12 @@
   // canonical IDs, so on every scenario-side edit we push the value
   // into the canonical input and refresh. On every canonical-side edit
   // we push into the mirror so switching states shows the same values.
+  // Return is the only mirrored input that survives Session 15: canonical
+  // #return on Info, mirror #return-c on the Planning rail. Needs / events /
+  // incomes mirrors were deleted because their canonicals (on Info) are the
+  // single source of truth — no second editable host.
   var scenarioSyncPairs = [
-    ['return', 'return-c'],
-    ['needs-monthly', 'needs-monthly-c'],
-    ['needs-lump', 'needs-lump-c']
+    ['return', 'return-c']
   ];
   scenarioSyncPairs.forEach(function(pair){
     var a = document.getElementById(pair[0]);
@@ -4623,12 +5226,15 @@
     var bc = document.getElementById('btn-view-capital');
     var bi = document.getElementById('btn-view-income');
     var bt = document.getElementById('btn-view-table');
-    [bc, bi, bt].forEach(function(btn){ if (btn){ btn.classList.remove('active', 'on'); btn.setAttribute('aria-selected', 'false'); } });
-    var activeBtn = v === 'capital' ? bc : (v === 'income' ? bi : bt);
+    var bx = document.getElementById('btn-view-tax');
+    [bc, bi, bt, bx].forEach(function(btn){ if (btn){ btn.classList.remove('active', 'on'); btn.setAttribute('aria-selected', 'false'); } });
+    var activeBtn = v === 'capital' ? bc : (v === 'income' ? bi : (v === 'table' ? bt : bx));
     if (activeBtn){ activeBtn.classList.add('active', 'on'); activeBtn.setAttribute('aria-selected', 'true'); }
-    document.getElementById('chart').style.display         = v === 'capital' ? '' : 'none';
-    document.getElementById('chart-income').style.display  = v === 'income'  ? '' : 'none';
+    document.getElementById('chart').style.display          = v === 'capital' ? '' : 'none';
+    document.getElementById('chart-income').style.display   = v === 'income'  ? '' : 'none';
     document.getElementById('year-table-wrap').style.display = v === 'table'  ? '' : 'none';
+    var taxWrap = document.getElementById('tax-view-wrap');
+    if (taxWrap) taxWrap.style.display = v === 'tax' ? '' : 'none';
     document.getElementById('legend-capital').style.display = v === 'capital' ? '' : 'none';
     document.getElementById('legend-income').style.display  = v === 'income'  ? '' : 'none';
     if (v === 'capital' && chart){ chart.destroy(); chart = null; }
@@ -4638,6 +5244,8 @@
   document.getElementById('btn-view-capital').addEventListener('click', function(){ setView('capital'); });
   document.getElementById('btn-view-income').addEventListener('click', function(){ setView('income'); });
   document.getElementById('btn-view-table').addEventListener('click', function(){ setView('table'); });
+  var btnViewTax = document.getElementById('btn-view-tax');
+  if (btnViewTax) btnViewTax.addEventListener('click', function(){ setView('tax'); });
 
   // Auto-top-up pill mirrors the hidden #needs-topup checkbox in state-empty.
   var topupPill = document.getElementById('toggle-topup-pill');
@@ -4653,14 +5261,14 @@
       if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); topupTrigger(); }
     });
   }
-  // Lock as baseline → enter Compare. Re-lock from Compare refreshes the baseline snapshot.
+  // Lock as baseline → enter Scenarios. Re-lock refreshes the baseline snapshot.
   function snapshotBaseline(){
     try { baseline = JSON.parse(JSON.stringify(project())); } catch(e){ baseline = null; }
   }
   var btnLock = document.getElementById('btn-lock-baseline');
   if (btnLock) btnLock.addEventListener('click', function(){
     snapshotBaseline();
-    setAppState('compare');
+    setTab('scenarios');
   });
   var btnRelock = document.getElementById('btn-relock-baseline');
   if (btnRelock) btnRelock.addEventListener('click', function(){
@@ -4670,10 +5278,54 @@
   var btnClearBase = document.getElementById('btn-clear-baseline');
   if (btnClearBase) btnClearBase.addEventListener('click', function(){
     baseline = null;
-    setAppState('single');
+    setTab('planning');
   });
   var btnEditPlanCompare = document.getElementById('btn-edit-plan-compare');
-  if (btnEditPlanCompare) btnEditPlanCompare.addEventListener('click', function(){ setAppState('empty'); });
+  if (btnEditPlanCompare) btnEditPlanCompare.addEventListener('click', function(){ setTab('info'); });
+  var btnContinueCmp = document.getElementById('btn-continue-comparison');
+  if (btnContinueCmp) btnContinueCmp.addEventListener('click', function(){ setTab('comparison'); });
+  var btnExportSummary = document.getElementById('btn-export-from-summary');
+  if (btnExportSummary) btnExportSummary.addEventListener('click', function(){
+    var canonical = document.getElementById('btn-export-report');
+    if (canonical) canonical.click();
+  });
+  var btnBackScenarios = document.getElementById('btn-back-to-scenarios');
+  if (btnBackScenarios) btnBackScenarios.addEventListener('click', function(){ setTab('scenarios'); });
+
+  // Rail Spending sliders: anchor to the canonical Info-tab values, swing
+  // ±swingRange around the anchor. Typing a new value on Info recenters the
+  // slider; dragging the slider pushes a new value into the canonical input
+  // (without recentering, so the anchor stays put while Pierre nudges).
+  function setupRailSpendingSlider(canonicalId, sliderId, valueOutId, swing){
+    var canonical = document.getElementById(canonicalId);
+    var slider = document.getElementById(sliderId);
+    var valOut = document.getElementById(valueOutId);
+    if (!canonical || !slider) return;
+    function readCanonical(){
+      var n = parseFloat((canonical.value || '0').replace(/[^0-9.\-]/g, ''));
+      return isFinite(n) ? Math.round(n) : 0;
+    }
+    function recenter(){
+      var anchor = readCanonical();
+      slider.min = Math.max(0, anchor - swing);
+      slider.max = anchor + swing;
+      slider.value = anchor;
+      if (valOut) valOut.textContent = fmtR(anchor);
+      updateSliderFill(slider);
+    }
+    recenter();
+    slider.addEventListener('input', function(){
+      var v = parseInt(slider.value, 10) || 0;
+      canonical.value = v.toLocaleString('en-ZA').replace(/,/g, ' ');
+      if (valOut) valOut.textContent = fmtR(v);
+      updateSliderFill(slider);
+      refresh();
+    });
+    canonical.addEventListener('input', recenter);
+    canonical.addEventListener('blur', recenter);
+  }
+  setupRailSpendingSlider('needs-monthly', 'needs-monthly-rail', 'needs-monthly-rail-out', 30000);
+  setupRailSpendingSlider('needs-lump',    'needs-lump-rail',    'needs-lump-rail-out',    100000);
 
   // ===== Export report =====
   // Serialise the current plan + projection into the shape the editorial
@@ -4928,28 +5580,54 @@
 
   // ===== State transitions =====
   var btnBuild = document.getElementById('btn-build-projection');
-  if (btnBuild) btnBuild.addEventListener('click', function(){ setAppState('single'); });
+  if (btnBuild) btnBuild.addEventListener('click', function(){ setTab('planning'); });
   var btnEdit = document.getElementById('btn-edit-plan');
-  if (btnEdit) btnEdit.addEventListener('click', function(){ setAppState('empty'); });
+  if (btnEdit) btnEdit.addEventListener('click', function(){ setTab('info'); });
+
+  // Tab nav button wiring — clicking any tab pill flips body[data-tab].
+  var tabButtons = document.querySelectorAll('.tab-nav-tab');
+  for (var ti = 0; ti < tabButtons.length; ti++){
+    tabButtons[ti].addEventListener('click', function(){
+      var target = this.getAttribute('data-tab-target');
+      if (!target) return;
+      // Clicking Scenarios with no baseline auto-snapshots the current Planning
+      // projection so the two-up always has something to render against.
+      if (target === 'scenarios' && !baseline){
+        try { baseline = JSON.parse(JSON.stringify(project())); } catch(_) { baseline = null; }
+      }
+      setTab(target);
+    });
+  }
+  // Top-nav Export report button mirrors the State-2 one (canonical handler bound below).
+  var btnExportNav = document.getElementById('btn-export-report-nav');
+  if (btnExportNav) btnExportNav.addEventListener('click', function(){
+    var canonical = document.getElementById('btn-export-report');
+    if (canonical) canonical.click();
+  });
 
   // ===== Title-plate contenteditable bindings =====
   // `#hl-family` is free-text (editorial only; does not feed the engine).
 
-  // Default body data-app-state so CSS rules that depend on it apply immediately.
-  document.body.setAttribute('data-app-state', appState);
+  // Default body data-tab so CSS rules apply immediately.
+  document.body.setAttribute('data-tab', activeTab);
 
-  // Print handlers: snapshot the active state, force 'single' for paper, restore after.
-  var _preprintState = null;
+  // Print handlers: snapshot the active tab, force 'planning' for paper, restore after.
+  var _preprintTab = null;
   window.addEventListener('beforeprint', function(){
-    _preprintState = appState;
-    if (appState !== 'single') setAppState('single');
+    _preprintTab = activeTab;
+    if (activeTab !== 'planning') setTab('planning');
     if (chart) { chart.resize(); }
     if (incomeChart) { incomeChart.resize(); }
   });
   window.addEventListener('afterprint', function(){
-    if (_preprintState && _preprintState !== appState) setAppState(_preprintState);
-    _preprintState = null;
+    if (_preprintTab && _preprintTab !== activeTab) setTab(_preprintTab);
+    _preprintTab = null;
   });
+
+  // Disable browser scroll restoration so cold reloads always start at top.
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) {}
+  try { window.scrollTo(0, 0); } catch (_) {}
+  window.addEventListener('load', function(){ try { window.scrollTo(0, 0); } catch (_) {} });
 
   refresh();
 })();
