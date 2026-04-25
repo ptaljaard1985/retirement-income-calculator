@@ -929,7 +929,6 @@
     .chart-legend,
     .chart-alerts,
     .empty-cta,
-    .canvas-foot,
     .btn,
     .add-btn,
     .series-toggle,
@@ -1617,18 +1616,6 @@
   .narrative-body strong { font-style: normal; font-weight: 500; color: var(--ink); }
 
   /* Canvas footer */
-  .canvas-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 0 8px;
-    border-top: 1px solid var(--hairline);
-    margin-top: 10px;
-    font-size: 11px;
-    color: var(--mute);
-  }
-  .canvas-foot .canvas-foot-actions { display: flex; gap: 8px; }
 
   /* Drawer (tax details) */
   .drawer { overflow: hidden; transition: max-height 0.25s ease; }
@@ -1866,7 +1853,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 22px;
-    background: var(--paper-2);
+    background: #e8eaed;
     border: 1px solid var(--hairline);
     border-radius: var(--r-lg);
     padding: 10px 18px;
@@ -1901,7 +1888,7 @@
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.2px;
-    color: var(--mute);
+    color: var(--ink-2);
     cursor: pointer;
     transition: background 120ms, color 120ms, border-color 120ms;
   }
@@ -1930,24 +1917,41 @@
     display: none;
     grid-template-columns: 240px 1fr;
     gap: 24px;
-    align-items: start;
+    align-items: stretch;
   }
   body[data-tab="planning"] .rail-canvas-shell,
   body[data-tab="scenarios"] .rail-canvas-shell {
     display: grid;
   }
   /* Both panels overlay on the second column; visibility CSS shows only the
-     active one. State-single defaults to grid-column 2 because of source order;
-     state-compare needs an explicit placement. */
+     active one. The rail stretches to the panel's height so an empty rail
+     still extends to the chart-card's bottom; sticky keeps it pinned at the
+     top while the rest of the page scrolls past. */
   .rail-canvas-shell > .rail {
     grid-column: 1; grid-row: 1;
-    align-self: start;
+    align-self: stretch;
     position: sticky;
     top: 14px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
   }
   .rail-canvas-shell > [data-tab-panel] { grid-column: 2; grid-row: 1; }
+  /* Planning panel: flex column so the chart-card stretches to fill the grid
+     cell's height (which is sized by the rail). controls-row keeps its
+     content height; chart-card absorbs the remaining vertical space. */
+  .rail-canvas-shell > [data-tab-panel="planning"] {
+    display: flex;
+    flex-direction: column;
+  }
+  .rail-canvas-shell > [data-tab-panel="planning"] > .canvas {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+  }
+  .rail-canvas-shell > [data-tab-panel="planning"] > .canvas > .chart-card {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+  }
   @media (max-width: 980px) {
     .rail-canvas-shell { grid-template-columns: 1fr; }
     .rail-canvas-shell > .rail,
@@ -1958,11 +1962,14 @@
       overflow-y: visible;
     }
   }
-  /* Rail actions: show Lock-as-baseline only on Planning, Continue only on Scenarios. */
-  body[data-tab="planning"] #btn-lock-baseline { display: inline-flex; }
+  /* Lock-as-baseline lives in the chart's controls-row on Planning (panel
+     visibility hides it on other tabs). Continue → Summary stays in the rail
+     and is gated per tab. The trailing rail-divider + rail-actions only host
+     Continue, so collapse them on Planning to avoid a dangling divider. */
   body[data-tab="planning"] #btn-continue-comparison { display: none !important; }
-  body[data-tab="scenarios"] #btn-lock-baseline { display: none !important; }
   body[data-tab="scenarios"] #btn-continue-comparison { display: inline-flex !important; }
+  body[data-tab="planning"] #rail-actions-divider,
+  body[data-tab="planning"] .rail-actions { display: none !important; }
 
   .rail {
     background: var(--surface);
@@ -2316,33 +2323,50 @@
   /* Add-entry modal (used for Add income / Add capital event). */
   .modal-backdrop {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.35);
+    background: rgba(20,24,30,0.42);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     z-index: 1000;
     display: flex; align-items: center; justify-content: center;
+    padding: 24px;
   }
   .modal-backdrop[hidden] { display: none; }
   .modal-card {
-    width: 380px; max-width: calc(100vw - 32px);
-    background: var(--paper-2);
+    width: 380px; max-width: calc(100vw - 48px);
+    background: var(--surface);
     border: 1px solid var(--hairline);
-    border-radius: var(--r-sm);
-    padding: 20px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px 24px;
+    box-shadow:
+      0 24px 56px rgba(20,24,30,0.18),
+      0 4px 12px rgba(20,24,30,0.06);
   }
   .modal-card h3 {
-    font-family: var(--sans); font-size: 11px; letter-spacing: 1.6px;
-    text-transform: uppercase; color: var(--mute); font-weight: 600;
-    margin: 0 0 14px;
+    font-family: var(--serif);
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-weight: 400;
+    margin: 0 0 4px;
+    line-height: 1.2;
   }
-  .modal-body { display: flex; flex-direction: column; gap: 10px; }
+  .modal-card .modal-caption {
+    font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--mute); font-weight: 500;
+    margin: 0 0 22px;
+  }
+  .modal-body { display: flex; flex-direction: column; gap: 12px; }
   .modal-body .event-col { display: block; }
   .modal-body .event-col label {
     display: block; font-size: 10px; letter-spacing: 1.2px;
-    text-transform: uppercase; color: var(--mute); margin-bottom: 4px;
+    text-transform: uppercase; color: var(--mute); margin-bottom: 6px;
+    font-weight: 500;
   }
   .modal-footer {
-    display: flex; justify-content: flex-end; gap: 8px;
-    margin-top: 16px;
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hairline);
   }
   .modal-error {
     color: var(--coral); font-size: 11px; margin-top: 4px;
@@ -2354,71 +2378,138 @@
      delete affordance. Used by the rail row-click flow. */
   .modal-card.modal-card--wide {
     width: 1100px;
-    max-width: calc(100vw - 32px);
-    max-height: 85vh;
+    max-width: calc(100vw - 48px);
+    min-height: 70vh;
+    max-height: 90vh;
+    padding: 32px 36px 24px;
     display: flex; flex-direction: column;
   }
   .modal-card--wide .modal-body {
     overflow-y: auto;
     flex: 1 1 auto;
-    gap: 8px;
+    gap: 10px;
+    padding-right: 4px;
+    margin-right: -4px;
   }
+  .modal-card--wide .modal-body::-webkit-scrollbar { width: 8px; }
+  .modal-card--wide .modal-body::-webkit-scrollbar-thumb {
+    background: var(--hairline); border-radius: 4px;
+  }
+  .modal-card--wide .modal-body::-webkit-scrollbar-thumb:hover { background: var(--line); }
   .category-row {
     display: grid;
     align-items: end;
-    gap: 8px;
-    padding: 8px;
-    background: var(--surface);
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--paper);
     border: 1px solid var(--hairline);
-    border-radius: var(--r-sm);
+    border-radius: var(--radius);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .category-row:hover { border-color: var(--line); }
+  .category-row:focus-within {
+    border-color: var(--ink-2);
+    box-shadow: 0 1px 4px rgba(20,24,30,0.05);
   }
   .category-row .event-col label {
     font-size: 9.5px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .category-row .input-wrap {
+    display: flex; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    height: 36px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .category-row .input-wrap:focus-within {
+    border-color: var(--brand);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(45,62,80,0.08);
+  }
+  .category-row .input-wrap .pfx {
+    font-size: 13px; color: var(--ink-faint); margin-right: 6px;
   }
   .category-row .input-wrap input,
   .category-row .input-wrap select {
-    font-size: 12px;
+    border: none; background: transparent;
+    font-size: 13px; font-family: inherit; color: var(--ink);
+    width: 100%; padding: 4px 0;
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+  }
+  .category-row .input-wrap select { appearance: none; cursor: pointer; }
+  .category-row .input-wrap input:focus,
+  .category-row .input-wrap select:focus { outline: none; }
+  .category-row .escalate-toggle {
+    height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s;
+  }
+  .category-row .escalate-toggle:hover { border-color: var(--line); }
+  .category-row .escalate-toggle input[type="checkbox"] {
+    width: 14px; height: 14px; margin: 0;
+    accent-color: var(--brand); cursor: pointer;
   }
   .category-row .row-delete {
     align-self: end;
     background: transparent;
     border: none;
-    color: var(--mute);
-    font-size: 16px;
+    color: var(--faint);
+    font-size: 18px;
     line-height: 1;
-    padding: 6px 8px;
+    height: 36px; width: 28px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: var(--radius);
+    transition: all 0.15s;
   }
-  .category-row .row-delete:hover { color: var(--coral); background: var(--paper-2); }
+  .category-row .row-delete:hover { color: var(--coral); background: var(--coral-pale); }
   .category-row.row--income {
     grid-template-columns: 1fr 130px 70px 110px 75px 65px 55px 28px;
   }
   .category-row.row--event {
-    grid-template-columns: 100px 1fr 140px 28px;
+    grid-template-columns: 110px 1fr 160px 28px;
   }
   .category-row.row--goal {
-    grid-template-columns: 1fr 130px 80px 80px 80px 28px;
+    grid-template-columns: 1fr 140px 90px 90px 90px 28px;
   }
   .category-add-row {
     width: 100%;
     margin-top: 4px;
-    padding: 8px;
+    padding: 14px;
     background: transparent;
-    border: 1px dashed var(--line);
-    border-radius: var(--r-sm);
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius);
     color: var(--mute);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     font-family: inherit;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    transition: all 0.15s;
   }
-  .category-add-row:hover { color: var(--ink); border-color: var(--ink-2); }
+  .category-add-row:hover {
+    color: var(--brand);
+    border-color: var(--brand);
+    background: var(--paper);
+  }
   .category-empty {
     text-align: center;
-    padding: 16px 0;
-    color: var(--faint);
+    padding: 32px 0;
+    color: var(--ink-faint);
     font-style: italic;
-    font-size: 13px;
+    font-size: 15px;
     font-family: var(--serif);
   }
 
@@ -2739,9 +2830,8 @@
     </div>
     <div id="events-list-c" class="events-list rail-ledger"></div>
 
-    <div class="rail-divider"></div>
+    <div class="rail-divider" id="rail-actions-divider"></div>
     <div class="rail-actions">
-      <button type="button" class="btn primary" id="btn-lock-baseline">Lock as baseline &rarr;</button>
       <button type="button" class="btn primary" id="btn-continue-comparison" style="display:none;">Continue &rarr; Summary</button>
     </div>
   </aside>
@@ -2796,6 +2886,7 @@
         <button id="btn-view-tax" role="tab" aria-selected="false">Tax</button>
       </div>
       <div class="controls-row-right">
+        <button type="button" class="btn primary" id="btn-lock-baseline">Explore Scenario</button>
         <label class="toggle-pill" id="toggle-topup-pill" role="switch" aria-checked="false" tabindex="0">
           <span class="sw" aria-hidden="true"></span>
           <span>Auto-top-up</span>
@@ -2898,14 +2989,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Canvas footer -->
-    <div class="canvas-foot">
-      <span>Illustrative only &middot; 2026/27 SARS tables &middot; <span id="foot-topup">auto-top-up on</span> &middot; <span id="foot-mode">real terms</span></span>
-      <span class="canvas-foot-actions">
-        <button type="button" class="btn ghost" id="btn-show-table">Year-by-year table</button>
-      </span>
     </div>
 
   </div>
@@ -3113,6 +3196,7 @@
 <div id="add-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="add-modal-title" hidden>
   <div class="modal-card">
     <h3 id="add-modal-title">Add</h3>
+    <p class="modal-caption" id="add-modal-caption" hidden>Edit, add or remove entries</p>
     <form id="add-modal-form" class="modal-body" autocomplete="off"><!-- populated by JS --></form>
     <div class="modal-footer">
       <button type="button" class="btn ghost modal-footer-left" id="add-modal-delete" hidden>Delete</button>
@@ -3154,7 +3238,7 @@
   // Visibility is driven purely by body[data-tab] + CSS attribute selectors;
   // the legacy data-state / .is-hidden machinery is retired.
   var activeTab = 'info';
-  var baseline = null;     // frozen snapshot for Scenarios; populated on Lock as baseline
+  var baseline = null;     // frozen snapshot for Scenarios; populated on Explore Scenario
   function setTab(next){
     if (next === activeTab) return;
     if (typeof closeAddModal === 'function') closeAddModal();
@@ -3815,6 +3899,7 @@
       targetPVAnnual: targetPVAnnual,
       events: events,
       incomes: incomes,
+      goals: goals,
       // Per-spouse table data (nominal only — real-view deflation handled in the renderer)
       table: {
         ageA: ageASeries, ageB: ageBSeries,
@@ -4209,7 +4294,9 @@
     }
   };
 
-  // Chart.js plugin: coral wash over shortfall years + dashed vertical at first shortfall.
+  // Chart.js plugin: coral wash over shortfall years. The dashed vertical
+  // marker + "shortfall begins · age N" label was retired — the wash itself
+  // (and the table's clamp markers) carry the same signal without the chrome.
   var shortfallShadingPlugin = {
     id: 'shortfallShading',
     afterDatasetsDraw: function(chart){
@@ -4228,7 +4315,6 @@
       var slot = (N > 1)
         ? (xScale.getPixelForValue(1) - xScale.getPixelForValue(0))
         : (xScale.right - xScale.left);
-      var shortfallStart = -1;
       ctx.save();
       ctx.fillStyle = 'rgba(160, 68, 56, 0.18)';
       for (var i = 0; i < N; i++){
@@ -4242,23 +4328,7 @@
           var yNeed = yScale.getPixelForValue(need);
           var yTotal = yScale.getPixelForValue(total);
           ctx.fillRect(x - slot/2, yNeed, slot, yTotal - yNeed);
-          if (shortfallStart < 0) shortfallStart = i;
         }
-      }
-      if (shortfallStart >= 0){
-        var xs = xScale.getPixelForValue(shortfallStart);
-        ctx.strokeStyle = '#a04438';
-        ctx.setLineDash([4, 4]);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(xs, yScale.top);
-        ctx.lineTo(xs, yScale.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#a04438';
-        ctx.font = '10px "Inter Tight", sans-serif';
-        var labelText = 'shortfall begins · age ' + (chart.data.labels[shortfallStart] || '').toString().replace('Age ', '');
-        ctx.fillText(labelText, xs + 6, yScale.top + 12);
       }
       ctx.restore();
     }
@@ -4703,14 +4773,6 @@
     if (strip) strip.classList.toggle('is-shortfall', !an.verdict);
   }
 
-  function updateCanvasFoot(){
-    var topupEl = document.getElementById('foot-topup');
-    var modeEl = document.getElementById('foot-mode');
-    var onEl = document.getElementById('needs-topup');
-    if (topupEl) topupEl.textContent = (onEl && onEl.checked) ? 'auto-top-up on' : 'auto-top-up off';
-    if (modeEl) modeEl.textContent = (mode === 'real') ? 'real terms' : 'nominal terms';
-  }
-
   // Assumptions tab: read-only readouts of the live market assumptions.
   function updateAssumptionsReadouts(p){
     var rEl = document.getElementById('asm-return-readout');
@@ -4761,12 +4823,61 @@
         changes.push(getName(who) + ' disc draw ' + fmtR(bDraw) + ' → ' + fmtR(cDraw));
       }
     });
-    function evCount(p){ return (p && p.events && p.events.length) || 0; }
-    var bn = evCount(base), cn = evCount(cur);
-    if (bn !== cn){
-      var sign = cn > bn ? '+' : '';
-      changes.push('Capital events ' + bn + ' → ' + cn + ' (' + sign + (cn - bn) + ')');
+    function fmtIncome(it){
+      var pctRaw = (it.pctTaxable === undefined || it.pctTaxable === null || isNaN(it.pctTaxable)) ? 100 : it.pctTaxable;
+      var taxTag = (pctRaw === 0) ? ' · tax-free' : (pctRaw < 100 ? ' · ' + pctRaw + '% taxable' : '');
+      var endAge = (it.startAge || 0) + (it.duration || 0);
+      var label = (it.label || '').toString().trim() || 'Other income';
+      var who = getName(it.spouse) || it.spouse || '';
+      var esc = it.escalates ? ' · CPI' : ' · flat';
+      return label + ' · ' + fmtR(it.amountPV || 0) + '/yr · ' + (it.startAge || '?') + '–' + endAge + ' · ' + who + esc + taxTag;
     }
+    function fmtEvent(ev){
+      var who = getName(ev.spouse) || ev.spouse || '';
+      return fmtR(ev.amountPV || 0) + ' · year ' + (ev.year || '?') + ' · ' + who;
+    }
+    function fmtGoal(g){
+      var label = (g.label || '').toString().trim() || 'Goal';
+      return label + ' · ' + fmtR(g.amountPV || 0) + ' every ' + (g.everyNYears || '?') + ' yr · age ' + (g.startAge || '?') + '–' + (g.endAge || '?');
+    }
+    // Match items by stable identity within each category. Capital events
+    // have no label, so they key on (spouse|year). Incomes key on
+    // (spouse|label|startAge); goals key on (label|startAge). Duplicates
+    // within a list get a #n suffix so they remain distinguishable.
+    function buildIndex(list, identityFn){
+      var seen = {}, out = {};
+      (list || []).forEach(function(it){
+        var base = identityFn(it);
+        var k = base, n = 1;
+        while (seen[k]) k = base + '#' + (n++);
+        seen[k] = true;
+        out[k] = it;
+      });
+      return out;
+    }
+    function diffCollection(baseList, curList, identityFn, fmtFn, kindLabel){
+      var out = [];
+      var bMap = buildIndex(baseList, identityFn);
+      var cMap = buildIndex(curList, identityFn);
+      Object.keys(cMap).forEach(function(k){
+        if (!(k in bMap)) out.push(kindLabel + ' added · ' + fmtFn(cMap[k]));
+      });
+      Object.keys(bMap).forEach(function(k){
+        if (!(k in cMap)) out.push(kindLabel + ' removed · ' + fmtFn(bMap[k]));
+      });
+      Object.keys(cMap).forEach(function(k){
+        if (k in bMap && JSON.stringify(bMap[k]) !== JSON.stringify(cMap[k])){
+          out.push(kindLabel + ' changed · ' + fmtFn(bMap[k]) + ' → ' + fmtFn(cMap[k]));
+        }
+      });
+      return out;
+    }
+    function incomeId(it){ return (it.spouse || '') + '|' + (it.label || '').toString().trim().toLowerCase() + '|' + (it.startAge || 0); }
+    function eventId(ev){ return (ev.spouse || '') + '|' + (ev.year || 0); }
+    function goalId(g){ return (g.label || '').toString().trim().toLowerCase() + '|' + (g.startAge || 0); }
+    diffCollection(base.incomes, cur.incomes, incomeId, fmtIncome, 'Other income').forEach(function(c){ changes.push(c); });
+    diffCollection(base.events, cur.events, eventId, fmtEvent, 'Capital event').forEach(function(c){ changes.push(c); });
+    diffCollection(base.goals, cur.goals, goalId, fmtGoal, 'Goal').forEach(function(c){ changes.push(c); });
     return changes;
   }
   function updateComparisonSummary(p){
@@ -4783,7 +4894,7 @@
     if (ul){
       var changes = diffPlanForSummary(baseline, p);
       if (!baseline){
-        ul.innerHTML = '<li class="empty">No baseline locked yet — head to Planning, find the base scenario, then click <em>Lock as baseline</em>.</li>';
+        ul.innerHTML = '<li class="empty">No baseline locked yet — head to Planning, find the base scenario, then click <em>Explore Scenario</em>.</li>';
       } else if (changes.length === 0){
         ul.innerHTML = '<li class="empty">No changes vs baseline yet — adjust scenario levers on Scenarios.</li>';
       } else {
@@ -4972,7 +5083,6 @@
     updatePlanBarLite();
     var an = analyseProjection(p);
     updateOutcomeStrip(p, an);
-    updateCanvasFoot();
     syncTopupPill();
     if (activeTab === 'scenarios'){
       updateCompareCards(p);
@@ -5093,6 +5203,7 @@
   var addModalEl = document.getElementById('add-modal');
   var addModalForm = document.getElementById('add-modal-form');
   var addModalTitle = document.getElementById('add-modal-title');
+  var addModalCaption = document.getElementById('add-modal-caption');
 
   function escAttr(s){ return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
   function fmtAmountInput(n){ return Math.round(n || 0).toLocaleString('en-ZA').replace(/,/g, ' '); }
@@ -5340,6 +5451,11 @@
     if (mode === 'goal') return 'Goals';
     return 'Other income';
   }
+  function categoryCaptionFor(mode){
+    if (mode === 'event') return 'Inheritances · property sales · maturing policies';
+    if (mode === 'goal') return 'Recurring household goals · travel · vehicles · gifts';
+    return 'Rental · DB pensions · trust distributions · maintenance';
+  }
 
   function blankEntryFor(mode){
     if (mode === 'event') return { year: '', amountPV: '', spouse: 'A' };
@@ -5481,6 +5597,10 @@
     addModalEl.dataset.view = 'category';
     addModalCard.classList.add('modal-card--wide');
     addModalTitle.textContent = categoryTitleFor(mode);
+    if (addModalCaption){
+      addModalCaption.textContent = categoryCaptionFor(mode);
+      addModalCaption.hidden = false;
+    }
     // Snapshot the relevant store into a staged copy.
     var src = (mode === 'event') ? eventsStore
             : (mode === 'goal') ? goalsStore
@@ -5503,6 +5623,7 @@
     addModalEl.dataset.mode = '';
     addModalEl.dataset.view = '';
     addModalCard.classList.remove('modal-card--wide');
+    if (addModalCaption) addModalCaption.hidden = true;
     addModalForm.innerHTML = '';
     categoryStaged = null;
     categoryMode = null;
@@ -6030,7 +6151,7 @@
       if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); topupTrigger(); }
     });
   }
-  // Lock as baseline → enter Scenarios. Re-lock refreshes the baseline snapshot.
+  // Explore Scenario → enter Scenarios. Re-lock refreshes the baseline snapshot.
   function snapshotBaseline(){
     try { baseline = JSON.parse(JSON.stringify(project())); } catch(e){ baseline = null; }
   }
@@ -6334,9 +6455,6 @@
       if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); topupCTrigger(); }
     });
   }
-  var btnShowTable = document.getElementById('btn-show-table');
-  if (btnShowTable) btnShowTable.addEventListener('click', function(){ setView('table'); });
-
   // Date
   var today = new Date();
   var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
