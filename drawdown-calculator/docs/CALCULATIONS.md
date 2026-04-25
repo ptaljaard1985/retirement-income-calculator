@@ -131,22 +131,57 @@ The user can enter an arbitrary list of "other income" streams — rental income
 - `startAge` — integer age at which the stream begins (for that spouse)
 - `duration` — years the stream is active
 - `escalates` — boolean; `true` = grow with CPI, `false` = stay flat in nominal terms
+- `pctTaxable` — integer 0–100. Portion of the stream that enters the tax base. Default 100. Use 0 for genuinely tax-free flows (a structured trust distribution, certain maintenance orders); use partial values when only a fraction is taxable. Items missing the field behave as fully taxable (legacy parity).
 
-For year `y` of the projection (zero-indexed, `y = 0` is the first year of retirement), the helper `otherIncomeForYear(schedule, suffix, age, y, cpi)` resolves the schedule to a single nominal rand amount:
+For year `y` of the projection (zero-indexed, `y = 0` is the first year of retirement), the helper `otherIncomeForYear(schedule, suffix, age, y, cpi)` resolves the schedule to three rand amounts:
 
 ```
 active        = (age >= startAge) AND (age < startAge + duration)
 nominal_year  = escalates ? amountPV × (1 + cpi)^y : amountPV   # if active, else 0
-total         = Σ nominal_year over all active streams for that spouse
+taxable_part  = nominal_year × (pctTaxable / 100)
+tax_free_part = nominal_year − taxable_part
+
+total         = Σ nominal_year       over all active streams for that spouse
+taxable       = Σ taxable_part       over all active streams for that spouse
+taxFree       = Σ tax_free_part      over all active streams for that spouse
 ```
 
 Key points:
 
 - The active window is **half-open**: `[startAge, startAge + duration)`. A stream with `startAge=65, duration=10` is active at ages 65 through 74 inclusive.
 - The escalation exponent is the **year index**, not "years since this stream started". A deferred stream entered as R50 000 today's money with `startAge = current_age + 5` and `escalates = true` starts at `50 000 × (1+cpi)^5` — preserving the real value the adviser typed.
-- The resolver is evaluated **before** the solver and tax calculations each year, and the result is written to `sA['otherIncome']` / `sB['otherIncome']`. All downstream math (`taxable = laDraw + otherIncome + inclusion`, `netLA`, `grossIncome`, `yearDraw`) reads from those fields, so no other code had to change to support the schedule.
-- Multiple streams on the same spouse sum. A flat stream and an escalating stream can coexist.
-- When the schedule is empty, the resolver returns 0 every year and the projection matches the pre-schedule behaviour exactly.
+- The resolver is evaluated **before** the solver and tax calculations each year. Three fields land on each spouse: `sA['otherIncome']` (= total cash flow), `sA['otherTaxable']` (enters the tax base), `sA['otherTaxFree']` (cash flow only).
+- The tax base for spouse A in year `y` is `taxable = laDraw + sA.otherTaxable + cgt_inclusion`. Gross income / yearDraw / net all use the **total** (`sA.otherIncome`), so a fully tax-free stream still adds to net income, just without a tax bite.
+- The tax view splits the breakdown into two rows: "Other income · taxable" and "Other income · tax-free", so the adviser can read the contributions at a glance.
+- Multiple streams on the same spouse sum independently per portion. A 100%-taxable rental and a 0%-taxable maintenance order can coexist on the same spouse.
+- When the schedule is empty (or no item carries `pctTaxable`), the resolver behaves identically to the pre-`pctTaxable` engine.
+
+## Household goals (recurring expenses)
+
+Goals model recurring household expenses that recur on a fixed cadence — travel every 5 years, a car every 8 years, a holiday every year. They are **household-wide** (no spouse field). Each goal has:
+
+- `label` — free text
+- `amountPV` — rand in today's money
+- `everyNYears` — cadence (1 = every year)
+- `startAge` — integer age at which the cadence begins
+- `endAge` — integer age at which the cadence ends (inclusive)
+
+For year `y` of the projection, the helper `goalsForYear(store, age, y, cpi)` (where `age` = youngest spouse's age) returns the sum of every goal that lands in that year:
+
+```
+active   = (age >= startAge) AND (age <= endAge) AND ((age − startAge) % everyN == 0)
+nominal  = amountPV × (1 + cpi)^y      # if active, else 0
+total    = Σ nominal over all goals
+```
+
+Key points:
+
+- The cadence anchor is `startAge`. A goal with `startAge: 65, endAge: 90, everyN: 5` lands at the youngest's age 65, 70, 75, 80, 85, 90 — six occurrences. The endAge is **inclusive** (unlike other-income's half-open window), because cadence-anchored events are easier to reason about with closed bounds.
+- The escalation exponent is the year index, same convention as other income — the adviser-entered `amountPV` is in today's rands and preserves real value across decades.
+- A goal in year `y` **bumps the after-tax target need**: `yearTargetNom = targetPVAnnual × (1+cpi)^y + goalsForYear(...)`. With auto-top-up on, the three-phase solver pulls more from discretionary or boosts the LA draw to cover; the chart's stepped target line visibly steps up that year. With auto-top-up off, the projection makes no attempt to fund the goal — the gap surfaces as a real shortfall.
+- Goals are anchored on the **youngest** spouse's age (the same anchor as the projection horizon). This way couple mode and single mode produce the same cadence on the same calendar years.
+- Goals do NOT inject capital. They are pure spending events. Capital injections (inheritances, property sales) belong in **Capital events**, which add to `discBalance` and `discBaseCost` and compound forward.
+- When the goal store is empty (`goals=None` or `goals=[]`), the projection is byte-identical to a run without goals. Verified by `tests/python/test_goals.py`.
 
 ## Capital events
 

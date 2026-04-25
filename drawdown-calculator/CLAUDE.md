@@ -107,6 +107,47 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 17 — 2026-04-25 (chore/misc-fixes)
+
+**Built / changed** on branch `chore/misc-fixes` — eleven connected pieces. Engine grew two new concepts (per-item `pctTaxable` split + household goals); tests rise to **108/108 Python + 19/19 JS** (was 88/88 + 19/19).
+
+1. **Plan-health alert pills disabled.** `updateAlerts(p)` (line ~4374) is now a no-op that always hides `#chart-alerts`. Removes the persistent "Both LAs at 17.5% ceiling from age 95" / "Discretionary exhausted" / "Real shortfall" chips. Per Pierre: the chart's coral shortfall wash + the table's clamp markers carry the same signal without the chip clutter.
+
+2. **Auto-top-up pill moved to chart card top-right.** `#toggle-topup-pill` left the rail's "Display" section (which only held this one item, so the rail-divider + section-head went too) and now sits in `.controls-row-right` immediately left of the Real|Nominal seg. Same ID, all `setupTopupPill()` wiring untouched.
+
+3. **Solve-to-target button removed.** `#btn-solve` is gone from the rail. The `solveLARate()` function (line ~4764) is retained as the methodology so it can be re-attached to a control later. Click handler deleted.
+
+4. **Rail "Other income" + "Capital events" promoted to flat headings.** Were nested under a "Schedules" parent with collapsible sub-sections; now top-level `.rail-section-head`s with a small "+" button on the right (id `incomes-add-c` / `events-add-c`). Caret + count badge + collapsible body wrappers + the wide dashed `+ Add ...` footer button — all gone. New `.rail-section-add` button styling for the inline "+".
+
+5. **Modal-driven Add → evolved to category modal.** First pass: a single-entry modal with empty fields + Save/Cancel/Delete (ended the live-bound "every keystroke = refresh" UX). Final pass replaced that with a **category modal**: clicking any rail row OR the section "+" opens the same `#add-modal` element with `.modal-card--wide` (1100px, 85vh max-height), rendering every entry in the category as an editable horizontal grid row (7 fields for incomes, 3 for events, 5 for goals) plus a `+ Add ...` row at the bottom. Save commits all rows in one transaction; Cancel/Esc/backdrop discards. In-progress edits persist across re-renders via `syncStagedFromDOM()`. Per-row `×` deletes from the staged array. The single-entry modal code stays in place but no UI calls it.
+
+6. **`pctTaxable` field end-to-end (engine + tests + UI).** Each income item carries `pctTaxable` (0–100, default 100). The taxable portion enters the tax base; the tax-free portion is cash flow only. Engine: `otherIncomeForYear` returns `{total, taxable, taxFree}`; year loop sets `sA.otherIncome` (= total), `sA.otherTaxable`, `sA.otherTaxFree`; tax-base reads (`solveTopUp.taxFor`, `taxForYear`, year-loop `taxableA/B`) use `otherTaxable`; gross / net / yearDraw use `otherIncome`. Tax view splits "Other taxable income" → two rows: "Other income · taxable" + "Other income · tax-free". Python parity in `conftest.py` + new `tests/python/test_other_income_taxable.py` (9 tests). Backward compat: legacy items without `pctTaxable` default to fully taxable (verified by test).
+
+7. **Goals (recurring household expenses).** New top-level concept: `{label, amountPV, everyNYears, startAge, endAge}`. Household-wide (no spouse field). Lands when youngest age ∈ [startAge, endAge] AND `(age - startAge) % everyN === 0`; nominal escalates by CPI. Engine bumps `yearTargetNom` in qualifying years — the auto-top-up solver pulls more disc / boosts LA to cover, and the chart's target line steps up that year. Python parity (`goals_for_year` in conftest, `goals=` kwarg on `project`) + 11 new tests in `tests/python/test_goals.py`. UI: new "Goals" section in the rail (between Spending and Other income), new ledger on Info tab (3-col grid), modal mode `'goal'` with Label / Amount / Every N years / Start age / End age.
+
+8. **Compact 1-line entry rows in rail + Info ledgers.** `.entry-row` replaced the 7-column inline editor: shows a single summary line (`Travel · R 200 000 · every 5 yr · 65–90` / `Rental · R 60 000/yr · 65–85 · Pierre · 40% taxable`). Click row → opens category modal. `×` deletes inline. Dead inline-edit handlers (`incomesInputHandler`, `eventsBlurHandler`, etc.) removed.
+
+9. **Info-tab widened + ledgers above the fold.** `.empty-canvas` max-width 920px → 1300px (matches Planning width). New `.empty-ledgers` 3-col grid holds Other Income | Capital Events | Goals side-by-side, moved to sit directly below Spouse setup (above Needs/Markets). Orphaned `.empty-events-header` (4-col "When/Event/For whom/Amount") deleted. Responsive: ledgers collapse to 1-col below 820px.
+
+10. **Rail tightened.** `.rail` gap `12px → 6px`; `.rail-section-head`'s `margin-top: 4px` removed (parent gap handles spacing). `.rail-divider` is now half-width (`width: 50%; margin: 4px auto;`) at 0.55 opacity — a faint separator instead of a full hairline.
+
+11. **Shortfall plugin redraw fix.** `incomeChart.update('none')` in `buildIncomeChart`'s early-return path was replaced with `incomeChart.update()` so the `shortfallShadingPlugin`'s `afterDatasetsDraw` reliably re-runs against fresh dataset values; the dashed "shortfall begins · age N" vertical now moves with sliders. Same fix applied to `buildCompareMiniChart` (Scenarios two-up). Legend toggle still uses `update('none')` because that's a visibility flip, not a data refresh.
+
+**Architectural decisions**
+- **Math change → Python test first.** Both `pctTaxable` and `goals` started with a failing Python test that captured the desired behaviour, then `conftest.py` + JS landed simultaneously to keep the two implementations in lockstep. Backward compat verified for both: legacy items / `goals=None` produce byte-identical projections.
+- **Category modal over per-entry modal.** Pierre wanted to see + edit a whole category in one place rather than opening a modal per row. The wide layout (1100px) accommodates 7 fields per row for incomes; 5–8 rows fit without scroll on a 14" viewport. Save commits all rows in one transaction; nothing touches the live store mid-edit. The per-entry modal code is unused but kept in place — small surface, no harm.
+- **`otherIncome` stays as the total field on `sA`.** Could have renamed to `otherTotal`, but every existing reader expects `otherIncome` for gross/net/yearDraw. Adding `otherTaxable` and `otherTaxFree` as siblings keeps the rename diff to zero. The fallback `(p.otherTaxable !== undefined) ? p.otherTaxable : (p.otherIncome || 0)` lets legacy callers (Y1-only tax objects, the synthetic single-mode `pB`) keep working.
+- **Goals are anchored on the youngest spouse's age.** Same anchor as the projection horizon. A goal with `startAge: 65, endAge: 90, everyN: 5` lands at the youngest's age 65, 70, 75, 80, 85, 90 — six occurrences. Couple mode and single mode produce the same cadence on the same calendar years.
+- **Capital events stay distinct from goals / other income.** Pierre wondered if "every-5-years travel" subsumed capital events. Pushed back: capital events INJECT into `discBalance` + `discBaseCost` and compound; goals BUMP the target need; other income is consumed in the year. Three different operations on the projection. Confirmed with Pierre that capital events model real inheritances/property sales — kept separate.
+- **Half-width faint dividers.** Pierre's request after rail spacing was tightened — the full-width hairline became visually heavy when section gaps shrunk to 6px. Centered 50%-width at 55% opacity reads as a subtle break rather than a hard rule.
+
+**Follow-ups**
+- Browser walkthrough at 1366×768 (the 14" target): Info → Planning. On Info, confirm 3-col ledgers (Other income | Capital events | Goals) fit above the fold next to Spouse setup. On Planning, click any rail row → category modal opens with all rows editable, click Save → store replaced, chart reflects. Repeat for incomes, events, goals.
+- Print preview: `.modal-backdrop` already in `@media print`, so the category modal hides on paper. Confirm the new Goals ledger on Info paginates cleanly with several entries.
+- Per-entry modal cleanup: `openAddModal` / `saveAddModal` / `deleteFromAddModal` are unused in UI. Tag for removal in next dead-code sweep alongside the existing `.outcome-strip*`, `.tax-strip-cell` orphans listed in `TECH_DEBT.md`.
+- Export-report snapshot consumers (`buildReportSnapshot`): currently only consume `p.taxA` / `p.taxB` (Y1). The new `otherTaxable` / `otherTaxFree` fields ride on the result object's `taxA_objs[i]` so the editorial PDF can surface the split if Pierre ever wants it.
+- Goals are not yet visualised on the chart (only their effect on the target line is). A future polish could mark goal years with a small dot on the target staircase or list them in the canvas footer.
+
 ### Session 16 — 2026-04-25 (feat/tax-year-scrub-and-card-parity)
 
 **Built / changed** on branch `feat/tax-year-scrub-and-card-parity` — Planning-canvas polish in five connected pieces. Engine is touched lightly (per-year tax objects); tests still pass 88/88 Python + 19/19 JS:
@@ -232,22 +273,4 @@ Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_
 - Browser walkthrough with a stretched scenario: confirm (a) both charts have flush bars with faint vertical white dividers, (b) Income target line renders navy with no coral, (c) coral shortfall wash + dashed vertical + label still appear in depleted years, (d) Capital withdrawal-rate line + y1-axis ticks stay coral.
 - If the 1px white dividers feel too faint on a projector or high-DPI display, bump to `right: 2` or shift `borderColor` to `rgba(255,255,255,0.8)`. Easy tweak.
 
-### Session 12 — 2026-04-24 (fix/income-chart-geometry)
-
-**Built / changed** on branch `fix/income-chart-geometry` — two income-chart geometry fixes, no engine touch:
-
-1. **White band at the right edge of the Income chart — fixed.** Both `targetBoxPlugin` and `shortfallShadingPlugin` previously computed per-iteration `xNext` with a `(i + 1 < N) ? xScale.getPixelForValue(i + 1) : xScale.right` fallback. For `i === N-1` that produced a half-slot `barSpan` because `xScale.right` sits only half a slot past the last categorical position. The last year's shortfall rectangle and target step therefore rendered at half width, leaving visible white vertical stripes on each side of the final column (Pierre spotted them in the depleted-years region of a stretched scenario). Replaced the per-iteration computation with a single stable `slot = xScale.getPixelForValue(1) - xScale.getPixelForValue(0)` computed once before the loop, used for every year — including the last. Both plugins now paint uniform-width rectangles / segments across the full horizon.
-
-2. **Income-chart bars are now flush.** Added `categoryPercentage: 1.0, barPercentage: 1.0` to each of the four bar datasets (LA, Disc, Other, Tax) in `buildIncomeChart`. Chart.js defaults are 0.8 × 0.9 = 0.72, so ~28% of each slot was horizontal whitespace between bars. Setting both to 1.0 makes adjacent years touch with zero gap, matching the editorial reference Pierre pointed to. Same change applied to `buildCompareMiniChart` (State 3 compare minis) so the two chart variants stay visually consistent. Capital chart (`buildChart`) keeps its 0.85 × 0.95 — different visual density requirements, out of scope.
-
-**Architectural decisions**
-- **Uniform slot over per-iteration compute.** Considered computing a correct `xNext` for the last year by extrapolating from `x_last + (x_last - x_{last-1})`. Rejected as more brittle than computing slot once: categorical x-scales on our year labels are guaranteed uniform, and a single variable is easier to reason about than a branch inside the loop. The slot computation gracefully degrades for `N <= 1` (falls back to plot-area width, which is the only sensible behaviour for a one-year chart).
-- **Flush bars via dataset properties, not scale-level.** Chart.js accepts `categoryPercentage` / `barPercentage` on both dataset and scale objects. Applied at dataset level because our four income bar datasets share the `stack: 'income'` id, and per-dataset settings make the stacking contract explicit alongside the stack label.
-- **Mini charts mirror main chart.** `buildCompareMiniChart` shares both plugins with the main income chart, so the slot-width fix applies automatically. The bar-percentage change had to be duplicated because the mini chart's datasets are defined independently. Kept in sync so State 3's baseline vs. scenario compare reads identically to State 2.
-- **Engine untouched.** 81/81 Python + 16/16 JS pass.
-
-**Follow-ups**
-- Browser walkthrough: load a depleting scenario (e.g., R150k monthly need, auto-top-up on), confirm (a) bars touch across the full horizon, (b) coral shortfall wash and target-line staircase both extend the full slot width on the last year with no white stripes. Repeat in State 3 Compare.
-- With bars flush, the pink Tax slice sits adjacent to the next year's teal LA slice — visually heavier than before. If any year's tax pink looks overwhelming in practice, consider a slightly tighter `categoryPercentage` (e.g., 0.96) as a compromise. Leaving at 1.0 until Pierre pushes back.
-
-_Sessions 1–11 archived in `docs/SESSION_LOG.md`._
+_Sessions 1–12 archived in `docs/SESSION_LOG.md`._

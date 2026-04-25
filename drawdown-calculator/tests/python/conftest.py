@@ -87,14 +87,21 @@ def cgt_exclusion_year(year_idx):
 
 def other_income_for_year(schedule, suffix, age, year_idx, cpi):
     """
-    Resolve a schedule of other-income streams to a single nominal rand amount
-    for one spouse in year (year_idx + 1).
+    Resolve a schedule of other-income streams to nominal rand amounts for one
+    spouse in year (year_idx + 1).
 
-    Each stream: {label, spouse ('A'|'B'), amountPV, startAge, duration, escalates}.
+    Each stream: {label, spouse ('A'|'B'), amountPV, startAge, duration,
+                  escalates, pctTaxable}. pctTaxable in [0, 100]; defaults to
+                  100 (fully taxable) when missing.
+
     Active when age in [startAge, startAge + duration). While active, nominal is
-    amountPV × (1+cpi)^year_idx if escalates else amountPV.
+    amountPV × (1+cpi)^year_idx if escalates else amountPV. The taxable portion
+    enters the tax base; the tax-free portion is cash flow only.
+
+    Returns {'total', 'taxable', 'taxFree'}.
     """
-    total = 0
+    total = 0.0
+    taxable = 0.0
     for item in (schedule or []):
         if item['spouse'] != suffix:
             continue
@@ -102,10 +109,37 @@ def other_income_for_year(schedule, suffix, age, year_idx, cpi):
             continue
         if age >= item['startAge'] + item['duration']:
             continue
-        if item.get('escalates'):
-            total += item['amountPV'] * ((1 + cpi) ** year_idx)
-        else:
-            total += item['amountPV']
+        nominal = item['amountPV'] * ((1 + cpi) ** year_idx) if item.get('escalates') else item['amountPV']
+        pct = item.get('pctTaxable', 100)
+        # Clamp to [0, 100] defensively.
+        if pct < 0: pct = 0
+        if pct > 100: pct = 100
+        total += nominal
+        taxable += nominal * (pct / 100.0)
+    return {'total': total, 'taxable': taxable, 'taxFree': total - taxable}
+
+
+# ============================================================
+# Recurring household goals (e.g. travel every 5 years)
+# ============================================================
+
+def goals_for_year(goals, age, year_idx, cpi):
+    """
+    Sum the nominal rand value of every household goal that lands in this
+    projection year. Each goal: {label, amountPV, everyNYears, startAge, endAge}.
+    Active when age in [startAge, endAge] AND (age - startAge) % everyN == 0.
+    Nominal = amountPV × (1 + cpi)^year_idx (today's money escalates with CPI).
+    """
+    total = 0.0
+    for g in (goals or []):
+        every = g.get('everyNYears', 0)
+        start = g.get('startAge', 0)
+        end = g.get('endAge', 0)
+        if every < 1 or age < start or age > end:
+            continue
+        if (age - start) % every != 0:
+            continue
+        total += g['amountPV'] * ((1 + cpi) ** year_idx)
     return total
 
 
@@ -185,7 +219,7 @@ def solve_topup(sA, sB, la_target_A, la_target_B, age_A, age_B, year_idx, target
             prop = min(1, disc_draw / p['discBalance'])
             gain = max(0, disc_draw - p['discBaseCost'] * prop)
         inclusion = max(0, (gain - cgt_exclusion_year(year_idx)) * CGT['inclusion'])
-        taxable = la_draw + p['otherIncome'] + inclusion
+        taxable = la_draw + p.get('otherTaxable', p['otherIncome']) + inclusion
         return income_tax_year(taxable, age, year_idx), gain
 
     # Phase 1
@@ -309,7 +343,8 @@ def solve_topup(sA, sB, la_target_A, la_target_B, age_A, age_B, year_idx, target
 # ============================================================
 
 def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
-            auto_topup=False, events=None, incomes=None, horizon_age=100):
+            auto_topup=False, events=None, incomes=None, goals=None,
+            horizon_age=100):
     """
     Run a full year-by-year projection. Returns dict with series arrays.
 
@@ -333,6 +368,12 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
 
     sA = dict(pA)
     sB = dict(pB)
+    # Legacy scalar `otherIncome` is treated as fully taxable. Schedule-driven
+    # paths overwrite these per year below.
+    sA.setdefault('otherTaxable', sA['otherIncome'])
+    sA.setdefault('otherTaxFree', 0)
+    sB.setdefault('otherTaxable', sB['otherIncome'])
+    sB.setdefault('otherTaxFree', 0)
 
     series = dict(
         labels=[], la=[], disc=[], total=[], draw=[], tax=[], net=[], target=[],
@@ -353,10 +394,19 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         target_A = la_target_A_Y1 * (1 + cpi) ** y
         target_B = la_target_B_Y1 * (1 + cpi) ** y
         year_target_nom = target_pv_annual * (1 + cpi) ** y
+        # Goals (household-wide) bump the after-tax target in qualifying years.
+        # Anchored on the youngest spouse's age (matches the projection horizon).
+        year_target_nom += goals_for_year(goals, min(age_this_A, age_this_B), y, cpi)
 
         if use_schedule:
-            sA['otherIncome'] = other_income_for_year(incomes, 'A', age_this_A, y, cpi)
-            sB['otherIncome'] = other_income_for_year(incomes, 'B', age_this_B, y, cpi)
+            rA_other = other_income_for_year(incomes, 'A', age_this_A, y, cpi)
+            rB_other = other_income_for_year(incomes, 'B', age_this_B, y, cpi)
+            sA['otherIncome'] = rA_other['total']
+            sA['otherTaxable'] = rA_other['taxable']
+            sA['otherTaxFree'] = rA_other['taxFree']
+            sB['otherIncome'] = rB_other['total']
+            sB['otherTaxable'] = rB_other['taxable']
+            sB['otherTaxFree'] = rB_other['taxFree']
 
         topup = None
         if auto_topup:
@@ -387,8 +437,8 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         excl_y = cgt_exclusion_year(y)
         incl_A = max(0, (rA['gain_realised'] - excl_y) * CGT['inclusion'])
         incl_B = max(0, (rB['gain_realised'] - excl_y) * CGT['inclusion'])
-        taxable_A = rA['la_draw'] + sA['otherIncome'] + incl_A
-        taxable_B = rB['la_draw'] + sB['otherIncome'] + incl_B
+        taxable_A = rA['la_draw'] + sA['otherTaxable'] + incl_A
+        taxable_B = rB['la_draw'] + sB['otherTaxable'] + incl_B
         tax_Y_A = income_tax_year(taxable_A, age_this_A, y)
         tax_Y_B = income_tax_year(taxable_B, age_this_B, y)
 

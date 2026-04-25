@@ -13,6 +13,12 @@ without a schedule continue to work (legacy path).
 from conftest import other_income_for_year, project, person, approx
 
 
+def other_income_total(*args, **kwargs):
+    """Resolver tests in this file pre-date the {total, taxable, taxFree} return
+    shape; they only ever cared about the total. Thin shim to keep them legible."""
+    return other_income_for_year(*args, **kwargs)['total']
+
+
 # ============================================================
 # Pure resolver
 # ============================================================
@@ -21,7 +27,7 @@ class TestResolverEmpty:
     def test_empty_schedule_returns_zero(self):
         for suffix in ('A', 'B'):
             for y in range(0, 35):
-                assert other_income_for_year([], suffix, 70, y, 0.05) == 0
+                assert other_income_total([], suffix, 70, y, 0.05) == 0
 
 
 class TestResolverFlat:
@@ -33,7 +39,7 @@ class TestResolverFlat:
             'startAge': 65, 'duration': 10, 'escalates': False,
         }]
         for y, age in enumerate(range(65, 75)):
-            assert other_income_for_year(sched, 'A', age, y, 0.05) == 100_000
+            assert other_income_total(sched, 'A', age, y, 0.05) == 100_000
 
     def test_flat_zero_outside_window(self):
         sched = [{
@@ -41,13 +47,13 @@ class TestResolverFlat:
             'startAge': 70, 'duration': 5, 'escalates': False,
         }]
         # Before startAge
-        assert other_income_for_year(sched, 'A', 65, 0, 0.05) == 0
-        assert other_income_for_year(sched, 'A', 69, 4, 0.05) == 0
+        assert other_income_total(sched, 'A', 65, 0, 0.05) == 0
+        assert other_income_total(sched, 'A', 69, 4, 0.05) == 0
         # Active window
-        assert other_income_for_year(sched, 'A', 70, 5, 0.05) == 100_000
-        assert other_income_for_year(sched, 'A', 74, 9, 0.05) == 100_000
+        assert other_income_total(sched, 'A', 70, 5, 0.05) == 100_000
+        assert other_income_total(sched, 'A', 74, 9, 0.05) == 100_000
         # After window (age == startAge + duration)
-        assert other_income_for_year(sched, 'A', 75, 10, 0.05) == 0
+        assert other_income_total(sched, 'A', 75, 10, 0.05) == 0
 
 
 class TestResolverEscalating:
@@ -62,7 +68,7 @@ class TestResolverEscalating:
         for y in range(0, 30):
             age = 65 + y
             expected = 144_000 * (1 + cpi) ** y
-            assert approx(other_income_for_year(sched, 'B', age, y, cpi),
+            assert approx(other_income_total(sched, 'B', age, y, cpi),
                           expected, tol=0.01)
 
     def test_escalating_uses_year_idx_not_years_since_start(self):
@@ -74,7 +80,7 @@ class TestResolverEscalating:
         }]
         # Current age 65, kicks in at age 70 (y=5). At y=5 the nominal should be
         # 50_000 × 1.05^5 — i.e. today's R50 000 preserved in real terms.
-        nominal_at_start = other_income_for_year(sched, 'A', 70, 5, 0.05)
+        nominal_at_start = other_income_total(sched, 'A', 70, 5, 0.05)
         assert approx(nominal_at_start, 50_000 * (1.05 ** 5), tol=0.01)
 
 
@@ -84,8 +90,8 @@ class TestResolverGates:
             'label': 'x', 'spouse': 'A', 'amountPV': 10_000,
             'startAge': 70, 'duration': 5, 'escalates': False,
         }]
-        assert other_income_for_year(sched, 'A', 69, 4, 0.05) == 0
-        assert other_income_for_year(sched, 'A', 70, 5, 0.05) == 10_000
+        assert other_income_total(sched, 'A', 69, 4, 0.05) == 0
+        assert other_income_total(sched, 'A', 70, 5, 0.05) == 10_000
 
     def test_duration_gate(self):
         sched = [{
@@ -93,9 +99,9 @@ class TestResolverGates:
             'startAge': 65, 'duration': 5, 'escalates': False,
         }]
         # Active ages: 65, 66, 67, 68, 69 (5 years)
-        assert other_income_for_year(sched, 'A', 69, 4, 0.05) == 10_000
+        assert other_income_total(sched, 'A', 69, 4, 0.05) == 10_000
         # Age 70 is startAge + duration → inactive
-        assert other_income_for_year(sched, 'A', 70, 5, 0.05) == 0
+        assert other_income_total(sched, 'A', 70, 5, 0.05) == 0
 
 
 class TestResolverSpouseFilter:
@@ -106,8 +112,8 @@ class TestResolverSpouseFilter:
             {'label': 'B-stream', 'spouse': 'B', 'amountPV': 75_000,
              'startAge': 65, 'duration': 20, 'escalates': False},
         ]
-        assert other_income_for_year(sched, 'A', 65, 0, 0.05) == 50_000
-        assert other_income_for_year(sched, 'B', 65, 0, 0.05) == 75_000
+        assert other_income_total(sched, 'A', 65, 0, 0.05) == 50_000
+        assert other_income_total(sched, 'B', 65, 0, 0.05) == 75_000
 
 
 class TestResolverSum:
@@ -118,7 +124,7 @@ class TestResolverSum:
             {'label': 'two', 'spouse': 'A', 'amountPV': 20_000,
              'startAge': 65, 'duration': 10, 'escalates': False},
         ]
-        assert other_income_for_year(sched, 'A', 65, 0, 0.05) == 50_000
+        assert other_income_total(sched, 'A', 65, 0, 0.05) == 50_000
 
     def test_mixed_escalating_and_flat_sum(self):
         sched = [
@@ -130,7 +136,7 @@ class TestResolverSum:
         cpi = 0.05
         # Year 5 (age 70): 100_000 × 1.05^5 + 50_000
         expected = 100_000 * (1.05 ** 5) + 50_000
-        assert approx(other_income_for_year(sched, 'A', 70, 5, cpi), expected, tol=0.01)
+        assert approx(other_income_total(sched, 'A', 70, 5, cpi), expected, tol=0.01)
 
 
 # ============================================================
