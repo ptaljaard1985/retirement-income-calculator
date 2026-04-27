@@ -107,6 +107,41 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 21 — 2026-04-27 (report income-chart y-axis fix · real-rand rendering)
+
+**Built / changed** — surgical fix to `retirement_drawdown_report.html`. The Answer / Projection / dual-run / compare-mini income charts were rendering bars as stubs at the bottom of the frame with the dashed coral target line floating low; the y-axis was scaling to year-30+ nominal income (~2.4× year-1 at 3% CPI) while `requiredReal` and the passed-in `needBase` were today's-rand. Mixing the two units on one chart blew the axis ceiling far above the target. Engine math untouched: **108/108 Python + 19/19 JS** unaffected (the report does no math).
+
+1. **`toRealRows(rows, cpi, startAge)` helper** added at `retirement_drawdown_report.html:2797`, immediately above `renderIncomeChart`. Returns a new array (never mutates) where `laDraw`, `discDraw`, `otherIncome`, and `totalIncome` are deflated by `v / (1+cpi)^(age - startAge)` — the same formula as the engine's `deflate()` at `retirement_drawdown.html:3879–3880`. `requiredReal` and `needBase` are already today's-rand, so they pass through untouched.
+
+2. **Seven call sites wrapped** to pass real-rand rows into `renderIncomeChart` / `renderIncomeChartV2`:
+   - `renderRun` chart-answer + chart-projection (lines 3262, 3267)
+   - `renderCompare` v2 mini-charts compare-baseline + compare-scenario (lines 3322, 3327)
+   - `renderCompare` v1 fallback mini-charts (lines 3365, 3370)
+   - `renderRunV2` dual-run income chart (line 3741)
+   The dual-run v2 annotations (`opts.discExhaustsAt`, `opts.laCapAt`, `opts.shortfallFromAge`) are age-based, so they continue to land at the right x-coordinates without modification.
+
+3. **Capital chart left as-is.** `renderCapitalChart` has the same nominal-growth issue on its y-axis but its purpose is *capital balances* (not expenses), and the user's note specifically called out expenses. Tracked in `TECH_DEBT.md` for revisit if Pierre flags it.
+
+**Architectural decisions**
+- **Inline deflation over snapshot bump.** The deflator is constant `(1+cpi)^i` — replicable in the report from three pieces of data already on the snapshot (`projection.cpi`, `projection.startAge`, `r.age`). Adding `p.real.la[i]` etc. to `buildProjectionPayload` would force a calculator-side change for the same numbers; inline keeps this a single-file fix.
+- **Real-mode rendering, not y-axis clamping.** Considered `Math.min(maxVal, needBase × 1.5)` as a one-line patch to cap the axis. Rejected: in years where nominal income overshoots the real target, that would visually clip bars off the top of the chart — worse than today's stubs. Real-mode is the only fix that keeps the data faithful AND scales the axis to expense-shape.
+- **Report stays nominal-only-input.** The snapshot continues to carry only `p.nominal.total[i]` per row. `toRealRows` is a render-time view, not a data shape — the year-table on the same page still shows nominal values (which is correct for the year-by-year table since it's labelled with years, not "today's money").
+
+**Smoke check**
+Manual walkthrough: y-axis tick at the top of the income charts now reads roughly `R 600k` for an R 50k/month plan (annual need × 1.08), bars stack to roughly the height of the dashed coral target line in the early years, target line sits near the top of the frame. Print preview at A4 landscape — chart scales correctly under print color exact mode.
+
+**Follow-ups**
+- Browser walkthrough at 1366×768: confirm the visual fix lands across Answer slide (height 300), Projection slide (height 480), v2 dual-run run-income slide (height 480), and the v2 compare-bridge mini-charts (height 180). Also confirm v1 single-run path renders correctly.
+- If any bar visibly clips the top edge of a chart, tune the `* 1.08` headroom in `renderIncomeChart:2809` — but defer until we see real data shape post-fix.
+- Capital chart real-mode rendering — see `TECH_DEBT.md` entry.
+
+**Also in this session — seeded defaults for capital events / goals / other income.** Pierre asked for representative dummy data so a fresh page load has enough texture to test the report end-to-end without manual data entry. Three in-memory stores in `retirement_drawdown.html` were initialised from `[]` to seeded arrays:
+- **`eventsStore`** (line ~5145): 3 events — Endowment maturity (year 5, R 800k, A), Property downsize (year 8, R 4m, A), Inheritance (year 12, R 2m, B).
+- **`goalsStore`** (line ~5876): 5 goals — Travel (R 150k every 2 yrs, 65–80), Vehicle replacement (R 600k every 8 yrs, 65–90), Home maintenance (R 50k every 1 yr, 65–95), Family gifts (R 100k every 3 yrs, 65–95), Healthcare buffer (R 200k every 5 yrs, 70–95).
+- **`incomeStore`** (line ~5788): 2 streams — Rental property (Spouse A, R 144k/yr, age 65, 15 yrs, CPI-linked, 100% taxable), DB pension (Spouse B, R 120k/yr, age 65, 35 yrs, CPI-linked, 100% taxable).
+
+These stores are pure in-memory at IIFE scope (no localStorage persistence — `sw-drawdown-snapshot` is the only thing the calculator persists, and that's for the report). Every fresh page load gets the seeded defaults; the modal Save still replaces stores wholesale so editing in a meeting overrides the defaults for that session. The values exercise the existing engine (per-event labels round-trip into the report's events ledger, goals bump the target line, both incomes feed the tax view) so the dual-run editorial PDF has shape on first export.
+
 ### Session 20 — 2026-04-27 (v2 dual-run report + per-event labels)
 
 **Built / changed** — three coordinated follow-ups to the v2 dual-run report wired in earlier the same day. The dual-run editorial PDF now reads as designerly as the source mock, with named capital events round-tripping through the snapshot and the scenario GE column visibly diffing against the locked baseline. Engine math untouched: **108/108 Python + 19/19 JS** pass.

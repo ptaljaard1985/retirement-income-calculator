@@ -5140,9 +5140,15 @@
   }
 
   // ===== Future capital events =====
-  // An in-memory store of events. Each event: { year, amountPV, spouse }.
+  // An in-memory store of events. Each event: { year, amountPV, spouse, label }.
   // Rendered dynamically into #events-list. Read by readEvents() inside project().
-  var eventsStore = [];
+  // Seeded with three representative defaults so a fresh page load has enough
+  // texture to exercise the report end-to-end without manual data entry.
+  var eventsStore = [
+    { year: 5,  amountPV:  800000, spouse: 'A', label: 'Endowment maturity' },
+    { year: 8,  amountPV: 4000000, spouse: 'A', label: 'Property downsize' },
+    { year: 12, amountPV: 2000000, spouse: 'B', label: 'Inheritance' }
+  ];
 
   function readEvents(){
     // Convert in-memory store to a clean array, filtering out invalid rows.
@@ -5783,9 +5789,14 @@
   });
 
   // ===== Other taxable income streams =====
-  // In-memory store. Each item: { label, spouse, amountPV, startAge, duration, escalates }.
+  // In-memory store. Each item: { label, spouse, amountPV, startAge, duration, escalates, pctTaxable }.
   // Rendered into #incomes-list. Read by readIncomes() inside project() on every refresh.
-  var incomeStore = [];
+  // Seeded with two representative streams so the report has non-trivial other-income
+  // shape on first load.
+  var incomeStore = [
+    { label: 'Rental property', spouse: 'A', amountPV: 144000, startAge: 65, duration: 15, escalates: true, pctTaxable: 100 },
+    { label: 'DB pension',      spouse: 'B', amountPV: 120000, startAge: 65, duration: 35, escalates: true, pctTaxable: 100 }
+  ];
 
   function readIncomes(){
     return incomeStore.filter(function(it){
@@ -5873,7 +5884,15 @@
   // ===== Recurring household goals =====
   // Each item: { label, amountPV, everyNYears, startAge, endAge }.
   // Household-wide (no spouse field). Read by readGoals() inside project().
-  var goalsStore = [];
+  // Seeded with five representative recurring goals so the report's target line
+  // has goal-year steps to render on first load.
+  var goalsStore = [
+    { label: 'Travel',              amountPV: 150000, everyNYears: 2, startAge: 65, endAge: 80 },
+    { label: 'Vehicle replacement', amountPV: 600000, everyNYears: 8, startAge: 65, endAge: 90 },
+    { label: 'Home maintenance',    amountPV:  50000, everyNYears: 1, startAge: 65, endAge: 95 },
+    { label: 'Family gifts',        amountPV: 100000, everyNYears: 3, startAge: 65, endAge: 95 },
+    { label: 'Healthcare buffer',   amountPV: 200000, everyNYears: 5, startAge: 70, endAge: 95 }
+  ];
 
   function readGoals(){
     return goalsStore.filter(function(g){
