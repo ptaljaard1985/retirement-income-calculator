@@ -302,7 +302,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
 ```
 <head>          design tokens (mirrors calculator's :root) + ~700 lines of CSS
                 + ~370 lines of v2 dual-run primitives (run-strip, run-chip,
-                  run-headline, run-chart-card, assume-strip, compare-assume-table,
+                  run-headline, run-chart-card, compare-assume-table,
                   levers-grid-4, ge-stack + ge-section, goal-row, ev-row)
 <body>
   <div id="deck">  fixed sequence of <section class="slide"> nodes
@@ -327,7 +327,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
     [divider-baseline / divider-scenario]     data-conditional="dualrun"
 
     # v2 dual-run templates (data-conditional="dualrun-v2", ship hidden):
-    [run-income]            cloned per run for the Income + assume-strip slide
+    [run-income]            cloned per run for the Income chart slide
     [run-ge]                cloned per run for the four-section stack: Lifestyle · Goals · Other income · Capital events
     [assumptions-compare]   side-by-side baseline-vs-scenario assumptions table (single)
     [levers-v2]             four-lever editorial grid (single, replaces v1 levers)
@@ -341,9 +341,9 @@ A second self-contained HTML file in this directory. It produces the editorial A
 
 ```
 [—.   cover]                               always
-[I.   run-income-baseline]    cloned       Income chart + assume-strip
+[I.   run-income-baseline]    cloned       Income chart (full-bleed; assume-strip removed Session 23)
 [I.   run-ge-baseline]        cloned       Lifestyle · Goals · Other income · Capital events (single-column stack)
-[II.  run-income-scenario]    cloned       Income chart + assume-strip (with shortfall band)
+[II.  run-income-scenario]    cloned       Income chart (with shortfall band)
 [II.  run-ge-scenario]        cloned       Same stack + diff badges (added / changed / uplifted)
 [III. assumptions-compare]    static       Side-by-side baseline-vs-scenario table
 [IV.  levers-v2]              static       Four lever blocks
@@ -356,7 +356,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
 
 **Run identity**: each cloned slide carries a 4 px coloured strip below the slide-top (`paper-3` for baseline, `navy` for scenario) and a chip in the slide-top meta (`I. Baseline · locked` / `II. Scenario · explored today`). The strip + chip are written by `renderRunV2` via the `runStripHost` / `runChipHost` placeholder spans in the template.
 
-Slide content is driven by `[data-field="..."]` placeholders. `setField(name, value)` paints all matching nodes globally — used for fields shared across runs (familyName, preparedOn, etc.) listed in the `SHARED_FIELDS` set. `setRunField(suffix, name, value)` scopes by appending the suffix to the field name — used for per-run fields (`runHeadline`, `assumeMonthly`, `geGoalsBody`, etc.). `setRunFieldHTML(suffix, name, html)` writes innerHTML for headline / column-body fields that carry inline `<em>` / `<span class="num">` / `<br>` markup. Spouse, tax, events, and year-table rows in the v1 path are still injected with `innerHTML` from template literals, scoped by `runEl(suffix, id)`.
+Slide content is driven by `[data-field="..."]` placeholders. `setField(name, value)` paints all matching nodes globally — used for fields shared across runs (familyName, preparedOn, etc.) listed in the `SHARED_FIELDS` set. `setRunField(suffix, name, value)` scopes by appending the suffix to the field name — used for per-run fields (`runHeadline`, `geGoalsBody`, etc.). `setRunFieldHTML(suffix, name, html)` writes innerHTML for headline / column-body fields that carry inline `<em>` / `<span class="num">` / `<br>` markup. Spouse, tax, events, and year-table rows in the v1 path are still injected with `innerHTML` from template literals, scoped by `runEl(suffix, id)`.
 
 ### The binder (the script block at the bottom)
 
@@ -370,7 +370,7 @@ The IIFE follows this structure:
 6. **Shared field render** (`renderShared()`) — `setField` for every field that's shared across runs and static slides: cover meta, family name, preparedOn, adviser, monthlyNeedCover, returnPct (assumptions), cpiPct, autoTopUp, nextReview. Single-client copy swap on the methodology + assumptions slides also lives here.
 7. **Per-run render** — two implementations, switched on `hasDualRun`:
     - `renderRun(plan, projection, suffix)` — v1 single-run path. Wraps Answer fields, Household cards, Tax cards, Projection foot, Events ledger + timeline, Year-table, and the three SVG charts (chart-answer, chart-projection, chart-capital). Called once with `suffix=''`.
-    - `renderRunV2(plan, projection, suffix)` — v2 dual-run path. Writes the run-chip + run-strip identity, the run-headline (sustainable-to-age narrative), the assume-strip (6 cells: monthly need, return·CPI, other income, capital events, auto top-up, sustainable-to), the income chart via `renderIncomeChartV2` (annotation overlay around `renderIncomeChart`), and the four GE sections with `renderLifestyleSection` / `renderGoalsCol` / `renderOtherCol` / `renderEventsCol`. Called twice with `'-baseline'` and `'-scenario'`.
+    - `renderRunV2(plan, projection, suffix)` — v2 dual-run path. Writes the run-chip + run-strip identity, the run-headline (sustainable-to-age narrative), the income chart via `renderIncomeChartV2` (annotation overlay around `renderIncomeChart`), and the four GE sections with `renderLifestyleSection` / `renderGoalsCol` / `renderOtherCol` / `renderEventsCol`. Called twice with `'-baseline'` and `'-scenario'`.
 8. **Diff helper for the scenario GE sections** — `diffByKey(baseList, scenList, keyFn)` returns `{ isAdded, isChanged, addedCount, changedCount }`. Built only when `hasDualRun && which === 'scenario'`. Identity keys mirror the calculator's `diffCollection`: goals key on `label|startAge`; streams on `spouseName|name|startAge`; events on `spouse|year|label`. Drives the `↑ added` / `↑ updated` badges, the `.added` row class (gold-tint), and the `· N added · N changed` tail on section subtitles. The Lifestyle section's two rows (monthly need + annual lump sum) get the `↑ uplifted/reduced` treatment independently — `.warn` (red) amount + gold badge + delta narrative — when scenario `monthlyNeed` or `annualLumpSums` differ from baseline.
 9. **Compare slide render** (`renderCompare()`) — v1 single-run only. v2 dual-run uses `renderAssumptionsCompare()` instead — full-width side-by-side table flagging same / different rows with delta chips (`+ R 5 000 · +10%`, `− 5 yrs`, etc.). Skipped when the slide was dropped by setup.
 10. **Renumber + page totals** (`renumberSlides()`) — runs once after all DOM rearrangement. v2 dual-run uses a section map (cover → none, baseline pair → I, scenario pair → II, assumptions → III, levers → IV, compliance → V); v1 single-run uses a per-slide Roman walker. Page numbers always increment per-slide.

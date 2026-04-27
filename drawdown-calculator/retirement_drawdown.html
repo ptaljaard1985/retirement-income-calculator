@@ -6283,7 +6283,14 @@
   // Derive horizon / depletion / cap / exhaust ages from any projection.
   // Pure of DOM — takes a project() result, returns milestones.
   function deriveMilestones(pp){
-    var rs = pp.nominal && pp.nominal.total ? pp.nominal.total : [];
+    // pp.nominal.total is the engine's start-of-year CAPITAL series (a
+    // misleading name). For sustainableTo we need the per-year gross
+    // INCOME — that's pp.nominal.draw (laDraw + discDraw + otherIncome
+    // for the year). Comparing capital against target made shortfall
+    // almost never trip and pushed sustainableTo all the way to ~age 98
+    // even when income visibly fell below the target line at the LA
+    // ceiling. See Session 22 for the parallel fix in buildProjectionPayload.
+    var rs = pp.nominal && pp.nominal.draw ? pp.nominal.draw : [];
     var ts = pp.nominal && pp.nominal.target ? pp.nominal.target : [];
     var laBal = pp.table || {};
     var sustainableTo = null, depletesAt = null, laCapHitAt = null, discExhaustsAt = null;
