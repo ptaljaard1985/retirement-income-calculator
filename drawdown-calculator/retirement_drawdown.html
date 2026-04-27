@@ -6457,6 +6457,7 @@
       var laBalance = (t.laA_bal[i] || 0) + (t.laB_bal[i] || 0);
       var discBalance = (t.discA_bal[i] || 0) + (t.discB_bal[i] || 0);
       var requiredReal = p.targetPVAnnual;
+      var requiredNom = (p.nominal.target && p.nominal.target[i]) || 0;
       var rowEvents = capitalEvents.filter(function(e){ return e.year === startYear + i; });
       rows.push({
         year: startYear + i,
@@ -6466,6 +6467,7 @@
         otherIncome: otherInc,
         totalIncome: totalIncome,
         requiredReal: requiredReal,
+        requiredNom: requiredNom,
         laBalance: laBalance,
         discBalance: discBalance,
         totalCapital: laBalance + discBalance,

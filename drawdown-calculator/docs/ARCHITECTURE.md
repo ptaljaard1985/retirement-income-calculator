@@ -269,7 +269,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
   projection: {
     startAge, horizonAge, years, rNom, cpi,
     rows: [{ year, age, laDraw, discDraw, otherIncome, totalIncome,
-             requiredReal, laBalance, discBalance, totalCapital, shortfall, events }],
+             requiredReal, requiredNom, laBalance, discBalance, totalCapital, shortfall, events }],
     sustainableTo, depletesAt, laCapHitAt, discExhaustsAt,
     year1, taxA, taxB, taxByPerson, hhGross, hhTax, hhNet, hhEff
   },
@@ -377,7 +377,7 @@ The IIFE follows this structure:
 11. **Charts** — inline-SVG renderers, called from inside the per-run renderer:
     - `renderIncomeChart(container, rows, {needBase, width, height})` — base stacked-bar chart (LA / Disc / Other) with dashed coral target line and shortfall wash. Used by both v1 and v2 paths.
     - `renderIncomeChartV2(container, rows, opts)` — v2 wrapper that adds editorial annotations on top of `renderIncomeChart`: dashed gold "disc exhausts · age N" vertical, dashed gold "LA ceiling · age N" vertical, and a coral 6%-opacity shortfall band overlay. Used by `renderRunV2`.
-    - `toRealRows(rows, cpi, startAge)` — deflates per-row `laDraw / discDraw / otherIncome / totalIncome` to today's-rand using `v / (1+cpi)^(age - startAge)` (same formula as the calculator's engine `deflate()`). Every income-chart call site wraps its row slice through this helper before handing to `renderIncomeChart` / `renderIncomeChartV2`. Reason: the snapshot's `r.totalIncome` is nominal (now computed as `laDraw + discDraw + otherInc` in `buildProjectionPayload` — the previous mapping to `p.nominal.total[i]` was an engine-naming trap; that series is start-of-year capital, not income), but `r.requiredReal` and the passed-in `needBase` are today's-rand. Without deflation the y-axis would scale to year-30+ nominal income (~2.4× year-1 at 3% CPI) while the target line sits at today's-rand expense — bars look like stubs at the bottom of the frame. The capital chart is intentionally NOT routed through this helper (its y-axis is balances, not expenses).
+    - **Income charts render in nominal** with a stepped per-year target line. `renderIncomeChart` reads `r.requiredNom` (per-year nominal target, including CPI escalation + goal bumps) for both the staircase target polyline and the per-year shortfall comparison. `r.totalIncome` is nominal too (`laDraw + discDraw + otherInc`, computed inline in `buildProjectionPayload`). `r.requiredReal` is kept as a fallback for snapshots predating the `requiredNom` field. Same shape language as the calculator UI's `targetBoxPlugin` — horizontal segments per year, vertical steps where the target changes. PR #24's `toRealRows` deflation helper was removed in PR #27 once the underlying nominal series were trustworthy (the Session 22 totalIncome fix).
     - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — v1 Capital slide.
     - `renderTimeline(container, events)` — v1 Events slide.
     Rows are sliced by a per-run-local `chartSlice(extraYears)` (v1) or inline `rows.filter(r => r.age <= sustain + 5)` (v2) so charts don't paint depleted years past the horizon + buffer.

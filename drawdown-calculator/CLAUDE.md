@@ -107,6 +107,30 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 24 — 2026-04-27 (report income charts: nominal + stepped per-year target)
+
+**Built / changed** — unwound PR #24's deflation. The report's run-income / answer / projection / compare-mini charts now render in nominal terms with a stepped per-year target line — matching the calculator UI's shape language (rising bars + rising stepped target staircase). Engine math untouched: **108/108 Python + 19/19 JS** still pass.
+
+**Why it was wrong before.** PR #24 (Session 21) wrapped every chart row in `toRealRows(rows, cpi, startAge)` to deflate `laDraw / discDraw / otherIncome / totalIncome` to today's-rand. At the time we thought the y-axis blow-up was a real-vs-nominal unit mismatch. Turns out the actual root cause was a different bug — `r.totalIncome` was reading `p.nominal.total[i]` which is the engine's CAPITAL series (Session 22 fix). PR #24's deflation was masking the symptom by squashing the wrong-magnitude data, and producing flat bars + a flat horizontal target line that didn't match the UI's rising-with-CPI editorial story. Pierre A/B'd the report against the calculator's Scenarios-tab compare cards and flagged the shape difference.
+
+1. **Snapshot: per-year nominal target field.** Each row in `buildProjectionPayload` (`retirement_drawdown.html:6448`) now also carries `requiredNom = p.nominal.target[i]` — the engine's per-year nominal target need (CPI escalation + goal bumps, already correctly computed for years; just newly exposed in the export bundle). Existing static `requiredReal = p.targetPVAnnual` is kept for back-compat with v1 single-run paths and for fallback. Additive snapshot field — `schemaVersion` unchanged; existing v2 readers ignore unknown fields.
+
+2. **Report: drop `toRealRows`.** Helper deleted from `retirement_drawdown_report.html` (~line 2768) and all seven call sites (`renderRun` chart-answer + chart-projection, `renderCompare` v2 + v1 mini-charts, `renderRunV2` dual-run income chart) now pass nominal rows straight through.
+
+3. **Report: stepped target line + per-year shortfall.** `renderIncomeChart` replaces the single horizontal `<line>` with a staircase `<polyline>` — for each year `i`, a horizontal segment at `targetY(i)` from the slot-left to slot-right edge; vertical steps appear where the target changes (every year via CPI, plus bigger steps in goal years). Same shape vocabulary as the calculator's `targetBoxPlugin` (`retirement_drawdown.html:4243`). `maxVal` now folds in `r.requiredNom` so the y-axis fits the year-30 nominal target. Shortfall wash compares per-year `r.totalIncome < rowTarget(i)` and fills from `targetY(i)` down to the bar top — accurate shortfall geometry in goal years. TARGET NEED label anchored to the last year's target height so it sits at the right edge at the right vertical position. Coral dashed kept for editorial continuity with the existing legend marker.
+
+**Architectural decisions**
+- **Engine + UI untouched.** `p.nominal.target` already existed and was already correct — used by the calculator's `targetBoxPlugin` for the same staircase shape. The fix was a one-line snapshot addition + report-side rendering change, no engine arithmetic touched.
+- **`r.requiredReal` kept alongside `requiredNom`.** Considered dropping `requiredReal` since it's now redundant for the chart. Rejected: v1 single-run paths and pre-bump localStorage snapshots still consume it; the report's `rowTarget()` helper falls back to it cleanly. ~6 bytes per row in the snapshot.
+- **Coral dashed target, not solid navy.** UI uses solid 2.5px navy via `targetBoxPlugin`. Report keeps coral dashed to match its existing legend marker. Pierre's complaint was about the SHAPE (staircase) not the colour. Single-pixel-cost change vs. churning the legend + design-system parity.
+
+**Smoke check**
+Manual walkthrough (dual-run, seeded defaults): bars rise from age 65 (~R 600k) to ages in the late 80s (~R 1.5–2m), then drop in shortfall years. Target line is a coral dashed staircase rising every year with bigger steps in goal years. Y-axis tops near R 3–4m. Caption "NOMINAL RANDS · ESCALATED AT CPI" now matches the data. Print preview at A4 landscape clean.
+
+**Follow-ups**
+- Capital chart still nominal in dual-run report — tracked in `TECH_DEBT.md` since Session 21.
+- If any year visibly clips the top of the chart at very long horizons (e.g. age 95 with high CPI), bump the headroom in `renderIncomeChart`'s `maxVal` calc from `* 1.08` to `* 1.12`.
+
 ### Session 23 — 2026-04-27 (sustainableTo fix · assume-strip removal · flush bars)
 
 **Built / changed** — three small follow-ups after Pierre's screenshot review of the Session 22 report. Engine math untouched: **108/108 Python + 19/19 JS** still pass.
