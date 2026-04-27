@@ -282,7 +282,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
 
 - `plan.spouses[i].otherIncome` is the **year-1 active streams only**, derived from `incomeStore` filtered by `spouseAge ∈ [startAge, startAge + duration)`. Streams that kick in later (deferred DB pension) do not appear on the household slide. The v1 `{kind, monthly}` fields are preserved for back-compat with today's `renderRun` single-run path; v2 names (`name`, `monthlyAmount`, `startAge`, `endAge`, `duration`, `cpiLinked`, `pctTaxable`) feed the dual-run GE column.
 - `plan.capitalEvents[i].year` is the **absolute calendar year** (`new Date().getFullYear() + ev.year - 1`); the calculator stores year-from-now. `label` is user-entered via the events modal (defaults to `"Capital event"` when blank for back-compat with pre-Session-20 saved events). `age` is the spouse's age at the event year, computed from `spouseAgeY1 + (offset - 1)`.
-- `plan.goals[]` is read from `goalsStore` and surfaced verbatim. The v2 dual-run report's GE column treats `monthlyNeed` as the implicit "Lifestyle income" goal and renders `plan.goals[]` rows beneath it. Goals do not appear on the v1 single-run slides today.
+- `plan.goals[]` is read from `goalsStore` and surfaced verbatim. The v2 dual-run report's GE slide renders goals as a dedicated section (the **ii.** block in the four-section stack) underneath a top **i. Lifestyle expenses** section that holds `monthlyNeed` and `annualLumpSums` as two distinct rows. Goals do not appear on the v1 single-run slides today.
 - `projection.rows[i]` is shaped to the report binder's expectations exactly — no further transformation is done at render time.
 - `projection.taxByPerson` is a 1- or 2-element array `[{name, age, laDraw, otherIncome, discDraw, gain, inclusion, taxable, grossIncome, tax, effRate}]` built from `p.taxA` / `p.taxB` for the Y1 tax slide. Length 1 in single-client mode.
 - `baseline` is omitted entirely when no baseline is locked. When present, **its `plan` is the inputs as captured at lock time** (deep-cloned, immune to later edits on Scenarios) and **its `projection` is the frozen `project()` output** at that moment. The report renders both runs end-to-end when this block is present.
@@ -303,7 +303,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
 <head>          design tokens (mirrors calculator's :root) + ~700 lines of CSS
                 + ~370 lines of v2 dual-run primitives (run-strip, run-chip,
                   run-headline, run-chart-card, assume-strip, compare-assume-table,
-                  levers-grid-4, ge-grid + ge-col, goal-row, ev-row)
+                  levers-grid-4, ge-stack + ge-section, goal-row, ev-row)
 <body>
   <div id="deck">  fixed sequence of <section class="slide"> nodes
 
@@ -328,7 +328,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
 
     # v2 dual-run templates (data-conditional="dualrun-v2", ship hidden):
     [run-income]            cloned per run for the Income + assume-strip slide
-    [run-ge]                cloned per run for the Goals · Other income · Capital events grid
+    [run-ge]                cloned per run for the four-section stack: Lifestyle · Goals · Other income · Capital events
     [assumptions-compare]   side-by-side baseline-vs-scenario assumptions table (single)
     [levers-v2]             four-lever editorial grid (single, replaces v1 levers)
     [compliance-v2]         six-block compliance grid (single, replaces v1 compliance)
@@ -342,9 +342,9 @@ A second self-contained HTML file in this directory. It produces the editorial A
 ```
 [—.   cover]                               always
 [I.   run-income-baseline]    cloned       Income chart + assume-strip
-[I.   run-ge-baseline]        cloned       Goals · Other income · Capital events
+[I.   run-ge-baseline]        cloned       Lifestyle · Goals · Other income · Capital events (single-column stack)
 [II.  run-income-scenario]    cloned       Income chart + assume-strip (with shortfall band)
-[II.  run-ge-scenario]        cloned       Same grid + diff badges (added / changed / uplifted)
+[II.  run-ge-scenario]        cloned       Same stack + diff badges (added / changed / uplifted)
 [III. assumptions-compare]    static       Side-by-side baseline-vs-scenario table
 [IV.  levers-v2]              static       Four lever blocks
 [V.   compliance-v2]          static       Six compliance blocks
@@ -370,14 +370,14 @@ The IIFE follows this structure:
 6. **Shared field render** (`renderShared()`) — `setField` for every field that's shared across runs and static slides: cover meta, family name, preparedOn, adviser, monthlyNeedCover, returnPct (assumptions), cpiPct, autoTopUp, nextReview. Single-client copy swap on the methodology + assumptions slides also lives here.
 7. **Per-run render** — two implementations, switched on `hasDualRun`:
     - `renderRun(plan, projection, suffix)` — v1 single-run path. Wraps Answer fields, Household cards, Tax cards, Projection foot, Events ledger + timeline, Year-table, and the three SVG charts (chart-answer, chart-projection, chart-capital). Called once with `suffix=''`.
-    - `renderRunV2(plan, projection, suffix)` — v2 dual-run path. Writes the run-chip + run-strip identity, the run-headline (sustainable-to-age narrative), the assume-strip (6 cells: monthly need, return·CPI, other income, capital events, auto top-up, sustainable-to), the income chart via `renderIncomeChartV2` (annotation overlay around `renderIncomeChart`), and the GE column with `renderGoalsCol` / `renderOtherCol` / `renderEventsCol`. Called twice with `'-baseline'` and `'-scenario'`.
-8. **Diff helper for the scenario GE column** — `diffByKey(baseList, scenList, keyFn)` returns `{ isAdded, isChanged, addedCount, changedCount }`. Built only when `hasDualRun && which === 'scenario'`. Identity keys mirror the calculator's `diffCollection`: goals key on `label|startAge`; streams on `spouseName|name|startAge`; events on `spouse|year|label`. Drives the `↑ added` / `↑ updated` badges, the `.added` row class (gold-tint), and the `· N added · N changed` tail on column subtitles. The implicit Lifestyle income row is treated as "changed" iff scenario `monthlyNeed` differs from baseline — rendered with `.warn` (red) amount + `↑ uplifted` badge + delta narrative in the note.
+    - `renderRunV2(plan, projection, suffix)` — v2 dual-run path. Writes the run-chip + run-strip identity, the run-headline (sustainable-to-age narrative), the assume-strip (6 cells: monthly need, return·CPI, other income, capital events, auto top-up, sustainable-to), the income chart via `renderIncomeChartV2` (annotation overlay around `renderIncomeChart`), and the four GE sections with `renderLifestyleSection` / `renderGoalsCol` / `renderOtherCol` / `renderEventsCol`. Called twice with `'-baseline'` and `'-scenario'`.
+8. **Diff helper for the scenario GE sections** — `diffByKey(baseList, scenList, keyFn)` returns `{ isAdded, isChanged, addedCount, changedCount }`. Built only when `hasDualRun && which === 'scenario'`. Identity keys mirror the calculator's `diffCollection`: goals key on `label|startAge`; streams on `spouseName|name|startAge`; events on `spouse|year|label`. Drives the `↑ added` / `↑ updated` badges, the `.added` row class (gold-tint), and the `· N added · N changed` tail on section subtitles. The Lifestyle section's two rows (monthly need + annual lump sum) get the `↑ uplifted/reduced` treatment independently — `.warn` (red) amount + gold badge + delta narrative — when scenario `monthlyNeed` or `annualLumpSums` differ from baseline.
 9. **Compare slide render** (`renderCompare()`) — v1 single-run only. v2 dual-run uses `renderAssumptionsCompare()` instead — full-width side-by-side table flagging same / different rows with delta chips (`+ R 5 000 · +10%`, `− 5 yrs`, etc.). Skipped when the slide was dropped by setup.
 10. **Renumber + page totals** (`renumberSlides()`) — runs once after all DOM rearrangement. v2 dual-run uses a section map (cover → none, baseline pair → I, scenario pair → II, assumptions → III, levers → IV, compliance → V); v1 single-run uses a per-slide Roman walker. Page numbers always increment per-slide.
 11. **Charts** — inline-SVG renderers, called from inside the per-run renderer:
     - `renderIncomeChart(container, rows, {needBase, width, height})` — base stacked-bar chart (LA / Disc / Other) with dashed coral target line and shortfall wash. Used by both v1 and v2 paths.
     - `renderIncomeChartV2(container, rows, opts)` — v2 wrapper that adds editorial annotations on top of `renderIncomeChart`: dashed gold "disc exhausts · age N" vertical, dashed gold "LA ceiling · age N" vertical, and a coral 6%-opacity shortfall band overlay. Used by `renderRunV2`.
-    - `toRealRows(rows, cpi, startAge)` — deflates per-row `laDraw / discDraw / otherIncome / totalIncome` to today's-rand using `v / (1+cpi)^(age - startAge)` (same formula as the calculator's engine `deflate()`). Every income-chart call site wraps its row slice through this helper before handing to `renderIncomeChart` / `renderIncomeChartV2`. Reason: the snapshot's `r.totalIncome` is nominal (`p.nominal.total[i]`) but `r.requiredReal` and the passed-in `needBase` are today's-rand. Without deflation the y-axis scales to year-30+ nominal income (~2.4× year-1 at 3% CPI) while the target line sits at today's-rand expense — bars look like stubs at the bottom of the frame. The capital chart is intentionally NOT routed through this helper (its y-axis is balances, not expenses).
+    - `toRealRows(rows, cpi, startAge)` — deflates per-row `laDraw / discDraw / otherIncome / totalIncome` to today's-rand using `v / (1+cpi)^(age - startAge)` (same formula as the calculator's engine `deflate()`). Every income-chart call site wraps its row slice through this helper before handing to `renderIncomeChart` / `renderIncomeChartV2`. Reason: the snapshot's `r.totalIncome` is nominal (now computed as `laDraw + discDraw + otherInc` in `buildProjectionPayload` — the previous mapping to `p.nominal.total[i]` was an engine-naming trap; that series is start-of-year capital, not income), but `r.requiredReal` and the passed-in `needBase` are today's-rand. Without deflation the y-axis would scale to year-30+ nominal income (~2.4× year-1 at 3% CPI) while the target line sits at today's-rand expense — bars look like stubs at the bottom of the frame. The capital chart is intentionally NOT routed through this helper (its y-axis is balances, not expenses).
     - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — v1 Capital slide.
     - `renderTimeline(container, events)` — v1 Events slide.
     Rows are sliced by a per-run-local `chartSlice(extraYears)` (v1) or inline `rows.filter(r => r.age <= sustain + 5)` (v2) so charts don't paint depleted years past the horizon + buffer.
