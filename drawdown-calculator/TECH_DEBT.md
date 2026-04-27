@@ -4,6 +4,11 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 
 ## Open
 
+### Report capital chart still renders in nominal terms
+**Where:** `retirement_drawdown_report.html` — `renderCapitalChart` (line ~2889) call site at line ~3271
+**Why:** Session 21 fixed the income-chart y-axis blow-up by deflating per-row income/draw values to today's-rand via `toRealRows()`. The capital chart was deliberately left in nominal because (a) its y-axis represents capital balances rather than expenses (the user's diagnosis was specifically about "max annual expenses"), and (b) capital-balance nominal growth is part of the story being told (real value in year 30 is intuitively smaller than nominal). If Pierre flags the capital chart as visually similar — early-year stubs, peak balance dominating the y-axis — apply the same `toRealRows` pattern, but extend the helper to also deflate `laBalance / discBalance / totalCapital` (currently it only handles the four income/draw fields).
+**Cleanup:** Either extend `toRealRows` to take an optional field-list, or add a sibling `toRealCapitalRows` helper. Wrap the `renderCapitalChart` call in `renderRun` (line ~3271) the same way income calls are wrapped.
+
 ### Goal `breached at age N` status flag is not computed
 **Where:** `retirement_drawdown_report.html` — `renderGoalsCol` notes (v2 dual-run)
 **Why:** The v2 design mock shows an Estate-floor goal flagged "Breached at age 87 in this projection — flagged for review." in coral italic. Detecting a breach requires running the projection's terminal capital against `goal.amountPV` per year, which is engine work — out of scope for the v2 GE diff cut (Session 20). The current `renderGoalsCol` writes a generic note ("Drawn from discretionary, ages X–Y.") for non-Lifestyle goals.
