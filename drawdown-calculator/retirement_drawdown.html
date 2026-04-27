@@ -6637,6 +6637,14 @@
   try { window.scrollTo(0, 0); } catch (_) {}
   window.addEventListener('load', function(){ try { window.scrollTo(0, 0); } catch (_) {} });
 
+  // Paint the store-backed lists once at init. setTab() re-renders them on
+  // every tab switch, but cold-load before any tab click also needs them
+  // (the seeded eventsStore / goalsStore / incomeStore defaults would
+  // otherwise live in memory but never reach the DOM).
+  renderEvents();
+  renderIncomes();
+  renderGoals();
+
   refresh();
 })();
 </script>
