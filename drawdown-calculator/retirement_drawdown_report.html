@@ -2765,26 +2765,6 @@ html, body {
     return 'R' + Math.round(v / 1000) + 'k';
   }
 
-  // Snapshot rows carry nominal amounts (laDraw, discDraw, otherIncome,
-  // totalIncome) but `requiredReal` and `needBase` are today's-rand. Mixing
-  // them on one chart blows up the y-axis to year-30 nominal income while
-  // the target line sits at today's-rand expense. Deflate the bars to real
-  // before rendering so the y-axis scales to expense-shape, not CPI growth.
-  // Mirrors retirement_drawdown.html:3879–3880.
-  function toRealRows(rows, cpi, startAge) {
-    if (!rows || !rows.length || !cpi) return rows;
-    return rows.map(function (r) {
-      var f = Math.pow(1 + cpi, r.age - startAge);
-      if (f === 1) return r;
-      return Object.assign({}, r, {
-        laDraw: (r.laDraw || 0) / f,
-        discDraw: (r.discDraw || 0) / f,
-        otherIncome: (r.otherIncome || 0) / f,
-        totalIncome: (r.totalIncome || 0) / f
-      });
-    });
-  }
-
   function renderIncomeChart(container, rows, opts) {
     opts = opts || {};
     if (!container || !rows || !rows.length) return;
@@ -2802,9 +2782,15 @@ html, body {
     var startAge = rows[0].age;
 
     var needBase = opts.needBase || rows[0].requiredReal || 0;
+    // rowTarget(i) — per-year nominal target. Falls back to requiredReal /
+    // needBase for snapshots predating the requiredNom field.
+    function rowTarget(i) {
+      var r = rows[i] || {};
+      return r.requiredNom || r.requiredReal || needBase || 0;
+    }
     var maxVal = 0;
-    rows.forEach(function (r) {
-      maxVal = Math.max(maxVal, r.totalIncome || 0, r.requiredReal || 0);
+    rows.forEach(function (r, i) {
+      maxVal = Math.max(maxVal, r.totalIncome || 0, rowTarget(i));
     });
     maxVal = Math.max(maxVal, needBase) * 1.08;
     if (maxVal <= 0) maxVal = 1;
@@ -2825,15 +2811,31 @@ html, body {
       svg.appendChild(t);
     }
 
-    // need line — drawn behind bars
-    var needY = pad.top + innerH * (1 - (needBase / maxVal));
-    if (needBase > 0) {
-      svg.appendChild(el('line', {
-        x1: pad.left, x2: W - pad.right, y1: needY, y2: needY,
-        stroke: COLORS.need, 'stroke-width': 1.5, 'stroke-dasharray': '5 4'
-      }));
+    // Stepped target-need staircase — per-year horizontal segments at the
+    // year's nominal target height, with vertical steps where the target
+    // changes (CPI escalation each year, plus goal bumps). Mirrors the
+    // calculator's targetBoxPlugin shape vocabulary.
+    function targetY(i) {
+      return pad.top + innerH * (1 - rowTarget(i) / maxVal);
+    }
+    var stepPts = [];
+    for (var ti = 0; ti < n; ti++) {
+      var lx = pad.left + slot * ti;
+      var rx = pad.left + slot * (ti + 1);
+      var ty = targetY(ti);
+      stepPts.push(lx + ',' + ty);
+      stepPts.push(rx + ',' + ty);
+    }
+    svg.appendChild(el('polyline', {
+      points: stepPts.join(' '), fill: 'none',
+      stroke: COLORS.need, 'stroke-width': 1.5, 'stroke-dasharray': '5 4'
+    }));
+    // TARGET NEED label — anchored to the LAST year's target height so it
+    // sits at the right edge at the right vertical position.
+    if (n > 0) {
+      var lastTy = targetY(n - 1);
       var nl = el('text', {
-        x: W - pad.right + 6, y: needY + 4,
+        x: W - pad.right + 6, y: lastTy + 4,
         'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: COLORS.need,
         'font-weight': 600, 'letter-spacing': '1.4px'
       });
@@ -2850,9 +2852,10 @@ html, body {
       var oH = scale(r.otherIncome || 0);
       var totalH = laH + dH + oH;
 
-      // shortfall wash above the bar up to the need line
-      if (needBase > 0 && (r.totalIncome || 0) < needBase) {
-        var shortTop = needY;
+      // shortfall wash above the bar up to the per-year target line
+      var rt = rowTarget(i);
+      if (rt > 0 && (r.totalIncome || 0) < rt) {
+        var shortTop = targetY(i);
         var shortBot = pad.top + innerH - totalH;
         svg.appendChild(el('rect', {
           x: x, y: shortTop, width: bw, height: Math.max(0, shortBot - shortTop),
@@ -3256,16 +3259,14 @@ html, body {
     }
 
     var needBase = (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0);
-    var realCpi = proj.cpi || 0;
-    var realStartAge = proj.startAge;
 
     var ans = runEl(suffix, 'chart-answer');
-    if (ans) renderIncomeChart(ans, toRealRows(chartSlice(3), realCpi, realStartAge), {
+    if (ans) renderIncomeChart(ans, chartSlice(3), {
       width: 1428, height: 300, needBase: needBase
     });
 
     var pc = runEl(suffix, 'chart-projection');
-    if (pc) renderIncomeChart(pc, toRealRows(chartSlice(6), realCpi, realStartAge), {
+    if (pc) renderIncomeChart(pc, chartSlice(6), {
       width: 1428, height: 480, needBase: needBase
     });
 
@@ -3320,12 +3321,12 @@ html, body {
         return rows.filter(function (r) { return r.age <= endAge; });
       }
       var bel = document.getElementById('compare-baseline');
-      if (bel) renderIncomeChart(bel, toRealRows(mini(bpProj.rows || [], bHorizon), bpProj.cpi || 0, bpProj.startAge), {
+      if (bel) renderIncomeChart(bel, mini(bpProj.rows || [], bHorizon), {
         width: 700, height: 180,
         needBase: (bp.monthlyNeed || 0) * 12 + (bp.annualLumpSums || 0)
       });
       var sel = document.getElementById('compare-scenario');
-      if (sel) renderIncomeChart(sel, toRealRows(mini(spProj.rows || [], horizon), spProj.cpi || 0, spProj.startAge), {
+      if (sel) renderIncomeChart(sel, mini(spProj.rows || [], horizon), {
         width: 700, height: 180,
         needBase: (sp.monthlyNeed || 0) * 12 + (sp.annualLumpSums || 0)
       });
@@ -3360,15 +3361,13 @@ html, body {
       var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
       return rows.filter(function (r) { return r.age <= endAge; });
     }
-    var v1Cpi = spProj.cpi || 0;
-    var v1StartAge = spProj.startAge;
     var bel1 = document.getElementById('compare-baseline');
-    if (bel1) renderIncomeChart(bel1, toRealRows(v1Slice(3), v1Cpi, v1StartAge), {
+    if (bel1) renderIncomeChart(bel1, v1Slice(3), {
       width: 700, height: 180,
       needBase: ((b.monthlyNeed != null ? b.monthlyNeed : sp.monthlyNeed) || 0) * 12 + (sp.annualLumpSums || 0)
     });
     var sel1 = document.getElementById('compare-scenario');
-    if (sel1) renderIncomeChart(sel1, toRealRows(v1Slice(3), v1Cpi, v1StartAge), {
+    if (sel1) renderIncomeChart(sel1, v1Slice(3), {
       width: 700, height: 180,
       needBase: (sp.monthlyNeed || 0) * 12 + (sp.annualLumpSums || 0)
     });
@@ -3754,7 +3753,7 @@ html, body {
         ? Math.min(sustain + 5, rows[rows.length - 1].age)
         : rows[rows.length - 1].age;
       var sliced = rows.filter(function (r) { return r.age <= sliceEnd; });
-      renderIncomeChartV2(chartEl, toRealRows(sliced, projection.cpi || 0, projection.startAge), {
+      renderIncomeChartV2(chartEl, sliced, {
         width: 1380, height: 480,
         needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0),
         laCapAt: projection.laCapHitAt,
