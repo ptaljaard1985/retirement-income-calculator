@@ -2795,7 +2795,10 @@ html, body {
     var innerH = H - pad.top - pad.bottom;
     var n = rows.length;
     var slot = innerW / n;
-    var bw = slot * 0.68;
+    // Bars touch flush (no horizontal gap), matching the calculator's
+    // Chart.js setup (categoryPercentage: 1.0, barPercentage: 1.0). 1px
+    // white year dividers are painted after the bars below.
+    var bw = slot;
     var startAge = rows[0].age;
 
     var needBase = opts.needBase || rows[0].requiredReal || 0;
@@ -2840,7 +2843,7 @@ html, body {
 
     // bars
     rows.forEach(function (r, i) {
-      var x = pad.left + slot * i + (slot - bw) / 2;
+      var x = pad.left + slot * i;
       var scale = function (v) { return (Math.max(0, v) / maxVal) * innerH; };
       var laH = scale(r.laDraw || 0);
       var dH = scale(r.discDraw || 0);
@@ -2860,6 +2863,16 @@ html, body {
       svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
       svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH - oH, width: bw, height: oH, fill: COLORS.other, opacity: 0.92 }));
     });
+
+    // 1px white vertical year dividers between flush bars (matches the
+    // calculator's `borderColor: '#ffffff', borderWidth: { right: 1 }`).
+    for (var di = 1; di < n; di++) {
+      var dx = pad.left + slot * di;
+      svg.appendChild(el('line', {
+        x1: dx, x2: dx, y1: pad.top, y2: pad.top + innerH,
+        stroke: '#ffffff', 'stroke-width': 1
+      }));
+    }
 
     // x-axis ticks
     var xCount = Math.min(8, n);
@@ -2893,7 +2906,9 @@ html, body {
     var innerH = H - pad.top - pad.bottom;
     var n = rows.length;
     var slot = innerW / n;
-    var bw = slot * 0.68;
+    // Flush bars + 1px white year dividers, matching the calculator's
+    // Chart.js setup. See renderIncomeChart for the same pattern.
+    var bw = slot;
     var startAge = rows[0].age;
 
     var maxCapital = 0;
@@ -2917,13 +2932,22 @@ html, body {
     }
 
     rows.forEach(function (r, i) {
-      var x = pad.left + slot * i + (slot - bw) / 2;
+      var x = pad.left + slot * i;
       var scale = function (v) { return (Math.max(0, v) / maxCapital) * innerH; };
       var laH = scale(r.laBalance || 0);
       var dH = scale(r.discBalance || 0);
       svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH, width: bw, height: laH, fill: COLORS.la, opacity: 0.92 }));
       svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
     });
+
+    // 1px white vertical year dividers between flush bars.
+    for (var dci = 1; dci < n; dci++) {
+      var dcx = pad.left + slot * dci;
+      svg.appendChild(el('line', {
+        x1: dcx, x2: dcx, y1: pad.top, y2: pad.top + innerH,
+        stroke: '#ffffff', 'stroke-width': 1
+      }));
+    }
 
     // withdrawal-rate polyline (right axis 0–20%)
     if (opts.withdrawalRate !== false) {
