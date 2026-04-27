@@ -268,7 +268,7 @@ A second self-contained HTML file in this directory. It produces the editorial A
   },
   projection: {
     startAge, horizonAge, years, rNom, cpi,
-    rows: [{ year, age, laDraw, discDraw, otherIncome, totalIncome,
+    rows: [{ year, age, laDraw, discDraw, otherIncome, totalIncome, tax,
              requiredReal, requiredNom, laBalance, discBalance, totalCapital, shortfall, events }],
     sustainableTo, depletesAt, laCapHitAt, discExhaustsAt,
     year1, taxA, taxB, taxByPerson, hhGross, hhTax, hhNet, hhEff
@@ -375,12 +375,12 @@ The IIFE follows this structure:
 9. **Compare slide render** (`renderCompare()`) — v1 single-run only. v2 dual-run uses `renderAssumptionsCompare()` instead — full-width side-by-side table flagging same / different rows with delta chips (`+ R 5 000 · +10%`, `− 5 yrs`, etc.). Skipped when the slide was dropped by setup.
 10. **Renumber + page totals** (`renumberSlides()`) — runs once after all DOM rearrangement. v2 dual-run uses a section map (cover → none, baseline pair → I, scenario pair → II, assumptions → III, levers → IV, compliance → V); v1 single-run uses a per-slide Roman walker. Page numbers always increment per-slide.
 11. **Charts** — inline-SVG renderers, called from inside the per-run renderer:
-    - `renderIncomeChart(container, rows, {needBase, width, height})` — base stacked-bar chart (LA / Disc / Other) with dashed coral target line and shortfall wash. Used by both v1 and v2 paths.
+    - `renderIncomeChart(container, rows, {needBase, width, height})` — base stacked-bar chart (LA / Disc / Other) with solid navy target staircase and shortfall wash. Used by both v1 and v2 paths.
     - `renderIncomeChartV2(container, rows, opts)` — v2 wrapper that adds editorial annotations on top of `renderIncomeChart`: dashed gold "disc exhausts · age N" vertical, dashed gold "LA ceiling · age N" vertical, and a coral 6%-opacity shortfall band overlay. Used by `renderRunV2`.
-    - **Income charts render in nominal** with a stepped per-year target line. `renderIncomeChart` reads `r.requiredNom` (per-year nominal target, including CPI escalation + goal bumps) for both the staircase target polyline and the per-year shortfall comparison. `r.totalIncome` is nominal too (`laDraw + discDraw + otherInc`, computed inline in `buildProjectionPayload`). `r.requiredReal` is kept as a fallback for snapshots predating the `requiredNom` field. Same shape language as the calculator UI's `targetBoxPlugin` — horizontal segments per year, vertical steps where the target changes. PR #24's `toRealRows` deflation helper was removed in PR #27 once the underlying nominal series were trustworthy (the Session 22 totalIncome fix).
+    - **Income charts render in nominal** with a stepped per-year target line and **net-to-bank bars**. `renderIncomeChart` reads `r.requiredNom` (per-year nominal target, including CPI escalation + goal bumps) for both the staircase target polyline and the per-year shortfall comparison. The local `netParts(r)` helper apportions `r.tax` across LA / Disc / Other in proportion to their gross share (mirroring the calculator UI's `incomeBarSeries`) so bars represent net-to-bank — bar tops meet the target line on-target years, and the coral wash above the bars accurately reads the real shortfall. `r.totalIncome` stays gross on the snapshot for back-compat with the run-foot totals and the year-table "Total income" column; only the chart computes net locally. `r.requiredReal` is kept as a fallback for snapshots predating the `requiredNom` field. Legacy v1 snapshots without `r.tax` fall through to `taxApp = 0` → bars stack at gross. Same shape language as the calculator UI's `targetBoxPlugin` — horizontal segments per year, vertical steps where the target changes; same solid navy stroke (`#1f2d3d`, 2.5px, no dash). The "Target need" legend chips on the cover/answer/projection slides also paint navy.
     - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — v1 Capital slide.
     - `renderTimeline(container, events)` — v1 Events slide.
-    Rows are sliced by a per-run-local `chartSlice(extraYears)` (v1) or inline `rows.filter(r => r.age <= sustain + 5)` (v2) so charts don't paint depleted years past the horizon + buffer.
+    All income chart call sites now pass the **full `rows`** array (to age 99 — the engine's natural endpoint at youngest age 100). The per-run-local `chartSlice(extraYears)` is preserved but only used by the v1 capital chart now (still tracked in `TECH_DEBT.md` for real-mode rendering).
 12. **Auto-print** — fires 600 ms after `load`. Suppressed via `?noprint` querystring for iteration.
 
 ### Charts (inline SVG, no external lib)

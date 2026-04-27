@@ -6454,6 +6454,12 @@
       // directly from the three income components so the report's chart
       // y-axis scales to expense-shape, not capital-shape.
       var totalIncome = laDraw + discDraw + otherInc;
+      // Per-year nominal household tax. The engine's solver treats
+      // p.nominal.target[i] as a NET (after-tax) target, so the report's
+      // shortfall geometry must compare net-to-bank against it. Snapshot
+      // ships gross totalIncome (legacy readers — run-foot totals, year-table)
+      // plus this tax so the chart can compute net = totalIncome - tax.
+      var taxNom = (p.nominal.tax && p.nominal.tax[i]) || 0;
       var laBalance = (t.laA_bal[i] || 0) + (t.laB_bal[i] || 0);
       var discBalance = (t.discA_bal[i] || 0) + (t.discB_bal[i] || 0);
       var requiredReal = p.targetPVAnnual;
@@ -6466,12 +6472,13 @@
         discDraw: discDraw,
         otherIncome: otherInc,
         totalIncome: totalIncome,
+        tax: taxNom,
         requiredReal: requiredReal,
         requiredNom: requiredNom,
         laBalance: laBalance,
         discBalance: discBalance,
         totalCapital: laBalance + discBalance,
-        shortfall: totalIncome < (p.nominal.target[i] || 0) - 1,
+        shortfall: (totalIncome - taxNom) < (p.nominal.target[i] || 0) - 1,
         events: rowEvents
       });
     }
