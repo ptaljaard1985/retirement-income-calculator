@@ -168,12 +168,12 @@ Two layers: app route guard + RLS. A forged request without a valid JWT returns 
 
 **Phase 3 — Migrate drawdown (1–2 weeks, careful)**
 - Move `retirement_drawdown.html` into `apps/tools/drawdown/`, refactored against the shared packages.
-- 88/88 Python + 19/19 JS must pass at every commit.
+- 108/108 Python + 19/19 JS must pass at every commit.
 - **Visual-fidelity check** vs today's HTML (math is guarded by audit tests; UI is not):
   1. Lock 2 reference scenarios in `infra/regression-fixtures/` as `?session` snapshot JSONs:
      - **Scenario A** — typical sustainable plan (e.g. R 6m + R 6m LA, R 65k/mo, return 6.5%, CPI 5%, auto-top-up on).
      - **Scenario B** — depleting plan that triggers shortfall wash, LA-cap markers, and alerts.
-  2. Capture baselines from today's HTML at 1366×768 (Pierre's 13" meeting viewport) for each tab (Info / Planning / Scenarios / Comparison Summary) plus a "Save as PDF" print baseline.
+  2. Capture baselines from today's HTML at 1366×768 (Pierre's 13" meeting viewport) for each tab (Info / Planning / Scenarios / Comparison Summary / Assumptions) plus a "Save as PDF" print baseline of both the calculator and the report's single-run + dual-run modes.
   3. After migration, regenerate the same screenshots + print PDF with the new tool.
   4. Manual expert review side-by-side. (Pixel-diff tools like Playwright `toHaveScreenshot` are overkill for a one-time migration; manual review is right-sized.) Resolve any difference before cutover — fix the migration to match, or consciously accept and note it.
 - **30-day frozen reference**: original `retirement_drawdown.html` stays in place, untouched, for at least 30 days post-cutover. If a client meeting reveals a regression, instant fallback.
@@ -207,7 +207,7 @@ Two layers: app route guard + RLS. A forged request without a valid JWT returns 
 
 End-to-end before Phase 1 ships:
 
-1. **Standalone calculator unchanged.** `file://` open, run a typical projection, `Cmd+P` produces the print-summary, `pytest` 88/88, `node run.js` 19/19.
+1. **Standalone calculator unchanged.** `file://` open, run a typical projection, `Cmd+P` produces the print-summary, `pytest` 108/108, `node run.js` 19/19.
 2. **Hub-mode launch.** New tab opens with `?session=<uuid>`; calculator displays blank defaults for a new session.
 3. **Hub-mode save.** Edit inputs, wait 2s, refresh tab — inputs persist.
 4. **Hub-mode resume.** Close tab; reopen session from client history — state restored.
