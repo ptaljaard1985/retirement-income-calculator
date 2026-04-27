@@ -1453,7 +1453,7 @@ html, body {
           <span><span class="sw" style="background:var(--teal)"></span>Living annuity draw</span>
           <span><span class="sw" style="background:var(--gold)"></span>Discretionary draw</span>
           <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
-          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+          <span><span class="sw line" style="background:var(--navy)"></span>Target need</span>
         </div>
         <div class="chart-caption">household income · today's money</div>
       </div>
@@ -1687,7 +1687,7 @@ html, body {
           <span><span class="sw" style="background:var(--teal)"></span>Living annuity</span>
           <span><span class="sw" style="background:var(--gold)"></span>Discretionary</span>
           <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
-          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+          <span><span class="sw line" style="background:var(--navy)"></span>Target need</span>
         </div>
         <div class="chart-caption" data-field="projectionCaption">stacked · today's money</div>
       </div>
@@ -2212,7 +2212,7 @@ html, body {
           <span><span class="sw" style="background:var(--teal)"></span>Living annuity draw</span>
           <span><span class="sw" style="background:var(--gold)"></span>Discretionary draw</span>
           <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
-          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+          <span><span class="sw line" style="background:var(--navy)"></span>Target need</span>
         </div>
         <div class="chart-caption mute">household income · <strong style="color:var(--ink-2)">nominal rands</strong> · escalated at CPI</div>
       </div>
@@ -2788,9 +2788,32 @@ html, body {
       var r = rows[i] || {};
       return r.requiredNom || r.requiredReal || needBase || 0;
     }
+    // Net-to-bank per row. Mirrors the calculator UI's incomeBarSeries
+    // apportionment: household tax is split across LA / Disc / Other
+    // proportional to their gross share, and the bars show the net
+    // portions. The engine's target series (p.nominal.target) is a NET
+    // target, so on-target years land bar tops on the target line and
+    // shortfall years show the real gap above the bars. Legacy snapshots
+    // without `tax` fall through to taxApp = 0 → bars stack at gross.
+    function netParts(r) {
+      var la = r.laDraw || 0, di = r.discDraw || 0, ot = r.otherIncome || 0;
+      var grossBase = la + di + ot;
+      var taxApp = r.tax || 0;
+      var laShare = 0, discShare = 0, otherShare = 0;
+      if (grossBase > 0 && taxApp > 0) {
+        laShare = taxApp * (la / grossBase);
+        discShare = taxApp * (di / grossBase);
+        otherShare = taxApp * (ot / grossBase);
+      }
+      var laN = Math.max(0, la - laShare);
+      var diN = Math.max(0, di - discShare);
+      var otN = Math.max(0, ot - otherShare);
+      return { la: laN, disc: diN, other: otN, total: laN + diN + otN };
+    }
     var maxVal = 0;
     rows.forEach(function (r, i) {
-      maxVal = Math.max(maxVal, r.totalIncome || 0, rowTarget(i));
+      var net = netParts(r);
+      maxVal = Math.max(maxVal, net.total, rowTarget(i));
     });
     maxVal = Math.max(maxVal, needBase) * 1.08;
     if (maxVal <= 0) maxVal = 1;
@@ -2826,9 +2849,12 @@ html, body {
       stepPts.push(lx + ',' + ty);
       stepPts.push(rx + ',' + ty);
     }
+    // Solid navy target line — matches the calculator UI's targetBoxPlugin
+    // (#1f2d3d, 2.5px, no dash).
     svg.appendChild(el('polyline', {
       points: stepPts.join(' '), fill: 'none',
-      stroke: COLORS.need, 'stroke-width': 1.5, 'stroke-dasharray': '5 4'
+      stroke: '#1f2d3d', 'stroke-width': 2.5,
+      'stroke-linejoin': 'miter', 'stroke-linecap': 'butt'
     }));
     // TARGET NEED label — anchored to the LAST year's target height so it
     // sits at the right edge at the right vertical position.
@@ -2836,25 +2862,27 @@ html, body {
       var lastTy = targetY(n - 1);
       var nl = el('text', {
         x: W - pad.right + 6, y: lastTy + 4,
-        'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: COLORS.need,
+        'font-family': "'Inter Tight', sans-serif", 'font-size': 10, fill: '#1f2d3d',
         'font-weight': 600, 'letter-spacing': '1.4px'
       });
       nl.textContent = 'TARGET NEED';
       svg.appendChild(nl);
     }
 
-    // bars
+    // bars (net-to-bank — see netParts above)
     rows.forEach(function (r, i) {
       var x = pad.left + slot * i;
       var scale = function (v) { return (Math.max(0, v) / maxVal) * innerH; };
-      var laH = scale(r.laDraw || 0);
-      var dH = scale(r.discDraw || 0);
-      var oH = scale(r.otherIncome || 0);
+      var net = netParts(r);
+      var laH = scale(net.la);
+      var dH = scale(net.disc);
+      var oH = scale(net.other);
       var totalH = laH + dH + oH;
 
-      // shortfall wash above the bar up to the per-year target line
+      // shortfall wash above the bar up to the per-year target line —
+      // compares net total against the (also net) target.
       var rt = rowTarget(i);
-      if (rt > 0 && (r.totalIncome || 0) < rt) {
+      if (rt > 0 && net.total < rt) {
         var shortTop = targetY(i);
         var shortBot = pad.top + innerH - totalH;
         svg.appendChild(el('rect', {
@@ -3252,6 +3280,9 @@ html, body {
     }
 
     // Charts. chartSlice is local — closes over rows + horizon for this run.
+    // Income charts always show the full horizon (to age 99); the capital
+    // chart still slices because its real-mode rendering is tracked in
+    // TECH_DEBT.md.
     function chartSlice(extraYears) {
       if (!horizon || !rows.length) return rows;
       var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
@@ -3261,12 +3292,12 @@ html, body {
     var needBase = (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0);
 
     var ans = runEl(suffix, 'chart-answer');
-    if (ans) renderIncomeChart(ans, chartSlice(3), {
+    if (ans) renderIncomeChart(ans, rows, {
       width: 1428, height: 300, needBase: needBase
     });
 
     var pc = runEl(suffix, 'chart-projection');
-    if (pc) renderIncomeChart(pc, chartSlice(6), {
+    if (pc) renderIncomeChart(pc, rows, {
       width: 1428, height: 480, needBase: needBase
     });
 
@@ -3313,20 +3344,16 @@ html, body {
         chip.classList.add(delta >= 0 ? 'pos' : 'neg');
       }
 
-      // Mini-charts: derive from each run's projection rows.
-      function mini(rows, sustainableTo, monthlyNeed, lumps) {
-        if (!rows || !rows.length) return rows;
-        if (sustainableTo == null) return rows.slice(0, Math.min(35, rows.length));
-        var endAge = Math.min(sustainableTo + 3, rows[rows.length - 1].age);
-        return rows.filter(function (r) { return r.age <= endAge; });
-      }
+      // Mini-charts: full horizon (to age 99), matching the run-income
+      // slides. No sustain-based slicing — the bridge slide should preview
+      // the same shape the reader sees on the run pages.
       var bel = document.getElementById('compare-baseline');
-      if (bel) renderIncomeChart(bel, mini(bpProj.rows || [], bHorizon), {
+      if (bel) renderIncomeChart(bel, bpProj.rows || [], {
         width: 700, height: 180,
         needBase: (bp.monthlyNeed || 0) * 12 + (bp.annualLumpSums || 0)
       });
       var sel = document.getElementById('compare-scenario');
-      if (sel) renderIncomeChart(sel, mini(spProj.rows || [], horizon), {
+      if (sel) renderIncomeChart(sel, spProj.rows || [], {
         width: 700, height: 180,
         needBase: (sp.monthlyNeed || 0) * 12 + (sp.annualLumpSums || 0)
       });
@@ -3745,20 +3772,16 @@ html, body {
           ? '1 outflow'
           : (eventCount + (eventCount === 1 ? ' event' : ' events')));
 
-    // Income chart (with v2 annotations).
+    // Income chart (with v2 annotations) — always full horizon to age 99.
     var chartEl = runEl(suffix, 'chart-run-income');
     if (chartEl) {
       var rows = projection.rows || [];
-      var sliceEnd = sustain != null
-        ? Math.min(sustain + 5, rows[rows.length - 1].age)
-        : rows[rows.length - 1].age;
-      var sliced = rows.filter(function (r) { return r.age <= sliceEnd; });
-      renderIncomeChartV2(chartEl, sliced, {
+      renderIncomeChartV2(chartEl, rows, {
         width: 1380, height: 480,
         needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0),
         laCapAt: projection.laCapHitAt,
         discExhaustsAt: projection.discExhaustsAt,
-        shortfallFromAge: firstShortfallAge(sliced)
+        shortfallFromAge: firstShortfallAge(rows)
       });
     }
 

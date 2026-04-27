@@ -107,6 +107,33 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 25 — 2026-04-27 (report income charts: net bars · solid navy target · age-99 horizon)
+
+**Built / changed** — three follow-ups to the dual-run income chart after Pierre A/B'd it against the calculator's Scenarios tab and flagged shortfall mis-detection, dashed coral target, and an early x-axis cutoff. Engine math untouched: **108/108 Python + 19/19 JS** still pass.
+
+**Why the shortfall was off.** The engine's solver treats `p.nominal.target[i]` as a **net** (after-tax) target — `solveTopUp` line 3558 reads `var shortfall = targetNom - netLA;`. The calculator UI's `incomeBarSeries` apportions household tax across LA/Disc/Other and renders bars as net-to-bank, so the on-target relationship "bar tops meet target line" holds and the coral wash starts at the true first-shortfall age. The report had been stacking **gross** bars (`r.laDraw + r.discDraw + r.otherIncome`) against the same net target — gross is ~25% above net at typical SARS marginal rates, so the coral wash didn't paint until even gross fell below net (deep depletion, ~5 years late). Pierre's screenshot showed UI shortfall at age ~89 vs. report shortfall at age ~95.
+
+1. **Snapshot: per-year `tax` field + corrected `shortfall` flag.** `buildProjectionPayload` (`retirement_drawdown.html:6448`) now reads `taxNom = p.nominal.tax[i]` and ships it on every row alongside the existing fields. The pre-existing `shortfall` flag (consumed by `firstShortfallAge` + the v2 dual-run shortfall band overlay) was using the same gross-vs-net comparison; updated to `(totalIncome - taxNom) < target - 1`. `r.totalIncome` stays gross — preserves the run-foot "total income" totals (`retirement_drawdown_report.html:3194/3196/3200`) and the year-table "Total income" column (`:3245`). The chart computes net locally.
+
+2. **Report: net bars in `renderIncomeChart`.** New local helper `netParts(r)` (`retirement_drawdown_report.html:2797`) mirrors the UI's `incomeBarSeries` apportionment — proportional split of `r.tax` across LA/Disc/Other based on each source's gross share, returning `{la, disc, other, total}` net-to-bank. Bar rendering loop, shortfall comparison, and `maxVal` all read from `netParts` instead of the row's gross fields. Three colours preserved (no Tax slice added — the editorial 3-stack stays). Legacy v1 snapshots without `r.tax` fall through to `taxApp = 0` → bars stack at gross, identical to pre-Session-25 behaviour.
+
+3. **Report: solid navy target line.** Polyline at `:2829` now strokes `'#1f2d3d'` at 2.5px with no `stroke-dasharray` — matches the calculator UI's `targetBoxPlugin` (`retirement_drawdown.html:4262`). Right-edge `TARGET NEED` label colour also flipped to navy. The three "Target need" legend chips on the cover/answer/projection slides (`:1456/:1690/:2215`) swapped from `background:var(--coral)` to `var(--navy)`.
+
+4. **Report: income charts always run to age 99.** `renderRunV2`'s `min(sustainableTo + 5, lastAge)` slice was capping the dual-run scenario at age 98 for `sustain=93`; replaced with full `rows`. `renderRun` (single-run) Answer + Projection charts now also pass full `rows` instead of `chartSlice(3)` / `chartSlice(6)`. `renderCompare` v2 mini-charts dropped their inline `sustainableTo + 3` cap. The local `chartSlice()` helper survives — only the v1 capital chart still uses it (its real-mode rendering is tracked in `TECH_DEBT.md`).
+
+**Architectural decisions**
+- **Snapshot stays additive (v2).** `tax` is a new field; `shortfall` is the same field with corrected semantics. v1 readers (none today, but the legacy compare-slide path) ignore unknown fields. `r.totalIncome` deliberately not repurposed — keeping it gross preserves the run-foot total reads and avoids a second pass through every consumer.
+- **3-color net bars over 4-color tax slice.** Considered mirroring the UI's full 4-stack (LA-net + Disc-net + Other-net + Tax-on-top, bar tops at gross). Rejected: Pierre had specifically called out that the report was "looking better" — adding a fourth colour would have unwound the editorial simplicity that landed in Session 24. Net 3-stack achieves the goal (bar tops align with target on-target years; coral wash reads the real shortfall) without inflating the visual.
+- **Income charts go to 99, capital chart still sliced.** Income parity matters because that's the chart Pierre compares against the UI. The capital chart has a separate open issue (real-mode rendering, TECH_DEBT.md since Session 21); keeping it sliced avoids two unrelated changes in one PR.
+- **Engine untouched.** 108/108 + 19/19 pass. Only snapshot shape (additive) + report rendering (presentation) changed.
+
+**Smoke check**
+Manual walkthrough (dual-run, seeded defaults): scenario chart x-axis runs from age 65 → age 99. Bars at age 88–89 sit at the navy target staircase (on-target); coral wash begins at age ~89–90, matching the UI. Target line is solid navy at 2.5px; right-edge `TARGET NEED` label paints navy; legend chips paint navy. Print preview at A4 landscape clean.
+
+**Follow-ups**
+- Capital chart still nominal + sliced in dual-run report — both tracked in `TECH_DEBT.md` since Session 21.
+- The year-table "Total income" column still shows gross. If Pierre wants a Tax column or a Net column on the year-table, that's a separate cut — `r.tax` is now available on the snapshot for whoever reads it next.
+
 ### Session 24 — 2026-04-27 (report income charts: nominal + stepped per-year target)
 
 **Built / changed** — unwound PR #24's deflation. The report's run-income / answer / projection / compare-mini charts now render in nominal terms with a stepped per-year target line — matching the calculator UI's shape language (rising bars + rising stepped target staircase). Engine math untouched: **108/108 Python + 19/19 JS** still pass.
