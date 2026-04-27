@@ -1,5 +1,9 @@
 # Report design brief — dual-run editorial PDF
 
+> **Status (2026-04-27, Session 20):** Addressed. The v2 design from `report v2 design_files/Drawdown Report Dual.html` was wired into `retirement_drawdown_report.html` as the dual-run pathway (8 slides: Cover → Baseline-income → Baseline-ge → Scenario-income → Scenario-ge → Assumptions-compare → Levers → Compliance). Run identity strips/chips, side-by-side assumptions table, and per-row diff badges on the scenario goals/events column all shipped. See `docs/ARCHITECTURE.md` "The export-report sibling" + the Session 20 entry in `CLAUDE.md` for the implementation notes. The brief below is preserved for context — it captures the problem statement that drove the v2 work.
+
+---
+
 Prompt-ready handoff for a Claude Design session (or any visual designer).
 Pasteable as-is.
 

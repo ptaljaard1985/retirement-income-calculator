@@ -4,6 +4,11 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 
 ## Open
 
+### Goal `breached at age N` status flag is not computed
+**Where:** `retirement_drawdown_report.html` — `renderGoalsCol` notes (v2 dual-run)
+**Why:** The v2 design mock shows an Estate-floor goal flagged "Breached at age 87 in this projection — flagged for review." in coral italic. Detecting a breach requires running the projection's terminal capital against `goal.amountPV` per year, which is engine work — out of scope for the v2 GE diff cut (Session 20). The current `renderGoalsCol` writes a generic note ("Drawn from discretionary, ages X–Y.") for non-Lifestyle goals.
+**Cleanup:** Add a `goalStatus(goal, projection)` helper that walks `projection.rows` and flags the first year where remaining `totalCapital < goal.amountPV` (per goal type). Surface the result on the snapshot as `plan.goals[i].status: 'ok' | 'risk'` + `breachedAt: number | null` so the report's renderer can paint coral notes without re-running math. Calculator-side change.
+
 ### `readPerson` returns `otherIncome: 0` as a placeholder
 **Where:** `retirement_drawdown.html` — `readPerson(suffix)` helper
 **Why:** After the schedule refactor (session 1), `sA.otherIncome` is overwritten on every iteration of the projection loop from `otherIncomeForYear(...)`. The placeholder on `readPerson`'s return object is defensive — not required for correctness.

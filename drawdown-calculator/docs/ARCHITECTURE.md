@@ -245,10 +245,26 @@ A second self-contained HTML file in this directory. It produces the editorial A
   plan: {
     familyName, preparedFor, preparedOn, adviser,
     single,
-    spouses: [{ name, age, laBalance, discretionary, discBaseCost,
-                otherIncome: [{ kind, monthly }] }, ...],   // monthly = today's-money rand
+    spouses: [{
+      name, age, laBalance, discretionary, discBaseCost,
+      otherIncome: [{
+        kind, monthly,                              // legacy/back-compat
+        name, monthlyAmount,                        // v2 — same data, designerlier names
+        startAge, endAge, duration,                 // v2 — full window
+        cpiLinked,                                  // v2 — escalates flag
+        pctTaxable                                  // v2 — taxable share, 0–100
+      }]
+    }, ...],
     monthlyNeed, annualLumpSums, returnPct, cpiPct, autoTopUp,
-    capitalEvents: [{ year, label, forWhom, amount }]      // year = absolute, amount = today's-money
+    capitalEvents: [{
+      year,                                         // absolute calendar year
+      label,                                        // user-entered, e.g. "Property sale · Hout Bay"
+      forWhom,                                      // resolved spouse name
+      amount,                                       // today's-money rand (signed: + inflow, − outflow)
+      age,                                          // v2 — spouse's age at the event year
+      spouse                                        // v2 — 'A' | 'B'
+    }],
+    goals: [{ label, amountPV, everyNYears, startAge, endAge }]   // v2 — recurring household goals
   },
   projection: {
     startAge, horizonAge, years, rNom, cpi,
@@ -264,8 +280,9 @@ A second self-contained HTML file in this directory. It produces the editorial A
 }
 ```
 
-- `plan.spouses[i].otherIncome` is the **year-1 active streams only**, derived from `incomeStore` filtered by `spouseAge ∈ [startAge, startAge + duration)`. Streams that kick in later (deferred DB pension) do not appear on the household slide.
-- `plan.capitalEvents[i].year` is the **absolute calendar year** (`new Date().getFullYear() + ev.year - 1`); the calculator stores year-from-now.
+- `plan.spouses[i].otherIncome` is the **year-1 active streams only**, derived from `incomeStore` filtered by `spouseAge ∈ [startAge, startAge + duration)`. Streams that kick in later (deferred DB pension) do not appear on the household slide. The v1 `{kind, monthly}` fields are preserved for back-compat with today's `renderRun` single-run path; v2 names (`name`, `monthlyAmount`, `startAge`, `endAge`, `duration`, `cpiLinked`, `pctTaxable`) feed the dual-run GE column.
+- `plan.capitalEvents[i].year` is the **absolute calendar year** (`new Date().getFullYear() + ev.year - 1`); the calculator stores year-from-now. `label` is user-entered via the events modal (defaults to `"Capital event"` when blank for back-compat with pre-Session-20 saved events). `age` is the spouse's age at the event year, computed from `spouseAgeY1 + (offset - 1)`.
+- `plan.goals[]` is read from `goalsStore` and surfaced verbatim. The v2 dual-run report's GE column treats `monthlyNeed` as the implicit "Lifestyle income" goal and renders `plan.goals[]` rows beneath it. Goals do not appear on the v1 single-run slides today.
 - `projection.rows[i]` is shaped to the report binder's expectations exactly — no further transformation is done at render time.
 - `projection.taxByPerson` is a 1- or 2-element array `[{name, age, laDraw, otherIncome, discDraw, gain, inclusion, taxable, grossIncome, tax, effRate}]` built from `p.taxA` / `p.taxB` for the Y1 tax slide. Length 1 in single-client mode.
 - `baseline` is omitted entirely when no baseline is locked. When present, **its `plan` is the inputs as captured at lock time** (deep-cloned, immune to later edits on Scenarios) and **its `projection` is the frozen `project()` output** at that moment. The report renders both runs end-to-end when this block is present.
@@ -284,8 +301,13 @@ A second self-contained HTML file in this directory. It produces the editorial A
 
 ```
 <head>          design tokens (mirrors calculator's :root) + ~700 lines of CSS
+                + ~370 lines of v2 dual-run primitives (run-strip, run-chip,
+                  run-headline, run-chart-card, assume-strip, compare-assume-table,
+                  levers-grid-4, ge-grid + ge-col, goal-row, ev-row)
 <body>
   <div id="deck">  fixed sequence of <section class="slide"> nodes
+
+    # Single-run v1 deck (used when no baseline is locked):
     [I.   cover]                              always
     [II.  answer]    income chart + outcome   always
     [III. household] spouse cards             always
@@ -301,52 +323,64 @@ A second self-contained HTML file in this directory. It produces the editorial A
     [XIII.compliance]  six blocks             always
     [XIV. next steps] cover-style closing     always
 
-    [divider-baseline / divider-scenario]     dual-run only — see below
+    # v1 dividers (kept for back-compat schema v1 paths; unused in v2 dual-run):
+    [divider-baseline / divider-scenario]     data-conditional="dualrun"
+
+    # v2 dual-run templates (data-conditional="dualrun-v2", ship hidden):
+    [run-income]            cloned per run for the Income + assume-strip slide
+    [run-ge]                cloned per run for the Goals · Other income · Capital events grid
+    [assumptions-compare]   side-by-side baseline-vs-scenario assumptions table (single)
+    [levers-v2]             four-lever editorial grid (single, replaces v1 levers)
+    [compliance-v2]         six-block compliance grid (single, replaces v1 compliance)
+
   <div id="empty-banner">  shown when no snapshot in localStorage
 <script>  one IIFE
 ```
 
-**Dual-run mode** (when `snap.baseline` is present, schema v2): the binder reorders the deck so the data-bearing slides render twice — once for baseline, once for scenario. Cover and the static methodology/compliance slides stay single. Final order:
+**Dual-run mode (v2)** — when `snap.baseline` is present and `schemaVersion >= 2`, the binder produces a tight 8-slide deck that completely replaces the v1 single-run flow:
 
 ```
-[I. cover]
-[divider-baseline]    "Section one · the baseline plan"
-[II–VIII baseline]    Answer / Household / Projection / Capital / Tax / [Events] / Year-table  (cloned, ids/data-fields suffixed -baseline)
-[Compare bridge]      v2-rebound, reads from snap.baseline + snap directly
-[divider-scenario]    "Section two · the scenario explored"
-[II–VIII scenario]    same set against the originals (suffixed -scenario)
-[IX. assumptions ref]
-[X. levers]
-[XI. methodology]
-[XII. compliance]
-[XIII. next steps]
+[—.   cover]                               always
+[I.   run-income-baseline]    cloned       Income chart + assume-strip
+[I.   run-ge-baseline]        cloned       Goals · Other income · Capital events
+[II.  run-income-scenario]    cloned       Income chart + assume-strip (with shortfall band)
+[II.  run-ge-scenario]        cloned       Same grid + diff badges (added / changed / uplifted)
+[III. assumptions-compare]    static       Side-by-side baseline-vs-scenario table
+[IV.  levers-v2]              static       Four lever blocks
+[V.   compliance-v2]          static       Six compliance blocks
 ```
 
-The Events slide is dropped per-run independently (a baseline with 0 events drops `events-baseline`; a scenario with 2 events keeps `events`). Roman numerals + page totals renumber across the new layout; up to 22 slides in dual-run, 13–14 single-run.
+`setupDualRun()` drops every slide except the cover and the five v2 templates, then clones `run-income` + `run-ge` twice (once for baseline, once for scenario) — `suffixSlide(node, '-baseline'|'-scenario')` rewrites every `id` and per-run `data-field` attr in place, exempting `SHARED_FIELDS`. Originals are removed after cloning. The static v2 slides are revealed by clearing their `display:none`. `setupSingleRun()` drops both `[data-conditional="dualrun"]` AND `[data-conditional="dualrun-v2"]` so the v1 12-slide flow stays untouched.
 
-The two divider templates (`<section data-slide="divider-baseline" data-conditional="dualrun">` and `divider-scenario`) live at the bottom of the static deck and ship with `style="display:none"`. `setupSingleRun()` removes them outright; `setupDualRun()` reveals them and repositions them via a fragment.
+**Section numbering**: v2 uses **section** Roman numerals (I/I for the baseline pair, II/II for the scenario pair, III for assumptions, IV for levers, V for compliance) rather than per-slide. The cover takes no numeral. `renumberSlides()` switches between the v2 section map and the v1 per-slide walker by checking `hasDualRun`. Page numbers (`pageNum` / `pageTotal`) always increment per-slide regardless of mode.
 
-Slide content is driven by `[data-field="..."]` placeholders. `setField(name, value)` paints all matching nodes globally — used for fields shared across runs (familyName, preparedOn, etc.) listed in the `SHARED_FIELDS` set. `setRunField(suffix, name, value)` scopes by appending the suffix to the field name — used for per-run fields (horizonAge, monthlyNeedInline, etc.). Spouse, tax, events, and year-table rows are injected with `innerHTML` from template literals, scoped by `runEl(suffix, id)`.
+**Run identity**: each cloned slide carries a 4 px coloured strip below the slide-top (`paper-3` for baseline, `navy` for scenario) and a chip in the slide-top meta (`I. Baseline · locked` / `II. Scenario · explored today`). The strip + chip are written by `renderRunV2` via the `runStripHost` / `runChipHost` placeholder spans in the template.
+
+Slide content is driven by `[data-field="..."]` placeholders. `setField(name, value)` paints all matching nodes globally — used for fields shared across runs (familyName, preparedOn, etc.) listed in the `SHARED_FIELDS` set. `setRunField(suffix, name, value)` scopes by appending the suffix to the field name — used for per-run fields (`runHeadline`, `assumeMonthly`, `geGoalsBody`, etc.). `setRunFieldHTML(suffix, name, html)` writes innerHTML for headline / column-body fields that carry inline `<em>` / `<span class="num">` / `<br>` markup. Spouse, tax, events, and year-table rows in the v1 path are still injected with `innerHTML` from template literals, scoped by `runEl(suffix, id)`.
 
 ### The binder (the script block at the bottom)
 
 The IIFE follows this structure:
 
 1. **Snapshot loader** — tries `?data=<base64-JSON>`, then `localStorage['sw-drawdown-snapshot']`. If neither, shows the empty-state banner and returns.
-2. **Formatters** — `fmtR`, `fmtPct`, `fmtAge`. Pure helpers, unchanged across schema versions.
-3. **DOM helpers** — `setField(name, value)` for shared fields; `setRunField(suffix, name, value)` for per-run; `runEl(suffix, id)` for scoped element lookups; `esc()` for HTML-escaping; `suffixSlide(node, suffix)` recursive walker that rewrites `id` and per-run `data-field` attrs while exempting `SHARED_FIELDS` (`familyName`, `familyNamePoss`, `preparedOn`, `pageNum`, `pageTotal`).
+2. **Formatters** — `fmtR`, `fmtPct`, `fmtAge`, plus `fmtRPlain` (no leading "R " — used inside template literals that already supply the currency sign). Pure helpers.
+3. **DOM helpers** — `setField(name, value)` for shared fields; `setRunField(suffix, name, value)` and `setRunFieldHTML(suffix, name, html)` for per-run; `runEl(suffix, id)` for scoped element lookups; `esc()` for HTML-escaping; `suffixSlide(node, suffix)` recursive walker that rewrites `id` and per-run `data-field` attrs while exempting `SHARED_FIELDS` (`familyName`, `familyNamePoss`, `preparedOn`, `pageNum`, `pageTotal`).
 4. **Schema detection** — `hasDualRun = (snap.schemaVersion ?? 1) >= 2 && snap.baseline?.plan && snap.baseline?.projection`.
-5. **DOM setup** — `setupDualRun()` clones the seven doubled slides for the baseline run, suffixes their internals, marks originals as scenario, and reorders into the layout above. `setupSingleRun()` drops divider templates + conditional Events / Compare slides as appropriate. Exactly one of the two runs.
+5. **DOM setup** — `setupDualRun()` (v2) drops every non-cover/non-v2 slide, clones `run-income` + `run-ge` twice with `-baseline` / `-scenario` suffixes, reveals the static v2 slides (assumptions-compare / levers-v2 / compliance-v2). `setupSingleRun()` drops both `dualrun` and `dualrun-v2` templates, then drops the conditional Events / Compare slides as appropriate. Exactly one of the two runs.
 6. **Shared field render** (`renderShared()`) — `setField` for every field that's shared across runs and static slides: cover meta, family name, preparedOn, adviser, monthlyNeedCover, returnPct (assumptions), cpiPct, autoTopUp, nextReview. Single-client copy swap on the methodology + assumptions slides also lives here.
-7. **Per-run render** (`renderRun(plan, projection, suffix)`) — wraps Answer fields, Household cards, Tax cards, Projection foot, Events ledger + timeline, Year-table, and the three SVG charts (chart-answer, chart-projection, chart-capital). Pure of side-effects beyond writing into its scoped DOM. Called once for single-run with `suffix=''`; twice for dual-run with `'-baseline'` and `'-scenario'`.
-8. **Compare slide render** (`renderCompare()`) — v2 path reads from `snap.baseline.plan` + `snap.plan` directly and constructs proper baseline-vs-scenario mini-charts, each from its own projection rows. v1 path falls through to the legacy `plan.baseline` metadata binder so old localStorage snapshots still render. Skipped when the slide was dropped by setup.
-9. **Renumber + page totals** (`renumberSlides()`) — runs once after all DOM rearrangement; walks `.slide` in document order, writes pageNum + Roman numerals (extended to XXIV for dual-run's up-to-22 slides) + global pageTotal.
-10. **Charts** — three inline-SVG renderers, called from inside `renderRun`:
-    - `renderIncomeChart(container, rows, {needBase, width, height})` — used on Answer (II), Projection (VI), and Compare's mini-charts (X).
-    - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — Capital (VII).
-    - `renderTimeline(container, events)` — Events (IX).
-    Rows are sliced by a per-run-local `chartSlice(extraYears)` so charts don't paint depleted years past the horizon + buffer.
-11. **Auto-print** — fires 600 ms after `load`. Suppressed via `?noprint` querystring for iteration.
+7. **Per-run render** — two implementations, switched on `hasDualRun`:
+    - `renderRun(plan, projection, suffix)` — v1 single-run path. Wraps Answer fields, Household cards, Tax cards, Projection foot, Events ledger + timeline, Year-table, and the three SVG charts (chart-answer, chart-projection, chart-capital). Called once with `suffix=''`.
+    - `renderRunV2(plan, projection, suffix)` — v2 dual-run path. Writes the run-chip + run-strip identity, the run-headline (sustainable-to-age narrative), the assume-strip (6 cells: monthly need, return·CPI, other income, capital events, auto top-up, sustainable-to), the income chart via `renderIncomeChartV2` (annotation overlay around `renderIncomeChart`), and the GE column with `renderGoalsCol` / `renderOtherCol` / `renderEventsCol`. Called twice with `'-baseline'` and `'-scenario'`.
+8. **Diff helper for the scenario GE column** — `diffByKey(baseList, scenList, keyFn)` returns `{ isAdded, isChanged, addedCount, changedCount }`. Built only when `hasDualRun && which === 'scenario'`. Identity keys mirror the calculator's `diffCollection`: goals key on `label|startAge`; streams on `spouseName|name|startAge`; events on `spouse|year|label`. Drives the `↑ added` / `↑ updated` badges, the `.added` row class (gold-tint), and the `· N added · N changed` tail on column subtitles. The implicit Lifestyle income row is treated as "changed" iff scenario `monthlyNeed` differs from baseline — rendered with `.warn` (red) amount + `↑ uplifted` badge + delta narrative in the note.
+9. **Compare slide render** (`renderCompare()`) — v1 single-run only. v2 dual-run uses `renderAssumptionsCompare()` instead — full-width side-by-side table flagging same / different rows with delta chips (`+ R 5 000 · +10%`, `− 5 yrs`, etc.). Skipped when the slide was dropped by setup.
+10. **Renumber + page totals** (`renumberSlides()`) — runs once after all DOM rearrangement. v2 dual-run uses a section map (cover → none, baseline pair → I, scenario pair → II, assumptions → III, levers → IV, compliance → V); v1 single-run uses a per-slide Roman walker. Page numbers always increment per-slide.
+11. **Charts** — inline-SVG renderers, called from inside the per-run renderer:
+    - `renderIncomeChart(container, rows, {needBase, width, height})` — base stacked-bar chart (LA / Disc / Other) with dashed coral target line and shortfall wash. Used by both v1 and v2 paths.
+    - `renderIncomeChartV2(container, rows, opts)` — v2 wrapper that adds editorial annotations on top of `renderIncomeChart`: dashed gold "disc exhausts · age N" vertical, dashed gold "LA ceiling · age N" vertical, and a coral 6%-opacity shortfall band overlay. Used by `renderRunV2`.
+    - `renderCapitalChart(container, rows, {laCapAt, depleteAt, withdrawalRate, width, height})` — v1 Capital slide.
+    - `renderTimeline(container, events)` — v1 Events slide.
+    Rows are sliced by a per-run-local `chartSlice(extraYears)` (v1) or inline `rows.filter(r => r.age <= sustain + 5)` (v2) so charts don't paint depleted years past the horizon + buffer.
+12. **Auto-print** — fires 600 ms after `load`. Suppressed via `?noprint` querystring for iteration.
 
 ### Charts (inline SVG, no external lib)
 

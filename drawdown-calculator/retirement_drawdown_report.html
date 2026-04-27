@@ -1014,6 +1014,389 @@ html, body {
 }
 
 /* ============================================================================
+   V2 DUAL-RUN — primitives lifted from `report v2 design_files/Drawdown
+   Report Dual.html`. Only used by the dual-run pathway; the original
+   single-run slides keep their existing classes untouched.
+   ============================================================================ */
+.run-strip { height: 4px; width: 100%; }
+.run-strip.baseline { background: var(--paper-3); }
+.run-strip.scenario { background: var(--navy); }
+
+.run-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  padding: 4px 10px 5px;
+  border-radius: 2px;
+  margin-right: 8px;
+}
+.run-chip .run-chip-rn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.run-chip.baseline { background: var(--paper-3); color: var(--ink-2); }
+.run-chip.baseline .run-chip-rn { color: var(--gold-2); }
+.run-chip.scenario { background: var(--navy); color: var(--paper); }
+.run-chip.scenario .run-chip-rn { color: var(--gold-soft); }
+
+.run-headline {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 52px;
+  line-height: 1.04;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+  margin: 0;
+  max-width: 32ch;
+}
+.run-headline em { font-style: italic; }
+.run-headline .num {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.82em;
+  letter-spacing: -0.5px;
+}
+
+.run-chart-card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 20px 24px 18px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 8px;
+  min-height: 0;
+  margin-top: 22px;
+}
+.run-chart-well { min-height: 0; height: 480px; position: relative; }
+
+.assume-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
+  margin-top: 18px;
+}
+.assume-cell {
+  padding: 14px 18px 16px;
+  border-left: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.assume-cell:first-child { border-left: none; }
+.assume-label {
+  font-family: var(--sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+}
+.assume-value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  color: var(--ink);
+}
+.assume-value em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--mute);
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+.assume-value.warn { color: var(--neg); font-weight: 500; }
+
+.compare-assume-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.compare-assume-table th, .compare-assume-table td {
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.compare-assume-table th {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--mute);
+  border-bottom: 1px solid var(--line);
+  padding-top: 0;
+}
+.compare-assume-table th.col-baseline { background: var(--paper-2); }
+.compare-assume-table th.col-scenario { background: var(--navy); color: var(--gold-soft); border-bottom-color: var(--navy-2); }
+.compare-assume-table th .run-chip { margin-right: 0; margin-bottom: 6px; display: inline-flex; }
+.compare-assume-table th .col-sub {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: inherit;
+  opacity: 0.78;
+  margin-top: 2px;
+}
+.compare-assume-table td.val {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  color: var(--ink);
+}
+.compare-assume-table td.val.baseline-col { background: var(--paper-2); }
+.compare-assume-table td.val.same { color: var(--mute); font-style: italic; }
+.compare-assume-table td.val .delta {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12px;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+.compare-assume-table td.val .delta.neg { color: var(--neg); }
+.compare-assume-table td.val .delta.pos { color: var(--pos); }
+.compare-assume-table td.note {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.compare-assume-table tr.row-emphasis { border-top: 1px solid var(--line); }
+.compare-assume-table tr.row-emphasis td.label {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink);
+  font-size: 15px;
+}
+.compare-assume-table tr.row-emphasis td.val { font-size: 22px; font-weight: 500; }
+.compare-assume-table tr.row-emphasis td.val.warn { color: var(--neg); }
+.compare-assume-table tr.row-emphasis td.note { font-style: italic; color: var(--ink-2); }
+
+.levers-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 28px 56px;
+  margin-top: 6px;
+}
+.lever-block {
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.lever-mark {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--gold-2);
+  font-size: 56px;
+  line-height: 0.85;
+  letter-spacing: -1.5px;
+}
+.lever-content { display: flex; flex-direction: column; gap: 8px; }
+.lever-name {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  letter-spacing: -0.3px;
+  line-height: 1.05;
+}
+.lever-name em { font-style: italic; font-weight: 300; }
+.lever-prose {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 50ch;
+}
+.lever-prose .num { font-family: var(--mono); font-size: 14.5px; color: var(--ink); }
+.lever-prose em { font-style: italic; }
+.lever-meta {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--mute);
+  margin-top: 4px;
+}
+.lever-meta .gain {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--pos);
+  margin-left: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ge-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1.25fr 1.25fr;
+  gap: 0;
+  margin-top: 18px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+.ge-col {
+  padding: 22px 28px 26px;
+  border-left: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 18px;
+  min-width: 0;
+}
+.ge-col:first-child { border-left: none; }
+.ge-col-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.ge-col-rn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 28px;
+  color: var(--gold-2);
+  line-height: 0.9;
+}
+.ge-col-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: -0.2px;
+  color: var(--ink);
+}
+.ge-col-title em { font-style: italic; font-weight: 300; }
+.ge-col-sub {
+  font-family: var(--sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-left: auto;
+}
+.ge-col-foot {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px dashed var(--hairline);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.ge-col-foot .num { font-family: var(--mono); font-size: 12.5px; }
+.ge-col-foot strong { color: var(--ink); font-weight: 500; }
+.ge-col-foot strong.warn { color: var(--neg); font-weight: 500; }
+
+.goal-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--hairline);
+}
+.goal-row:last-child { border-bottom: none; padding-bottom: 0; }
+.goal-name {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 15.5px;
+  color: var(--ink);
+}
+.goal-name em { font-style: italic; font-weight: 300; }
+.goal-name em.changed-badge { color: var(--gold-2); font-size: 12.5px; margin-left: 6px; }
+.goal-amt {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--ink);
+}
+.goal-amt em { font-style: normal; color: var(--mute); }
+.goal-amt.warn { color: var(--neg); }
+.goal-note {
+  grid-column: 1 / -1;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--mute);
+  line-height: 1.45;
+}
+.goal-note.warn { color: var(--neg); }
+
+.ev-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  align-items: baseline;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--hairline);
+}
+.ev-row:last-child { border-bottom: none; padding-bottom: 0; }
+.ev-row.added { background: rgba(184, 137, 60, 0.06); margin: 0 -28px; padding: 14px 28px; border-bottom: 1px solid var(--hairline); }
+.ev-row.outflow { background: rgba(166, 66, 54, 0.05); margin: 0 -28px; padding: 14px 28px; border-bottom: 1px solid var(--hairline); }
+.ev-row.muted { opacity: 0.7; }
+.ev-age {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: var(--mute);
+  text-transform: uppercase;
+  padding-top: 2px;
+  line-height: 1.35;
+}
+.ev-age strong { color: var(--ink); font-weight: 600; font-size: 14px; }
+.ev-row.added .ev-age, .ev-row.added .ev-age strong { color: var(--gold-2); }
+.ev-row.outflow .ev-age, .ev-row.outflow .ev-age strong { color: var(--neg); }
+.ev-name {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+.ev-name em { font-style: italic; font-weight: 300; color: var(--ink-2); display: block; font-size: 13px; margin-top: 2px; }
+.ev-name.placeholder { font-style: italic; color: var(--mute); }
+.ev-amt {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+}
+.ev-amt em { font-style: normal; color: var(--mute); font-size: 11px; display: block; margin-top: 2px; }
+.ev-amt.in { color: var(--teal); }
+.ev-amt.out { color: var(--neg); }
+.ev-amt.placeholder { color: var(--mute); }
+
+/* ============================================================================
    PRINT — A4 landscape, one slide per page, no shadows, exact colours.
    ============================================================================ */
 @page { size: A4 landscape; margin: 0; }
@@ -1825,6 +2208,282 @@ html, body {
   </div>
 </section>
 
+<!-- =========================================================================
+     V2 DUAL-RUN TEMPLATES (data-conditional="dualrun-v2")
+     Eight-slide layout from `report v2 design_files/Drawdown Report Dual.html`.
+     The binder clones run-income + run-ge once for baseline, once for
+     scenario, then drops the originals. Hidden by default; revealed only
+     by setupDualRunV2.
+     ========================================================================= -->
+<section class="slide" data-slide="run-income" data-conditional="dualrun-v2" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span class="run-chip" data-field="runChipHost"></span>
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+  <div class="run-strip" data-field="runStripHost"></div>
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">—</span> <span data-field="runEyebrow">—</span></div>
+    <h2 class="run-headline" data-field="runHeadline">—</h2>
+    <div class="run-chart-card">
+      <div class="chart-legend-row">
+        <div class="legend">
+          <span><span class="sw" style="background:var(--teal)"></span>Living annuity draw</span>
+          <span><span class="sw" style="background:var(--gold)"></span>Discretionary draw</span>
+          <span><span class="sw" style="background:var(--navy-soft)"></span>Other income</span>
+          <span><span class="sw line" style="background:var(--coral)"></span>Target need</span>
+        </div>
+        <div class="chart-caption mute">household income · <strong style="color:var(--ink-2)">nominal rands</strong> · escalated at CPI</div>
+      </div>
+      <div class="run-chart-well" id="chart-run-income"></div>
+    </div>
+    <div class="assume-strip">
+      <div class="assume-cell"><div class="assume-label">Monthly need</div><div class="assume-value" data-field="assumeMonthly">—</div></div>
+      <div class="assume-cell"><div class="assume-label">Return · CPI</div><div class="assume-value" data-field="assumeReturnCpi">—</div></div>
+      <div class="assume-cell"><div class="assume-label">Other income</div><div class="assume-value" data-field="assumeOther">—</div></div>
+      <div class="assume-cell"><div class="assume-label">Capital events</div><div class="assume-value" data-field="assumeEvents">—</div></div>
+      <div class="assume-cell"><div class="assume-label">Auto top-up</div><div class="assume-value" data-field="assumeTopup">—</div></div>
+      <div class="assume-cell"><div class="assume-label">Sustainable to</div><div class="assume-value" data-field="assumeSustain">—</div></div>
+    </div>
+  </div>
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">—</span> <span data-field="runFootLabel">—</span></div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<section class="slide" data-slide="run-ge" data-conditional="dualrun-v2" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span class="run-chip" data-field="runChipHost"></span>
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+  <div class="run-strip" data-field="runStripHost"></div>
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">—</span> <span data-field="runGeEyebrow">—</span></div>
+    <h2 class="run-headline" data-field="runGeHeadline">—</h2>
+    <div class="ge-grid">
+      <div class="ge-col" id="ge-col-goals">
+        <div class="ge-col-head">
+          <span class="ge-col-rn">i.</span>
+          <span class="ge-col-title"><em>Goals</em> the plan must serve</span>
+          <span class="ge-col-sub" data-field="geGoalsCount">—</span>
+        </div>
+        <div data-field="geGoalsBody"></div>
+      </div>
+      <div class="ge-col" id="ge-col-other">
+        <div class="ge-col-head">
+          <span class="ge-col-rn">ii.</span>
+          <span class="ge-col-title"><em>Other income</em> — outside the portfolio</span>
+          <span class="ge-col-sub" data-field="geOtherCount">—</span>
+        </div>
+        <div data-field="geOtherBody"></div>
+      </div>
+      <div class="ge-col" id="ge-col-events">
+        <div class="ge-col-head">
+          <span class="ge-col-rn">iii.</span>
+          <span class="ge-col-title"><em>Capital events</em> — one-off in/outflows</span>
+          <span class="ge-col-sub" data-field="geEventsCount">—</span>
+        </div>
+        <div data-field="geEventsBody"></div>
+        <div class="ge-col-foot" data-field="geEventsFoot"></div>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">—</span> <span data-field="runGeFootLabel">—</span></div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<section class="slide" data-slide="assumptions-compare" data-conditional="dualrun-v2" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">—</span> Assumptions · what each projection rests on</div>
+    <h2 class="h2-slide">Where the two plans <em>differ</em>, and where they don't.</h2>
+    <table class="compare-assume-table">
+      <thead>
+        <tr>
+          <th style="width: 22%">Parameter</th>
+          <th class="col-baseline" style="width: 19%">
+            <span class="run-chip baseline"><span class="run-chip-rn">I.</span> Baseline</span>
+            <span class="col-sub">as locked</span>
+          </th>
+          <th class="col-scenario" style="width: 19%">
+            <span class="run-chip scenario"><span class="run-chip-rn">II.</span> Scenario</span>
+            <span class="col-sub">explored today</span>
+          </th>
+          <th>What this means</th>
+        </tr>
+      </thead>
+      <tbody id="assume-compare-tbody"></tbody>
+    </table>
+  </div>
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">—</span> Assumptions</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<section class="slide" data-slide="levers-v2" data-conditional="dualrun-v2" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">—</span> The four levers · what you can change</div>
+    <h2 class="h2-slide">If the horizon shortens, there are <em>four ways</em> to lengthen it.</h2>
+    <div class="levers-grid-4">
+      <div class="lever-block">
+        <div class="lever-mark">i.</div>
+        <div class="lever-content">
+          <div class="lever-name"><em>Expenses.</em></div>
+          <div class="lever-prose">
+            Lower the monthly target. A <span class="num">R 5 000</span> reduction from <span class="num">R 50 000</span> to <span class="num">R 45 000</span> stretches the horizon by roughly <span class="num">4 – 6 years</span>, depending on when it happens. The most durable lever — it compounds every year.
+          </div>
+          <div class="lever-meta">Typical effect <span class="gain">+ 4 – 6 yrs per R 5 000/mo</span></div>
+        </div>
+      </div>
+      <div class="lever-block">
+        <div class="lever-mark">ii.</div>
+        <div class="lever-content">
+          <div class="lever-name"><em>Returns.</em></div>
+          <div class="lever-prose">
+            Hold more equity, accept more volatility. Each <span class="num">+1%</span> of real return buys about <span class="num">3 – 5 years</span>, but the risk is real — a bad sequence early in retirement can erase more than the upside gives back.
+          </div>
+          <div class="lever-meta">Typical effect <span class="gain">+ 3 – 5 yrs per +1% real return</span></div>
+        </div>
+      </div>
+      <div class="lever-block">
+        <div class="lever-mark">iii.</div>
+        <div class="lever-content">
+          <div class="lever-name"><em>Retirement age.</em></div>
+          <div class="lever-prose">
+            Work one more year and two things improve: capital compounds untouched, and the drawdown window shortens. A single extra year at the peak of earnings typically adds <span class="num">2 – 3 years</span> to the horizon.
+          </div>
+          <div class="lever-meta">Typical effect <span class="gain">+ 2 – 3 yrs per extra working year</span></div>
+        </div>
+      </div>
+      <div class="lever-block">
+        <div class="lever-mark">iv.</div>
+        <div class="lever-content">
+          <div class="lever-name"><em>Other income.</em></div>
+          <div class="lever-prose">
+            Add a durable stream: a rental, a part-time consulting book, a deferred pension. Even <span class="num">R 10 000</span> of non-portfolio income a month materially changes the shape of the plan — it protects capital from sequence risk.
+          </div>
+          <div class="lever-meta">Typical effect <span class="gain">+ 3 – 5 yrs per R 10 000/mo</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="prose" style="margin-top: 28px; max-width: 92ch; font-size: 15.5px; color: var(--ink-2);">
+      The levers are not independent — pulling one almost always relieves pressure on the others. Good plans pull two at once: a small expense trim plus a small income lift typically buys back more horizon than either alone.
+    </p>
+  </div>
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">—</span> Levers</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<section class="slide" data-slide="compliance-v2" data-conditional="dualrun-v2" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· retirement drawdown</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">—</span> Compliance · scope, disclosure, and risk</div>
+    <h2 class="h2-slide">The <em>fine</em> print.</h2>
+    <div class="compliance-grid">
+      <div class="comp-block">
+        <div class="comp-label">Authorisation</div>
+        <p class="prose">
+          Simple Wealth (Pty) Ltd is an authorised financial services provider under the
+          Financial Advisory and Intermediary Services Act (FAIS), FSP No.
+          <span class="num">50637</span>. Advice is given within the categories reflected on
+          our licence; products beyond that scope fall outside this report.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Illustrative only</div>
+        <p class="prose">
+          This document is a projection, not a forecast. All values are based on the assumptions
+          set out on the previous page. Actual returns, inflation, tax, and life
+          events will differ. No figure in this report should be relied upon as a guaranteed
+          outcome.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Tax &amp; regulation</div>
+        <p class="prose">
+          Tax computations use the <span class="num">2026/27</span> SARS tables, including
+          age-based rebates. Changes to the Income Tax Act, retirement-fund reform, or the
+          FAIS Act may affect outcomes materially. Living annuities remain bound by Regulation
+          28 at the fund level, and by the statutory draw range of
+          <span class="num">2.5%–17.5%</span>.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Risk</div>
+        <p class="prose">
+          Market, inflation, longevity, and regulatory risks can each shorten the horizon
+          shown here. The <em>sequence</em> of returns — particularly in the first decade of
+          retirement — carries outsized weight and is not captured by a single
+          expected-return assumption. We recommend revisiting the plan annually, and sooner
+          on material change.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Scope of advice</div>
+        <p class="prose">
+          This report addresses retirement drawdown only. It does not constitute estate
+          planning, medical-aid advice, short-term insurance advice, or employment-related
+          benefits advice. Where those intersect, a separate engagement is required.
+        </p>
+      </div>
+      <div class="comp-block">
+        <div class="comp-label">Conflicts &amp; review</div>
+        <p class="prose">
+          Material conflicts of interest, if any, are disclosed in your Record of Advice and
+          in the Simple Wealth Conflict of Interest Management Policy, available on request.
+          The next scheduled review of this plan is <em data-field="nextReview">—</em>.
+        </p>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">—</span> Compliance</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
 </div><!-- /#deck -->
 
 <!-- Empty-state banner shown when no snapshot is loaded. -->
@@ -1969,73 +2628,70 @@ html, body {
   var schemaVersion = snap.schemaVersion || 1;
   var hasDualRun = schemaVersion >= 2 && snap.baseline && snap.baseline.plan && snap.baseline.projection;
 
-  // ---- Dual-run setup ----------------------------------------------------
-  // Slides that get rendered twice when both runs are present. The originals
-  // become the scenario run; deep-clones (with -baseline suffix) become the
-  // baseline run.
-  var DOUBLED_SLIDES = ['answer','household','projection','capital','tax','events','year-table'];
-
+  // ---- Dual-run setup (v2 layout) ----------------------------------------
+  // Eight-slide deck: Cover → Baseline-income → Baseline-ge → Scenario-income
+  // → Scenario-ge → Assumptions-compare → Levers → Compliance.
+  // The original v1 single-run slides (answer, household, projection, capital,
+  // tax, events, compare, year-table, methodology, compliance, next) are
+  // dropped wholesale in dual-run mode and replaced by the v2 templates.
   function setupDualRun() {
     var deck = document.getElementById('deck');
     var cover = deck.querySelector('[data-slide="cover"]');
-    var dividerBaseline = deck.querySelector('[data-slide="divider-baseline"]');
-    var dividerScenario = deck.querySelector('[data-slide="divider-scenario"]');
-    var compare = deck.querySelector('[data-slide="compare"]');
-    if (!cover || !dividerBaseline || !dividerScenario || !compare) return;
+    var runIncomeT = deck.querySelector('[data-slide="run-income"]');
+    var runGeT = deck.querySelector('[data-slide="run-ge"]');
+    var assumeC = deck.querySelector('[data-slide="assumptions-compare"]');
+    var leversV2 = deck.querySelector('[data-slide="levers-v2"]');
+    var complianceV2 = deck.querySelector('[data-slide="compliance-v2"]');
+    if (!cover || !runIncomeT || !runGeT || !assumeC || !leversV2 || !complianceV2) return;
 
-    // Reveal the dividers (templates ship with display:none).
-    dividerBaseline.style.display = '';
-    dividerScenario.style.display = '';
-    // Compare slide always shown in dual-run mode (it's the bridge).
-    compare.style.display = '';
-
-    // Per-run conditional drops for the events slide.
-    var dropBaselineEvents = !(snap.baseline.plan.capitalEvents && snap.baseline.plan.capitalEvents.length);
-    var dropScenarioEvents = !(snap.plan.capitalEvents && snap.plan.capitalEvents.length);
-
-    var baselineSlides = [];
-    var scenarioSlides = [];
-
-    DOUBLED_SLIDES.forEach(function (id) {
-      var orig = deck.querySelector('[data-slide="' + id + '"]');
-      if (!orig) return;
-
-      // Clone for baseline run (unless dropping events for baseline).
-      if (!(id === 'events' && dropBaselineEvents)) {
-        var clone = orig.cloneNode(true);
-        clone.setAttribute('data-slide', id + '-baseline');
-        clone.setAttribute('data-run', 'baseline');
-        suffixSlide(clone, '-baseline');
-        baselineSlides.push(clone);
-      }
-
-      // Originals become the scenario run (unless dropping events for scenario).
-      if (id === 'events' && dropScenarioEvents) {
-        orig.remove();
-      } else {
-        orig.setAttribute('data-run', 'scenario');
-        suffixSlide(orig, '-scenario');
-        scenarioSlides.push(orig);
-      }
+    // Drop every existing slide that isn't the cover or a v2 template.
+    var KEEP = { 'cover': 1, 'run-income': 1, 'run-ge': 1, 'assumptions-compare': 1, 'levers-v2': 1, 'compliance-v2': 1 };
+    Array.prototype.slice.call(deck.querySelectorAll('.slide')).forEach(function (s) {
+      var id = s.getAttribute('data-slide');
+      if (!KEEP[id]) s.remove();
     });
 
-    // Reorder: cover → baseline divider → baseline run → compare → scenario divider → scenario run.
-    // Static slides (assumptions, levers, methodology, compliance, next) stay
-    // in their current trailing positions and end up after the fragment.
+    // Reveal the static-once v2 slides.
+    assumeC.style.display = '';
+    leversV2.style.display = '';
+    complianceV2.style.display = '';
+
+    function makeRun(suffix) {
+      var income = runIncomeT.cloneNode(true);
+      var ge = runGeT.cloneNode(true);
+      income.style.display = '';
+      ge.style.display = '';
+      income.removeAttribute('data-conditional');
+      ge.removeAttribute('data-conditional');
+      income.setAttribute('data-slide', 'run-income' + suffix);
+      ge.setAttribute('data-slide', 'run-ge' + suffix);
+      var which = suffix.replace('-', '');
+      income.setAttribute('data-run', which);
+      ge.setAttribute('data-run', which);
+      suffixSlide(income, suffix);
+      suffixSlide(ge, suffix);
+      return [income, ge];
+    }
+
+    var baselinePair = makeRun('-baseline');
+    var scenarioPair = makeRun('-scenario');
+
     var fragment = document.createDocumentFragment();
-    fragment.appendChild(dividerBaseline);
-    baselineSlides.forEach(function (s) { fragment.appendChild(s); });
-    fragment.appendChild(compare);
-    fragment.appendChild(dividerScenario);
-    scenarioSlides.forEach(function (s) { fragment.appendChild(s); });
+    baselinePair.forEach(function (s) { fragment.appendChild(s); });
+    scenarioPair.forEach(function (s) { fragment.appendChild(s); });
     cover.parentNode.insertBefore(fragment, cover.nextSibling);
+
+    // Remove the now-redundant raw templates (we only kept clones).
+    runIncomeT.remove();
+    runGeT.remove();
   }
 
   // ---- Single-run setup --------------------------------------------------
   function setupSingleRun() {
     var deck = document.getElementById('deck');
-    // Drop divider templates outright — they only render in dual-run mode.
-    deck.querySelectorAll('[data-conditional="dualrun"]').forEach(function (n) { n.remove(); });
+    // Drop dual-run templates (v1 dividers + v2 templates) — single-run uses
+    // the original 12-slide flow only.
+    deck.querySelectorAll('[data-conditional="dualrun"], [data-conditional="dualrun-v2"]').forEach(function (n) { n.remove(); });
 
     // Today's conditional drops: events if no events; compare if no v1 baseline.
     var hideEvents = !(snap.plan.capitalEvents && snap.plan.capitalEvents.length);
@@ -2699,30 +3355,574 @@ html, body {
   // pageNum + Roman numerals into each slide, then sets pageTotal globally.
   function renumberSlides() {
     var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV'];
+    // v2 dual-run uses SECTION numerals: cover (—), Baseline pair (I.),
+    // Scenario pair (II.), Assumptions (III.), Levers (IV.), Compliance (V.).
+    // v1 / single-run keeps the per-slide Roman walker.
+    var V2_SECTION = {
+      'cover': null,
+      'run-income-baseline': 'I',
+      'run-ge-baseline': 'I',
+      'run-income-scenario': 'II',
+      'run-ge-scenario': 'II',
+      'assumptions-compare': 'III',
+      'levers-v2': 'IV',
+      'compliance-v2': 'V'
+    };
     var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
     slides.forEach(function (s, i) {
       var pn = String(i + 1).padStart(2, '0');
       s.querySelectorAll('[data-field="pageNum"]').forEach(function (n) { n.textContent = pn; });
-      var rn = ROMAN[i] || String(i + 1);
-      var footRN = s.querySelector('.slide-foot .rn');
-      if (footRN) footRN.textContent = rn + '.';
-      var eyebrowRN = s.querySelector('.eyebrow .rn');
-      if (eyebrowRN) eyebrowRN.textContent = rn + '.';
+      var sectionRn = hasDualRun ? V2_SECTION[s.getAttribute('data-slide')] : null;
+      var rn = sectionRn != null ? sectionRn : (hasDualRun ? null : ROMAN[i] || String(i + 1));
+      if (rn != null) {
+        var footRN = s.querySelector('.slide-foot .rn');
+        if (footRN) footRN.textContent = rn + '.';
+        var eyebrowRN = s.querySelector('.eyebrow .rn');
+        if (eyebrowRN) eyebrowRN.textContent = rn + '.';
+      }
     });
     document.querySelectorAll('[data-field="pageTotal"]').forEach(function (n) {
       n.textContent = String(slides.length).padStart(2, '0');
     });
   }
 
+  // ---- V2 dual-run renderers --------------------------------------------
+  // Used only when hasDualRun. Paint the v2 templates for each run + the
+  // side-by-side assumptions table. Single-run path stays on renderRun above.
+
+  // setRunFieldHTML — like setRunField, but writes innerHTML so the headline
+  // can carry inline <em>, <span class="num">, and <br> markup. Per-run only;
+  // shared fields go through setField.
+  function setRunFieldHTML(suffix, name, html) {
+    var nodes = document.querySelectorAll('[data-field="' + name + suffix + '"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].innerHTML = html;
+  }
+
+  // numWord — small lookup so editorial copy reads as words for low counts.
+  function numWord(n) {
+    var w = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    return (n >= 0 && n < w.length) ? w[n] : String(n);
+  }
+
+  // sumOtherMonthly — total monthly external income across all spouses, Y1.
+  function sumOtherMonthly(plan) {
+    return (plan.spouses || []).reduce(function (a, s) {
+      return a + (s.otherIncome || []).reduce(function (b, x) { return b + (x.monthly || 0); }, 0);
+    }, 0);
+  }
+
+  // collectOtherStreams — flatten per-spouse other-income streams into a
+  // single list, tagging the spouse name on each row for the GE renderer.
+  function collectOtherStreams(plan) {
+    var out = [];
+    (plan.spouses || []).forEach(function (s) {
+      (s.otherIncome || []).forEach(function (x) {
+        out.push({
+          name: x.name || x.kind || 'Other income',
+          spouseName: s.name,
+          monthly: x.monthlyAmount != null ? x.monthlyAmount : (x.monthly || 0),
+          startAge: x.startAge,
+          endAge: x.endAge,
+          duration: x.duration,
+          cpiLinked: x.cpiLinked,
+          pctTaxable: x.pctTaxable
+        });
+      });
+    });
+    return out;
+  }
+
+  // Find first shortfall age (where projected total income < target need).
+  function firstShortfallAge(rows) {
+    for (var i = 0; i < (rows || []).length; i++) {
+      if (rows[i].shortfall) return rows[i].age;
+    }
+    return null;
+  }
+
+  // ---- v2 income chart with annotations ----------------------------------
+  // Wraps renderIncomeChart to add the v2 mock's editorial annotations:
+  // disc-exhausts vertical, LA-ceiling vertical, shortfall band overlay.
+  function renderIncomeChartV2(container, rows, opts) {
+    if (!container || !rows || !rows.length) return;
+    renderIncomeChart(container, rows, opts);
+    var svg = container.querySelector('svg');
+    if (!svg) return;
+
+    var W = opts.width || 1428;
+    var H = opts.height || 480;
+    var pad = { top: 28, right: 60, bottom: 36, left: 70 };
+    var innerW = W - pad.left - pad.right;
+    var innerH = H - pad.top - pad.bottom;
+    var n = rows.length;
+    var slot = innerW / n;
+    var startAge = rows[0].age;
+
+    function annotate(age, label) {
+      if (age == null) return;
+      var idx = age - startAge;
+      if (idx < 0 || idx >= n) return;
+      var x = pad.left + slot * idx + slot / 2;
+      svg.appendChild(el('line', {
+        x1: x, x2: x, y1: pad.top + 8, y2: pad.top + innerH,
+        stroke: tok('--gold-2', '#9c7226'),
+        'stroke-width': 0.8, 'stroke-dasharray': '2 3', opacity: 0.6
+      }));
+      var t = el('text', {
+        x: x + 6, y: pad.top + 16,
+        'font-family': "'Fraunces', serif", 'font-style': 'italic',
+        'font-size': 12.5, fill: tok('--gold-2', '#9c7226')
+      });
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+    annotate(opts.discExhaustsAt, 'disc exhausts · age ' + opts.discExhaustsAt);
+    annotate(opts.laCapAt, 'LA ceiling · age ' + opts.laCapAt);
+
+    if (opts.shortfallFromAge != null) {
+      var sIdx = opts.shortfallFromAge - startAge;
+      if (sIdx >= 0 && sIdx < n) {
+        var sx = pad.left + slot * sIdx;
+        var sw = (n - sIdx) * slot;
+        svg.appendChild(el('rect', {
+          x: sx, y: pad.top + 8, width: sw, height: innerH - 8,
+          fill: tok('--neg', '#a64236'), opacity: 0.06
+        }));
+        var st = el('text', {
+          x: sx + sw / 2, y: pad.top + 28, 'text-anchor': 'middle',
+          'font-family': "'Fraunces', serif", 'font-style': 'italic',
+          'font-size': 14, fill: tok('--neg', '#a64236')
+        });
+        st.textContent = 'shortfall';
+        svg.appendChild(st);
+      }
+    }
+  }
+
+  // ---- v2 baseline-vs-scenario diff helper -------------------------------
+  // Used only by the scenario GE column to flag added / changed rows. Pure
+  // identity match by keyFn; "changed" means same identity, different value.
+  // Compares JSON shape, so any field-level diff (amount / spouse / cadence)
+  // counts as changed.
+  function diffByKey(baseList, scenList, keyFn) {
+    var baseMap = {};
+    (baseList || []).forEach(function (it) { baseMap[keyFn(it)] = it; });
+    return {
+      isAdded: function (it) { return !(keyFn(it) in baseMap); },
+      isChanged: function (it) {
+        var b = baseMap[keyFn(it)];
+        return !!b && JSON.stringify(b) !== JSON.stringify(it);
+      },
+      addedCount: (scenList || []).reduce(function (n, it) {
+        return n + (keyFn(it) in baseMap ? 0 : 1);
+      }, 0),
+      changedCount: (scenList || []).reduce(function (n, it) {
+        var b = baseMap[keyFn(it)];
+        return n + (b && JSON.stringify(b) !== JSON.stringify(it) ? 1 : 0);
+      }, 0)
+    };
+  }
+
+  // ---- v2 GE column renderers --------------------------------------------
+  // opts: { diff?: <diffByKey result>, baseline?: <plan> } — only passed
+  // when rendering the scenario column in dual-run mode.
+  function renderGoalsCol(plan, opts) {
+    opts = opts || {};
+    var diff = opts.diff || null;
+    var baseline = opts.baseline || null;
+    var monthlyNeed = plan.monthlyNeed || 0;
+
+    // Lifestyle income row — implicit. When scenario AND baseline.monthlyNeed
+    // differs, render with "↑ uplifted" badge + warn-coloured amount + delta
+    // narrative in the note.
+    var lifestyleNameInner = 'Lifestyle income';
+    var lifestyleAmtCls = '';
+    var lifestyleNote = 'Real-terms target across the household. Escalates with CPI.';
+    if (baseline && baseline.monthlyNeed != null && baseline.monthlyNeed !== monthlyNeed) {
+      var diffMonthly = monthlyNeed - baseline.monthlyNeed;
+      var verb = diffMonthly > 0 ? 'uplifted' : 'reduced';
+      lifestyleNameInner = 'Lifestyle income <em class="changed-badge">↑ ' + verb + '</em>';
+      lifestyleAmtCls = ' warn';
+      var sign = diffMonthly > 0 ? '+ ' : '− ';
+      lifestyleNote = sign + 'R ' + fmtRPlain(Math.abs(diffMonthly)) +
+        '/mo vs. baseline · this is the lever the household pulled today.';
+    }
+
+    var html = '<div class="goal-row">' +
+      '<div><span class="goal-name">' + lifestyleNameInner + '</span></div>' +
+      '<div class="goal-amt' + lifestyleAmtCls + '">R ' + fmtRPlain(monthlyNeed) + ' <em>/mo</em></div>' +
+      '<div class="goal-note">' + lifestyleNote + '</div>' +
+    '</div>';
+
+    (plan.goals || []).forEach(function (g) {
+      var unit = g.everyNYears === 1 ? '/yr' : ('every ' + g.everyNYears + ' yr');
+      var badge = '';
+      if (diff) {
+        if (diff.isAdded(g)) badge = ' <em class="changed-badge">↑ added</em>';
+        else if (diff.isChanged(g)) badge = ' <em class="changed-badge">↑ updated</em>';
+      }
+      html += '<div class="goal-row">' +
+        '<div><span class="goal-name">' + esc(g.label) + badge + '</span></div>' +
+        '<div class="goal-amt">R ' + fmtRPlain(g.amountPV) + ' <em>' + unit + '</em></div>' +
+        '<div class="goal-note">Drawn from discretionary, ages ' + g.startAge + '–' + g.endAge + '.</div>' +
+      '</div>';
+    });
+    return html;
+  }
+
+  function renderOtherCol(streams, opts) {
+    opts = opts || {};
+    var diff = opts.diff || null;
+    if (!streams.length) {
+      return '<div class="ev-row muted">' +
+        '<div class="ev-age">—</div>' +
+        '<div class="ev-name placeholder">No external income streams in this run.</div>' +
+        '<div class="ev-amt placeholder">—</div>' +
+      '</div>';
+    }
+    return streams.map(function (s) {
+      var endLabel = (s.duration && s.duration >= 35) ? 'for life' : ('to <strong>' + (s.endAge || '—') + '</strong>');
+      var ageBlock = 'from <strong>' + (s.startAge || '—') + '</strong><br>' + endLabel;
+      var meta = (s.cpiLinked ? '/mo · CPI-linked' : '/mo · flat-nominal');
+      var rowCls = 'ev-row';
+      if (diff && diff.isAdded(s)) rowCls += ' added';
+      return '<div class="' + rowCls + '">' +
+        '<div class="ev-age">' + ageBlock + '</div>' +
+        '<div class="ev-name">' + esc(s.name) + ' <em>' + esc(s.spouseName || '') + '</em></div>' +
+        '<div class="ev-amt in">R ' + fmtRPlain(s.monthly) + '<em>' + meta + '</em></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderEventsCol(events, opts) {
+    opts = opts || {};
+    var diff = opts.diff || null;
+    if (!events.length) {
+      return '<div class="ev-row muted">' +
+        '<div class="ev-age">—</div>' +
+        '<div class="ev-name placeholder">No capital events scheduled in this run.</div>' +
+        '<div class="ev-amt placeholder">—</div>' +
+      '</div>';
+    }
+    return events.map(function (e) {
+      var pos = (e.amount || 0) >= 0;
+      var rowCls = 'ev-row ' + (pos ? '' : 'outflow');
+      if (diff && diff.isAdded(e)) rowCls += ' added';
+      var amtCls = 'ev-amt ' + (pos ? 'in' : 'out');
+      var sign = pos ? '' : '− ';
+      var ageLine = (e.age != null)
+        ? ('at <strong>' + e.age + '</strong><br>' + e.year)
+        : ('in <strong>' + e.year + '</strong>');
+      var nameSub = e.forWhom ? '<em>' + esc(e.forWhom) + '</em>' : '';
+      return '<div class="' + rowCls + '">' +
+        '<div class="ev-age">' + ageLine + '</div>' +
+        '<div class="ev-name">' + esc(e.label || 'Capital event') + ' ' + nameSub + '</div>' +
+        '<div class="' + amtCls + '">' + sign + 'R ' + fmtRPlain(Math.abs(e.amount || 0)) + '<em>nominal</em></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderEventsFoot(plan, projection, which) {
+    var sustain = projection.sustainableTo;
+    var sustainStr = sustain != null ? 'age ' + sustain : 'beyond the projection horizon';
+    var sustainCls = (sustain != null && sustain < 90) ? ' class="warn"' : '';
+    var otherMonthly = sumOtherMonthly(plan);
+    var eventCount = (plan.capitalEvents || []).length;
+    if (which === 'baseline') {
+      if (eventCount === 0 && otherMonthly > 0) {
+        return 'With no capital events and <span class="num">R ' + fmtRPlain(otherMonthly) + '</span>/mo of external income, the baseline portfolio carries the lifestyle target through <strong' + sustainCls + '>' + sustainStr + '</strong>.';
+      }
+      return 'The baseline holds the lifestyle target through <strong' + sustainCls + '>' + sustainStr + '</strong> on the inputs as locked.';
+    }
+    if (eventCount > 0) {
+      return 'The capital events scheduled in this scenario shift cash flow against the lifestyle uplift. The horizon settles at <strong' + sustainCls + '>' + sustainStr + '</strong>.';
+    }
+    return 'The scenario carries the lifestyle target through <strong' + sustainCls + '>' + sustainStr + '</strong>.';
+  }
+
+  // fmtRPlain — fmtR without the leading "R " (used inside template literals
+  // that already supply the currency sign).
+  function fmtRPlain(n) {
+    if (n == null || isNaN(n)) return '—';
+    return Math.round(n).toLocaleString('en-ZA').replace(/,/g, NBSP);
+  }
+
+  function renderRunV2(plan, projection, suffix) {
+    var which = (suffix === '-baseline') ? 'baseline' : 'scenario';
+    var rn = (which === 'baseline') ? 'I.' : 'II.';
+    var meta = (which === 'baseline') ? 'Baseline · locked' : 'Scenario · explored today';
+    var eyebrowIncome = (which === 'baseline')
+      ? 'Baseline · the locked plan'
+      : 'Scenario · the plan we explored today';
+    var eyebrowGe = (which === 'baseline')
+      ? 'Baseline · what the household owes itself, and what flows in'
+      : 'Scenario · the same goals, with the changes we explored';
+    var footIncome = (which === 'baseline') ? 'Baseline' : 'Scenario';
+    var footGe = (which === 'baseline') ? 'Baseline · goals & events' : 'Scenario · goals & events';
+
+    // Run identity placeholders (chip + strip) — replace innerHTML and class.
+    document.querySelectorAll('[data-field="runChipHost' + suffix + '"]').forEach(function (host) {
+      host.className = 'run-chip ' + which;
+      host.innerHTML = '<span class="run-chip-rn">' + rn + '</span> ' + meta;
+    });
+    document.querySelectorAll('[data-field="runStripHost' + suffix + '"]').forEach(function (host) {
+      host.className = 'run-strip ' + which;
+    });
+
+    // Headline: monthly need + sustainable-to-age.
+    var monthly = plan.monthlyNeed || 0;
+    var annual = monthly * 12;
+    var sustain = projection.sustainableTo;
+    var sustainText = sustain != null ? 'age ' + sustain : 'beyond the horizon';
+    var headline;
+    if (which === 'baseline') {
+      headline = 'At <span class="num">R ' + fmtRPlain(monthly) + '</span>/mo &mdash; <span class="num">R ' + fmtRPlain(annual) + '</span>/yr, the lifestyle<br>holds until <span class="gold-under"><em>' + sustainText + '</em></span>.';
+    } else {
+      headline = 'At <span class="num">R ' + fmtRPlain(monthly) + '</span>/mo &mdash; <span class="num">R ' + fmtRPlain(annual) + '</span>/yr, the same<br>household carries to <span class="gold-under"><em>' + sustainText + '</em></span>.';
+    }
+    setRunFieldHTML(suffix, 'runHeadline', headline);
+    setRunField(suffix, 'runEyebrow', eyebrowIncome);
+    setRunField(suffix, 'runFootLabel', footIncome);
+
+    // Assume strip (6 cells).
+    var otherMonthly = sumOtherMonthly(plan);
+    var eventCount = (plan.capitalEvents || []).length;
+    var outflowCount = (plan.capitalEvents || []).filter(function (e) { return (e.amount || 0) < 0; }).length;
+    var eventsLabel = eventCount === 0
+      ? 'none'
+      : (outflowCount === eventCount && eventCount === 1
+          ? '1 outflow'
+          : (eventCount + (eventCount === 1 ? ' event' : ' events')));
+    setRunField(suffix, 'assumeMonthly', 'R ' + fmtRPlain(monthly));
+    setRunField(suffix, 'assumeReturnCpi', fmtPct(plan.returnPct, 1) + ' · ' + fmtPct(plan.cpiPct, 1));
+    setRunFieldHTML(suffix, 'assumeOther', otherMonthly > 0
+      ? 'R ' + fmtRPlain(otherMonthly) + ' <em>/mo</em>'
+      : 'none');
+    setRunField(suffix, 'assumeEvents', eventsLabel);
+    setRunField(suffix, 'assumeTopup', plan.autoTopUp ? 'on' : 'off');
+    var sustainCells = document.querySelectorAll('[data-field="assumeSustain' + suffix + '"]');
+    sustainCells.forEach(function (c) {
+      c.textContent = sustainText;
+      c.classList.toggle('warn', sustain != null && sustain < 90);
+    });
+
+    // Income chart (with v2 annotations).
+    var chartEl = runEl(suffix, 'chart-run-income');
+    if (chartEl) {
+      var rows = projection.rows || [];
+      var sliceEnd = sustain != null
+        ? Math.min(sustain + 5, rows[rows.length - 1].age)
+        : rows[rows.length - 1].age;
+      var sliced = rows.filter(function (r) { return r.age <= sliceEnd; });
+      renderIncomeChartV2(chartEl, sliced, {
+        width: 1380, height: 480,
+        needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0),
+        laCapAt: projection.laCapHitAt,
+        discExhaustsAt: projection.discExhaustsAt,
+        shortfallFromAge: firstShortfallAge(sliced)
+      });
+    }
+
+    // GE slide — eyebrow + headline + 3 columns.
+    setRunField(suffix, 'runGeEyebrow', eyebrowGe);
+    setRunField(suffix, 'runGeFootLabel', footGe);
+    var goals = plan.goals || [];
+    var streams = collectOtherStreams(plan);
+    var events = (plan.capitalEvents || []).slice().sort(function (a, b) { return a.year - b.year; });
+    var goalCt = goals.length + 1; // +1 for implicit Lifestyle income row.
+
+    // Build diffs only for the scenario column in dual-run. Identity keys
+    // mirror the calculator's diffCollection: goals (label|startAge),
+    // streams (spouse|name|startAge), events (spouse|year|label).
+    var goalDiff = null, streamDiff = null, eventDiff = null;
+    var baselinePlan = null;
+    if (hasDualRun && which === 'scenario') {
+      baselinePlan = snap.baseline.plan;
+      var bGoals = baselinePlan.goals || [];
+      var bStreams = collectOtherStreams(baselinePlan);
+      var bEvents = (baselinePlan.capitalEvents || []).slice();
+      goalDiff = diffByKey(bGoals, goals, function (g) {
+        return (g.label || '').toString().trim().toLowerCase() + '|' + (g.startAge || 0);
+      });
+      streamDiff = diffByKey(bStreams, streams, function (s) {
+        return (s.spouseName || '') + '|' + (s.name || '').toString().trim().toLowerCase() + '|' + (s.startAge || 0);
+      });
+      eventDiff = diffByKey(bEvents, events, function (e) {
+        return (e.spouse || '') + '|' + (e.year || 0) + '|' + (e.label || '').toString().trim().toLowerCase();
+      });
+    }
+    // Lifestyle is "changed" iff scenario.monthlyNeed differs from baseline.
+    var lifestyleChanged = !!(baselinePlan && baselinePlan.monthlyNeed !== plan.monthlyNeed);
+
+    var geHeadline;
+    if (which === 'baseline') {
+      geHeadline = 'The plan rests on <em>' + numWord(goalCt) + '</em> goals,<br>' +
+        '<span class="num">' + numWord(streams.length) + '</span> income stream' + (streams.length === 1 ? '' : 's') +
+        ', and <span class="num">' + numWord(events.length) + '</span> capital event' + (events.length === 1 ? '' : 's') + '.';
+    } else {
+      geHeadline = 'The same <em>' + numWord(goalCt) + '</em> goals — with <span class="num">' + numWord(streams.length) + '</span><br>' +
+        'income stream' + (streams.length === 1 ? '' : 's') + ' and <span class="num">' + numWord(events.length) + '</span> capital event' + (events.length === 1 ? '' : 's') + '.';
+    }
+    setRunFieldHTML(suffix, 'runGeHeadline', geHeadline);
+
+    // Column subtitles — append "· N added" / "· N changed" tail when diff
+    // produced any. Lifestyle row counts as 1 changed when scenario uplift.
+    function diffTail(d, extraChanged) {
+      if (!d) return '';
+      var added = d.addedCount;
+      var changed = d.changedCount + (extraChanged || 0);
+      var bits = [];
+      if (added > 0) bits.push(added + ' added');
+      if (changed > 0) bits.push(changed + ' changed');
+      return bits.length ? ' · ' + bits.join(' · ') : '';
+    }
+    setRunField(suffix, 'geGoalsCount',
+      goalCt + (goalCt === 1 ? ' goal' : ' goals') + diffTail(goalDiff, lifestyleChanged ? 1 : 0));
+    setRunField(suffix, 'geOtherCount',
+      (streams.length === 0 ? 'none' : streams.length + (streams.length === 1 ? ' stream' : ' streams')) + diffTail(streamDiff));
+    setRunField(suffix, 'geEventsCount', eventsLabel + diffTail(eventDiff));
+
+    setRunFieldHTML(suffix, 'geGoalsBody',
+      renderGoalsCol(plan, { diff: goalDiff, baseline: baselinePlan }));
+    setRunFieldHTML(suffix, 'geOtherBody',
+      renderOtherCol(streams, { diff: streamDiff }));
+    setRunFieldHTML(suffix, 'geEventsBody',
+      renderEventsCol(events, { diff: eventDiff }));
+    setRunFieldHTML(suffix, 'geEventsFoot', renderEventsFoot(plan, projection, which));
+  }
+
+  // ---- Side-by-side assumptions (page V) ---------------------------------
+  function renderAssumptionsCompare() {
+    var tbody = document.getElementById('assume-compare-tbody');
+    if (!tbody) return;
+    var bp = snap.baseline.plan;
+    var sp = snap.plan;
+    var bproj = snap.baseline.projection;
+    var sproj = snap.projection;
+
+    function deltaMoneyPct(base, scen) {
+      if (base == null || scen == null || base === scen) return null;
+      var diff = scen - base;
+      var pct = base !== 0 ? Math.round((diff / base) * 100) : null;
+      var sign = diff >= 0 ? '+ ' : '− ';
+      var cls = diff >= 0 ? 'pos' : 'neg';
+      var pctStr = pct != null ? ' · ' + (pct >= 0 ? '+' : '') + pct + '%' : '';
+      return { cls: cls, text: sign + 'R ' + fmtRPlain(Math.abs(diff)) + pctStr };
+    }
+    function deltaPct(base, scen) {
+      if (base == null || scen == null || base === scen) return null;
+      var diff = (scen - base) * 100;
+      var sign = diff >= 0 ? '+ ' : '− ';
+      var cls = diff >= 0 ? 'pos' : 'neg';
+      return { cls: cls, text: sign + Math.abs(diff).toFixed(1) + ' pp' };
+    }
+    function deltaYears(base, scen) {
+      if (base == null || scen == null || base === scen) return null;
+      var diff = scen - base;
+      var sign = diff >= 0 ? '+ ' : '− ';
+      var cls = diff >= 0 ? 'pos' : 'neg';
+      return { cls: cls, text: sign + Math.abs(diff) + ' yr' + (Math.abs(diff) === 1 ? '' : 's') };
+    }
+
+    var bOther = sumOtherMonthly(bp);
+    var sOther = sumOtherMonthly(sp);
+    var bEvents = (bp.capitalEvents || []).length;
+    var sEvents = (sp.capitalEvents || []).length;
+
+    var rows = [
+      {
+        label: 'Monthly need',
+        base: 'R ' + fmtRPlain(bp.monthlyNeed),
+        scen: 'R ' + fmtRPlain(sp.monthlyNeed),
+        delta: deltaMoneyPct(bp.monthlyNeed, sp.monthlyNeed),
+        note: 'The lifestyle target. Usually the single biggest lever between the two runs.'
+      },
+      {
+        label: 'Other income · monthly',
+        base: bOther > 0 ? 'R ' + fmtRPlain(bOther) + ' / mo' : 'none',
+        scen: sOther > 0 ? 'R ' + fmtRPlain(sOther) + ' / mo' : 'none',
+        delta: deltaMoneyPct(bOther, sOther),
+        note: 'External income outside the portfolio (rental, pension, consulting). Reduces the draw on capital.'
+      },
+      {
+        label: 'Capital events',
+        base: bEvents === 0 ? 'none' : (bEvents + (bEvents === 1 ? ' event' : ' events')),
+        scen: sEvents === 0 ? 'none' : (sEvents + (sEvents === 1 ? ' event' : ' events')),
+        delta: null,
+        note: 'One-off lump sums. Modelled as a single inflow or outflow on the year it lands.'
+      },
+      {
+        label: 'Expected return',
+        base: fmtPct(bp.returnPct, 1),
+        scen: fmtPct(sp.returnPct, 1),
+        delta: deltaPct(bp.returnPct, sp.returnPct),
+        note: 'Nominal total return on both LAs and discretionary, net of fees.'
+      },
+      {
+        label: 'Inflation (CPI)',
+        base: fmtPct(bp.cpiPct, 1),
+        scen: fmtPct(sp.cpiPct, 1),
+        delta: deltaPct(bp.cpiPct, sp.cpiPct),
+        note: "SARB's mid-range target. Both runs typically assume a stable macro environment."
+      },
+      {
+        label: 'Auto top-up',
+        base: bp.autoTopUp ? 'on' : 'off',
+        scen: sp.autoTopUp ? 'on' : 'off',
+        delta: null,
+        note: "When LA draw alone won't meet the target, the plan tops up from discretionary capital."
+      },
+      {
+        label: 'LA draw band',
+        base: '2.5 – 17.5%',
+        scen: '2.5 – 17.5%',
+        delta: null,
+        note: 'FAIS-mandated. The projection raises the rate as needed and flags where the ceiling binds.'
+      },
+      {
+        label: 'Tax year',
+        base: '2026 / 27',
+        scen: '2026 / 27',
+        delta: null,
+        note: 'SARS tables incl. age-based rebates. Brackets held in nominal terms.'
+      },
+      {
+        label: 'Sustainable to',
+        base: bproj.sustainableTo != null ? 'age ' + bproj.sustainableTo : '—',
+        scen: sproj.sustainableTo != null ? 'age ' + sproj.sustainableTo : '—',
+        delta: deltaYears(bproj.sustainableTo, sproj.sustainableTo),
+        note: 'The bottom line. How long the household stays at or above target.',
+        emphasis: true
+      }
+    ];
+
+    tbody.innerHTML = rows.map(function (r) {
+      var same = (r.base === r.scen);
+      var trClass = r.emphasis ? 'row-emphasis' : '';
+      var labelCls = r.emphasis ? 'label' : '';
+      var baseCls = 'val baseline-col' + (same ? ' same' : '');
+      var scenCls = 'val' + (same ? ' same' : '');
+      if (r.emphasis && !same && r.delta && r.delta.cls === 'neg') scenCls += ' warn';
+      var deltaSpan = (!same && r.delta) ? '<span class="delta ' + r.delta.cls + '">' + r.delta.text + '</span>' : '';
+      return '<tr class="' + trClass + '">' +
+        '<td class="' + labelCls + '">' + r.label + '</td>' +
+        '<td class="' + baseCls + '">' + r.base + '</td>' +
+        '<td class="' + scenCls + '">' + r.scen + deltaSpan + '</td>' +
+        '<td class="note">' + r.note + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
   // ---- Orchestration -----------------------------------------------------
   renderShared();
   if (hasDualRun) {
-    renderRun(snap.baseline.plan, snap.baseline.projection, '-baseline');
-    renderRun(snap.plan, snap.projection, '-scenario');
+    renderRunV2(snap.baseline.plan, snap.baseline.projection, '-baseline');
+    renderRunV2(snap.plan, snap.projection, '-scenario');
+    renderAssumptionsCompare();
   } else {
     renderRun(snap.plan, snap.projection, '');
+    renderCompare();
   }
-  renderCompare();
   renumberSlides();
 
   // ---- Auto-print after first paint -------------------------------------

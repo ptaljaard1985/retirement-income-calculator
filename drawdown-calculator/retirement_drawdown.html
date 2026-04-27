@@ -2479,7 +2479,7 @@
     grid-template-columns: 1fr 130px 70px 110px 75px 65px 55px 28px;
   }
   .category-row.row--event {
-    grid-template-columns: 110px 1fr 160px 28px;
+    grid-template-columns: 110px 1.4fr 1fr 160px 28px;
   }
   .category-row.row--goal {
     grid-template-columns: 1fr 140px 90px 90px 90px 28px;
@@ -4835,16 +4835,19 @@
     }
     function fmtEvent(ev){
       var who = getName(ev.spouse) || ev.spouse || '';
-      return fmtR(ev.amountPV || 0) + ' · year ' + (ev.year || '?') + ' · ' + who;
+      var label = (ev.label || '').toString().trim();
+      var prefix = label ? label + ' · ' : '';
+      return prefix + fmtR(ev.amountPV || 0) + ' · year ' + (ev.year || '?') + ' · ' + who;
     }
     function fmtGoal(g){
       var label = (g.label || '').toString().trim() || 'Goal';
       return label + ' · ' + fmtR(g.amountPV || 0) + ' every ' + (g.everyNYears || '?') + ' yr · age ' + (g.startAge || '?') + '–' + (g.endAge || '?');
     }
-    // Match items by stable identity within each category. Capital events
-    // have no label, so they key on (spouse|year). Incomes key on
-    // (spouse|label|startAge); goals key on (label|startAge). Duplicates
-    // within a list get a #n suffix so they remain distinguishable.
+    // Match items by stable identity within each category. Events key on
+    // (spouse|year|label) so two same-year events on the same spouse stay
+    // distinguishable. Incomes key on (spouse|label|startAge); goals key on
+    // (label|startAge). Duplicates within a list get a #n suffix so they
+    // remain distinguishable.
     function buildIndex(list, identityFn){
       var seen = {}, out = {};
       (list || []).forEach(function(it){
@@ -4874,7 +4877,9 @@
       return out;
     }
     function incomeId(it){ return (it.spouse || '') + '|' + (it.label || '').toString().trim().toLowerCase() + '|' + (it.startAge || 0); }
-    function eventId(ev){ return (ev.spouse || '') + '|' + (ev.year || 0); }
+    function eventId(ev){
+      return (ev.spouse || '') + '|' + (ev.year || 0) + '|' + (ev.label || '').toString().trim().toLowerCase();
+    }
     function goalId(g){ return (g.label || '').toString().trim().toLowerCase() + '|' + (g.startAge || 0); }
     diffCollection(base.incomes, cur.incomes, incomeId, fmtIncome, 'Other income').forEach(function(c){ changes.push(c); });
     diffCollection(base.events, cur.events, eventId, fmtEvent, 'Capital event').forEach(function(c){ changes.push(c); });
@@ -5144,7 +5149,12 @@
     return eventsStore.filter(function(e){
       return e && e.year >= 1 && e.amountPV > 0 && (e.spouse === 'A' || e.spouse === 'B');
     }).map(function(e){
-      return { year: Math.round(e.year), amountPV: Math.round(e.amountPV), spouse: e.spouse };
+      return {
+        year: Math.round(e.year),
+        amountPV: Math.round(e.amountPV),
+        spouse: e.spouse,
+        label: (e.label || '').toString().trim()
+      };
     });
   }
 
@@ -5168,7 +5178,12 @@
     eventsStore.forEach(function(ev, idx){
       var amountFmt = 'R ' + Math.round(ev.amountPV || 0).toLocaleString('en-ZA').replace(/,/g, ' ');
       var name = getName(ev.spouse) || ev.spouse;
-      var summary = '<span class="num">' + amountFmt + '</span> &middot; year ' + ev.year + ' &middot; ' + name + ' disc';
+      var label = (ev.label || '').toString().trim();
+      var labelEsc = label.replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+      var summary = (label ? labelEsc + ' &middot; ' : '')
+        + '<span class="num">' + amountFmt + '</span> &middot; year ' + ev.year + ' &middot; ' + name + ' disc';
       hosts.forEach(function(host){
         if (!host) return;
         var row = document.createElement('div');
@@ -5459,7 +5474,7 @@
   }
 
   function blankEntryFor(mode){
-    if (mode === 'event') return { year: '', amountPV: '', spouse: 'A' };
+    if (mode === 'event') return { year: '', label: '', amountPV: '', spouse: 'A' };
     if (mode === 'goal') return { label: '', amountPV: '', everyNYears: '', startAge: '', endAge: '' };
     return { label: '', amountPV: '', pctTaxable: 100, spouse: 'A',
              startAge: '', duration: '', escalates: true };
@@ -5472,11 +5487,15 @@
     var commonDel = '<button type="button" class="row-delete" data-row-del="' + idx + '" title="Remove" aria-label="Remove">×</button>';
     if (mode === 'event'){
       var yearVal = (p.year === '' || p.year === undefined || p.year === null) ? '' : ' value="' + escAttr(p.year) + '"';
+      var evLabel = ' value="' + escAttr(p.label || '') + '"';
       var spA = p.spouse === 'B' ? '' : ' selected';
       var spB = p.spouse === 'B' ? ' selected' : '';
       return '<div class="category-row row--event" data-row-idx="' + idx + '">'
         + '<div class="event-col"><label>Year</label>'
           + '<div class="input-wrap"><input type="number" min="1" max="40" step="1" data-field="year" placeholder="e.g. 5"' + yearVal + '></div>'
+        + '</div>'
+        + '<div class="event-col"><label>Label</label>'
+          + '<div class="input-wrap"><input type="text" maxlength="60" data-field="label" placeholder="e.g. Property sale · Hout Bay"' + evLabel + '></div>'
         + '</div>'
         + '<div class="event-col"><label>Amount (today)</label>'
           + '<div class="input-wrap"><span class="pfx">R</span>'
@@ -5661,7 +5680,12 @@
         var amt = parseMoneyField(s.amountPV);
         if (!(year >= 1)){ paintCategoryRowError(i, 'year', 'Year ≥ 1'); ok = false; continue; }
         if (!(amt > 0)){ paintCategoryRowError(i, 'amountPV', 'Amount > 0'); ok = false; continue; }
-        clean.push({ year: year, amountPV: amt, spouse: s.spouse === 'B' ? 'B' : 'A' });
+        clean.push({
+          year: year,
+          amountPV: amt,
+          spouse: s.spouse === 'B' ? 'B' : 'A',
+          label: (s.label || '').trim()
+        });
       } else if (categoryMode === 'goal'){
         var gAmt = parseMoneyField(s.amountPV);
         var gEvery = parseInt(s.everyNYears, 10);
@@ -6277,7 +6301,19 @@
           && ageY1 >= it.startAge
           && ageY1 < (it.startAge + it.duration);
       }).map(function(it){
-        return { kind: it.label || 'Other income', monthly: (it.amountPV || 0) / 12 };
+        var monthly = (it.amountPV || 0) / 12;
+        var endAge = it.startAge + it.duration - 1;
+        return {
+          kind: it.label || 'Other income',
+          monthly: monthly,
+          name: it.label || 'Other income',
+          monthlyAmount: monthly,
+          startAge: it.startAge,
+          endAge: endAge,
+          duration: it.duration,
+          cpiLinked: !!it.escalates,
+          pctTaxable: it.pctTaxable
+        };
       });
     }
 
@@ -6301,13 +6337,33 @@
     }
 
     // Capital events: convert {year (offset), amountPV, spouse} → absolute year.
+    // age is the spouse's age at the event year (offset from their Y1 age).
     var rawEvents = (typeof readEvents === 'function') ? readEvents() : [];
     var capitalEvents = rawEvents.slice().sort(function(a, b){ return a.year - b.year; }).map(function(ev){
+      var spouseAgeY1 = (ev.spouse === 'B') ? ageB : ageA;
+      var ageAtEvent = spouseAgeY1 + (ev.year - 1);
+      var label = (ev.label || '').toString().trim();
       return {
         year: startYear + ev.year - 1,
-        label: 'Capital event',
+        label: label || 'Capital event',
         forWhom: getName(ev.spouse),
-        amount: ev.amountPV || 0
+        amount: ev.amountPV || 0,
+        age: ageAtEvent,
+        spouse: ev.spouse
+      };
+    });
+
+    // Recurring household goals (e.g. travel fund). Snapshot v2 surfaces these
+    // so the report can render a goals column. Keep the calculator's wire shape
+    // verbatim — the report-side renderer adapts.
+    var goalsRaw = (typeof readGoals === 'function') ? readGoals() : [];
+    var goals = goalsRaw.map(function(g){
+      return {
+        label: g.label || 'Goal',
+        amountPV: g.amountPV,
+        everyNYears: g.everyNYears,
+        startAge: g.startAge,
+        endAge: g.endAge
       };
     });
 
@@ -6342,6 +6398,7 @@
       cpiPct: read('cpi') / 100,
       autoTopUp: !!document.getElementById('needs-topup').checked,
       capitalEvents: capitalEvents,
+      goals: goals,
       startYear: startYear
     }));
   }

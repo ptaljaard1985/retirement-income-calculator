@@ -218,9 +218,14 @@ Every calculator must still be reviewed in print preview before shipping. Print-
 
 ## The export-report sibling
 
-`retirement_drawdown_report.html` is a separate single-file deliverable that produces the editorial client PDF. It mirrors this calculator's `:root` tokens and uses the same Fraunces / Inter Tight / JetBrains Mono families. Slide layout is fixed (12 always + 2 conditional), 1588 × 1123 px design size, A4 landscape, one slide per printed page.
+`retirement_drawdown_report.html` is a separate single-file deliverable that produces the editorial client PDF. It mirrors this calculator's `:root` tokens and uses the same Fraunces / Inter Tight / JetBrains Mono families. 1588 × 1123 px design size, A4 landscape, one slide per printed page.
 
-The slide vocabulary — eyebrow + Roman numeral, Fraunces 52–92px headlines with italic emphasis, gold-underline once per slide, navy outcome cells, paper-warm cards with hairline borders, tabular mono figures everywhere — is identical to the calculator's State 2 and 3. If you reach for a new visual primitive in either file, check the other to see whether it already exists.
+The report has **two layouts** that switch automatically on whether a baseline is locked at export time:
+
+- **Single-run** (no baseline locked) — the original 12-slide editorial flow: Cover → Answer → Household → Assumptions → Levers → Projection → Capital → Tax → [Events] → [Compare-v1] → Year-table → Methodology → Compliance → Next steps. Used since Session 16.
+- **Dual-run** (baseline locked) — the **v2 8-slide layout** lifted from `report v2 design_files/Drawdown Report Dual.html`: Cover → Baseline-income → Baseline-ge → Scenario-income → Scenario-ge → Assumptions-compare → Levers → Compliance. Each run carries a 4 px coloured strip (paper-3 baseline, navy scenario) under the slide-top and a chip in the meta (`I. Baseline · locked` / `II. Scenario · explored today`). The Scenario GE column visibly diffs against the locked baseline — added rows tinted gold (`.ev-row.added`), changed goals get an `↑ uplifted` / `↑ added` / `↑ updated` italic gold badge, the implicit Lifestyle row turns coral when monthlyNeed shifts.
+
+The slide vocabulary — eyebrow + Roman numeral, Fraunces 52–92px headlines with italic emphasis, gold-underline once per slide, navy outcome cells, paper-warm cards with hairline borders, tabular mono figures everywhere — is identical to the calculator's Planning and Scenarios tabs. If you reach for a new visual primitive in either file, check the other to see whether it already exists.
 
 See `docs/ARCHITECTURE.md` for the snapshot contract that flows between the two files, the binder pipeline, and the SVG chart renderers.
 
