@@ -3239,6 +3239,7 @@
   // the legacy data-state / .is-hidden machinery is retired.
   var activeTab = 'info';
   var baseline = null;     // frozen snapshot for Scenarios; populated on Explore Scenario
+  var baselineInputs = null;  // frozen plan inputs at lock time, paired with `baseline`
   function setTab(next){
     if (next === activeTab) return;
     if (typeof closeAddModal === 'function') closeAddModal();
@@ -6152,8 +6153,12 @@
     });
   }
   // Explore Scenario → enter Scenarios. Re-lock refreshes the baseline snapshot.
+  // Capture both the projection result AND the plan inputs so the export
+  // path can reconstruct a complete baseline run even after the user edits
+  // the live store on Scenarios.
   function snapshotBaseline(){
     try { baseline = JSON.parse(JSON.stringify(project())); } catch(e){ baseline = null; }
+    try { baselineInputs = captureCurrentPlanInputs(); } catch(e){ baselineInputs = null; }
   }
   var btnLock = document.getElementById('btn-lock-baseline');
   if (btnLock) btnLock.addEventListener('click', function(){
@@ -6168,6 +6173,7 @@
   var btnClearBase = document.getElementById('btn-clear-baseline');
   if (btnClearBase) btnClearBase.addEventListener('click', function(){
     baseline = null;
+    baselineInputs = null;
     setTab('planning');
   });
   var btnEditPlanCompare = document.getElementById('btn-edit-plan-compare');
@@ -6223,14 +6229,47 @@
   // does NO math — every figure on every slide is computed here from
   // project()'s output and written verbatim. If a number looks wrong in the
   // PDF, fix it in the calculator's project(), not in the report binder.
-  function buildReportSnapshot(){
-    var p = project();
-    var single = !!p.single;
+  //
+  // Schema v2 adds a top-level `baseline: {plan, projection}` block when a
+  // baseline is locked, so the editorial report can render two full runs
+  // (baseline + scenario) end-to-end. The baseline payload is built from
+  // inputs captured at lock time (`baselineInputs`) paired with the frozen
+  // `baseline` projection result, so it stays correct even after the user
+  // mutates the live store on the Scenarios tab.
+
+  // Derive horizon / depletion / cap / exhaust ages from any projection.
+  // Pure of DOM — takes a project() result, returns milestones.
+  function deriveMilestones(pp){
+    var rs = pp.nominal && pp.nominal.total ? pp.nominal.total : [];
+    var ts = pp.nominal && pp.nominal.target ? pp.nominal.target : [];
+    var laBal = pp.table || {};
+    var sustainableTo = null, depletesAt = null, laCapHitAt = null, discExhaustsAt = null;
+    var n = rs.length;
+    for (var i = 0; i < n; i++){
+      var age = pp.startAge + i;
+      var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;
+      if (!shortfall) sustainableTo = age;
+      var laTotal = (laBal.laA_bal && laBal.laA_bal[i] || 0) + (laBal.laB_bal && laBal.laB_bal[i] || 0);
+      var dTotal = (laBal.discA_bal && laBal.discA_bal[i] || 0) + (laBal.discB_bal && laBal.discB_bal[i] || 0);
+      if (depletesAt === null && (laTotal + dTotal) <= 1) depletesAt = age;
+      if (discExhaustsAt === null && dTotal <= 1) discExhaustsAt = age;
+      if (laCapHitAt === null && ((laBal.clampA && laBal.clampA[i] === 'cap') || (laBal.clampB && laBal.clampB[i] === 'cap'))) laCapHitAt = age;
+    }
+    return { sustainableTo: sustainableTo, depletesAt: depletesAt, laCapHitAt: laCapHitAt, discExhaustsAt: discExhaustsAt };
+  }
+
+  // Snapshot the live plan inputs into a self-contained, deep-cloned object
+  // matching the report snapshot's `plan` block (plus an internal `startYear`
+  // used by the projection-payload builder; stripped before emitting). Called
+  // both at lock time (to freeze a baseline copy) and at export time (for
+  // the live scenario). Deep-clones list-shaped fields so later mutations on
+  // the live store don't bleed into a frozen baseline.
+  function captureCurrentPlanInputs(){
+    var single = !!(typeof isSingleClient === 'function' ? isSingleClient() : false);
     var startYear = (new Date()).getFullYear();
     var ageA = parseInt(document.getElementById('hp-age-A').value, 10) || 65;
     var ageB = parseInt(document.getElementById('hp-age-B').value, 10) || 65;
 
-    // Per-spouse "other income" active in year 1, in today's-money monthly terms.
     function otherStreamsForSpouse(suffix, ageY1){
       var store = (typeof readIncomes === 'function') ? readIncomes() : [];
       return store.filter(function(it){
@@ -6242,16 +6281,14 @@
       });
     }
 
-    var spouses = [
-      {
-        name: getName('A'),
-        age: ageA,
-        laBalance: parseCurrency('hp-la-A'),
-        discretionary: parseCurrency('hp-disc-A'),
-        discBaseCost: parseCurrency('hp-base-A'),
-        otherIncome: otherStreamsForSpouse('A', ageA)
-      }
-    ];
+    var spouses = [{
+      name: getName('A'),
+      age: ageA,
+      laBalance: parseCurrency('hp-la-A'),
+      discretionary: parseCurrency('hp-disc-A'),
+      discBaseCost: parseCurrency('hp-base-A'),
+      otherIncome: otherStreamsForSpouse('A', ageA)
+    }];
     if (!single){
       spouses.push({
         name: getName('B'),
@@ -6263,8 +6300,7 @@
       });
     }
 
-    // Capital events: convert {year (years from now), amountPV, spouse} →
-    // {year (absolute), label, forWhom, amount (today's money)}.
+    // Capital events: convert {year (offset), amountPV, spouse} → absolute year.
     var rawEvents = (typeof readEvents === 'function') ? readEvents() : [];
     var capitalEvents = rawEvents.slice().sort(function(a, b){ return a.year - b.year; }).map(function(ev){
       return {
@@ -6275,29 +6311,55 @@
       };
     });
 
-    // Derive horizon / depletion / cap / exhaust ages from any projection.
-    function deriveMilestones(pp){
-      var rs = pp.nominal && pp.nominal.total ? pp.nominal.total : [];
-      var ts = pp.nominal && pp.nominal.target ? pp.nominal.target : [];
-      var laBal = pp.table || {};
-      var sustainableTo = null, depletesAt = null, laCapHitAt = null, discExhaustsAt = null;
-      var n = rs.length;
-      for (var i = 0; i < n; i++){
-        var age = pp.startAge + i;
-        var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;
-        if (!shortfall) sustainableTo = age;
-        var laTotal = (laBal.laA_bal && laBal.laA_bal[i] || 0) + (laBal.laB_bal && laBal.laB_bal[i] || 0);
-        var dTotal = (laBal.discA_bal && laBal.discA_bal[i] || 0) + (laBal.discB_bal && laBal.discB_bal[i] || 0);
-        if (depletesAt === null && (laTotal + dTotal) <= 1) depletesAt = age;
-        if (discExhaustsAt === null && dTotal <= 1) discExhaustsAt = age;
-        if (laCapHitAt === null && ((laBal.clampA && laBal.clampA[i] === 'cap') || (laBal.clampB && laBal.clampB[i] === 'cap'))) laCapHitAt = age;
-      }
-      return { sustainableTo: sustainableTo, depletesAt: depletesAt, laCapHitAt: laCapHitAt, discExhaustsAt: discExhaustsAt };
+    var raw = (document.getElementById('client-date') || {}).value;
+    var preparedOn;
+    if (raw && raw.trim()){
+      preparedOn = raw.trim();
+    } else {
+      var d = new Date();
+      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      preparedOn = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
     }
+
+    var familySpan = document.getElementById('hl-family');
+    var familyName = (familySpan && (familySpan.textContent || '').trim()) || (document.getElementById('client-name') || {}).value || 'Client';
+    var preparedForFallback = single ? getName('A') : (getName('A') + ' & ' + getName('B'));
+    var preparedFor = (document.getElementById('client-name') || {}).value || preparedForFallback;
+    var adviser = (document.getElementById('adviser-name') || {}).value || 'Simple Wealth (Pty) Ltd';
+
+    // Deep-clone the whole bundle so list-shaped fields are independent of
+    // the live store.
+    return JSON.parse(JSON.stringify({
+      familyName: familyName,
+      preparedFor: preparedFor,
+      preparedOn: preparedOn,
+      adviser: adviser,
+      single: single,
+      spouses: spouses,
+      monthlyNeed: parseCurrency('needs-monthly'),
+      annualLumpSums: parseCurrency('needs-lump'),
+      returnPct: read('return') / 100,
+      cpiPct: read('cpi') / 100,
+      autoTopUp: !!document.getElementById('needs-topup').checked,
+      capitalEvents: capitalEvents,
+      startYear: startYear
+    }));
+  }
+
+  // Build the report snapshot's `projection` block from a project() result
+  // and its matching plan inputs. Pure of DOM — depends only on its arguments
+  // plus the module-level `deriveMilestones` helper. Used twice when a
+  // baseline is locked: once for the live scenario, once for the frozen
+  // baseline.
+  function buildProjectionPayload(p, planInputs){
+    var single = !!planInputs.single;
+    var startYear = planInputs.startYear || (new Date()).getFullYear();
+    var spouseA = (planInputs.spouses && planInputs.spouses[0]) || { name: 'Spouse A', age: p.startAge };
+    var spouseB = single ? null : ((planInputs.spouses && planInputs.spouses[1]) || { name: 'Spouse B', age: p.startAge });
+    var capitalEvents = planInputs.capitalEvents || [];
 
     var ms = deriveMilestones(p);
 
-    // Year-by-year rows in the report's expected shape.
     var t = p.table;
     var rows = [];
     for (var i = 0; i < p.years; i++){
@@ -6325,95 +6387,77 @@
       });
     }
 
-    // Per-spouse Y1 tax — use the calc's already-computed tax objects.
-    function taxRow(t, name, age, suffix){
+    function taxRow(tx, name, age, suffix){
       return {
         name: name, age: age,
-        laDraw: t.laDraw || 0,
-        otherIncome: t.otherIncome || 0,
+        laDraw: tx.laDraw || 0,
+        otherIncome: tx.otherIncome || 0,
         discDraw: (suffix === 'A' ? (p.table.discA_draw[0] || 0) : (p.table.discB_draw[0] || 0)),
-        gain: t.gain || 0,
-        inclusion: t.inclusion || 0,
-        taxable: t.taxable || 0,
-        grossIncome: t.grossIncome || 0,
-        tax: t.tax || 0,
-        effRate: t.effRate || 0
+        gain: tx.gain || 0,
+        inclusion: tx.inclusion || 0,
+        taxable: tx.taxable || 0,
+        grossIncome: tx.grossIncome || 0,
+        tax: tx.tax || 0,
+        effRate: tx.effRate || 0
       };
     }
-    var taxByPerson = [taxRow(p.taxA, getName('A'), ageA, 'A')];
-    if (!single) taxByPerson.push(taxRow(p.taxB, getName('B'), ageB, 'B'));
+    var taxByPerson = [taxRow(p.taxA, spouseA.name, spouseA.age, 'A')];
+    if (!single) taxByPerson.push(taxRow(p.taxB, spouseB.name, spouseB.age, 'B'));
     var hhGross = (p.taxA.grossIncome || 0) + (single ? 0 : (p.taxB.grossIncome || 0));
     var hhTax = (p.taxA.tax || 0) + (single ? 0 : (p.taxB.tax || 0));
 
-    // Baseline (if locked) — derive its own milestones; only carry the
-    // delta-relevant fields the report needs.
-    var baselinePayload = null;
-    if (baseline){
-      var bms = deriveMilestones(baseline);
-      baselinePayload = {
-        sustainableTo: bms.sustainableTo,
-        monthlyNeed: (baseline.targetPVAnnual ? baseline.targetPVAnnual / 12 : null),
-        returnPct: baseline.rNom,
-        cpiPct: baseline.cpi,
-        note: 'Locked baseline · ' + (bms.sustainableTo != null ? 'age ' + bms.sustainableTo : '—')
+    return {
+      startAge: p.startAge,
+      horizonAge: p.horizonAge,
+      years: p.years,
+      rNom: p.rNom,
+      cpi: p.cpi,
+      rows: rows,
+      sustainableTo: ms.sustainableTo,
+      depletesAt: ms.depletesAt,
+      laCapHitAt: ms.laCapHitAt,
+      discExhaustsAt: ms.discExhaustsAt,
+      year1: rows[0],
+      taxA: p.taxA,
+      // Omit taxB entirely in single mode so the report's fallback tax-card
+      // builder doesn't materialise a phantom R0 Spouse B row.
+      taxB: single ? null : p.taxB,
+      taxByPerson: taxByPerson,
+      hhGross: hhGross,
+      hhTax: hhTax,
+      hhNet: hhGross - hhTax,
+      hhEff: hhGross > 0 ? hhTax / hhGross : 0
+    };
+  }
+
+  function buildReportSnapshot(){
+    var planInputs = captureCurrentPlanInputs();
+    var p = project();
+    var projectionPayload = buildProjectionPayload(p, planInputs);
+
+    // Strip the internal startYear field before emitting the public `plan` block.
+    var plan = Object.assign({}, planInputs);
+    delete plan.startYear;
+
+    var snapshot = {
+      schemaVersion: 2,
+      plan: plan,
+      projection: projectionPayload
+    };
+
+    // When a baseline is locked, also emit a baseline run so the report can
+    // render baseline + scenario back-to-back. Baseline inputs were frozen
+    // at lock time; pair them with the frozen project() result.
+    if (baseline && baselineInputs){
+      var bPlan = Object.assign({}, baselineInputs);
+      delete bPlan.startYear;
+      snapshot.baseline = {
+        plan: bPlan,
+        projection: buildProjectionPayload(baseline, baselineInputs)
       };
     }
 
-    // Format meeting date as the cover's "Prepared on" line.
-    function preparedOnLabel(){
-      var raw = (document.getElementById('client-date') || {}).value;
-      if (raw && raw.trim()) return raw.trim();
-      var d = new Date();
-      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-    }
-
-    var familySpan = document.getElementById('hl-family');
-    var familyName = (familySpan && (familySpan.textContent || '').trim()) || (document.getElementById('client-name') || {}).value || 'Client';
-    var preparedForFallback = single ? getName('A') : (getName('A') + ' & ' + getName('B'));
-    var preparedFor = (document.getElementById('client-name') || {}).value || preparedForFallback;
-    var adviser = (document.getElementById('adviser-name') || {}).value || 'Simple Wealth (Pty) Ltd';
-
-    return {
-      schemaVersion: 1,
-      plan: {
-        familyName: familyName,
-        preparedFor: preparedFor,
-        preparedOn: preparedOnLabel(),
-        adviser: adviser,
-        single: single,
-        spouses: spouses,
-        monthlyNeed: parseCurrency('needs-monthly'),
-        annualLumpSums: parseCurrency('needs-lump'),
-        returnPct: read('return') / 100,
-        cpiPct: read('cpi') / 100,
-        autoTopUp: !!document.getElementById('needs-topup').checked,
-        capitalEvents: capitalEvents,
-        baseline: baselinePayload
-      },
-      projection: {
-        startAge: p.startAge,
-        horizonAge: p.horizonAge,
-        years: p.years,
-        rNom: p.rNom,
-        cpi: p.cpi,
-        rows: rows,
-        sustainableTo: ms.sustainableTo,
-        depletesAt: ms.depletesAt,
-        laCapHitAt: ms.laCapHitAt,
-        discExhaustsAt: ms.discExhaustsAt,
-        year1: rows[0],
-        taxA: p.taxA,
-        // Omit taxB entirely in single mode so the report's fallback tax-card
-        // builder doesn't materialise a phantom R0 Spouse B row.
-        taxB: single ? null : p.taxB,
-        taxByPerson: taxByPerson,
-        hhGross: hhGross,
-        hhTax: hhTax,
-        hhNet: hhGross - hhTax,
-        hhEff: hhGross > 0 ? hhTax / hhGross : 0
-      }
-    };
+    return snapshot;
   }
 
   var btnExport = document.getElementById('btn-export-report');
@@ -6478,9 +6522,10 @@
       var target = this.getAttribute('data-tab-target');
       if (!target) return;
       // Clicking Scenarios with no baseline auto-snapshots the current Planning
-      // projection so the two-up always has something to render against.
+      // projection so the two-up always has something to render against. Use
+      // snapshotBaseline() so `baselineInputs` stays paired with `baseline`.
       if (target === 'scenarios' && !baseline){
-        try { baseline = JSON.parse(JSON.stringify(project())); } catch(_) { baseline = null; }
+        snapshotBaseline();
       }
       setTab(target);
     });

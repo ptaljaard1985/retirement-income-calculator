@@ -107,6 +107,59 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 19 — 2026-04-27 (claude/scenario-planning-feature-hrU5T)
+
+**Built / changed** — the editorial client report now contains BOTH the locked baseline AND the explored scenario when a baseline is locked at export time. Previously the report showed only the scenario plus a small Compare delta-chip; now adviser hands the client a single PDF that walks the conversation end-to-end. Acceptance is documented out-of-band by email follow-up — no in-app accept/reject. Engine math untouched; tests still 108/108 Python + 19/19 JS.
+
+1. **Snapshot schema bumped to v2** (`retirement_drawdown.html`). New top-level `baseline: {plan, projection}` block when a baseline is locked; legacy v1 `plan.baseline` metadata block dropped from new emissions. Old localStorage v1 snapshots still render in the report via a `schemaVersion` fallback path.
+
+2. **Calculator refactor** (`retirement_drawdown.html` ~lines 6230–6480). `buildReportSnapshot()` was a 200-line inline mass; split into three peer helpers at the IIFE scope:
+   - `deriveMilestones(pp)` — pure of DOM, takes a `project()` result.
+   - `captureCurrentPlanInputs()` — reads the live DOM/store and returns a deep-cloned, self-contained `plan`-shape object (plus an internal `startYear` that gets stripped before emit). Called both at lock time AND export time.
+   - `buildProjectionPayload(p, planInputs)` — pure of DOM, takes a frozen projection result + matching inputs, returns the existing `projection` shape.
+   - Top-level `buildReportSnapshot()` is now a 25-line orchestrator. Same byte-output for the scenario half; adds the baseline half conditionally.
+
+3. **Lock-time freeze** (`retirement_drawdown.html` line 6155). `snapshotBaseline()` now captures `baselineInputs = captureCurrentPlanInputs()` alongside the existing `baseline = JSON.parse(JSON.stringify(project()))`. The deep-clone discipline means later mutations on the Scenarios tab don't bleed into the frozen baseline. Auto-snapshot path on Scenarios-tab click + clear-baseline + re-lock all updated to keep the two globals paired. New module-level `var baselineInputs = null;` (line 3242).
+
+4. **Two new editorial divider slides** (`retirement_drawdown_report.html`). `divider-baseline` and `divider-scenario`, cover-style layout with `data-conditional="dualrun"` and `style="display:none"` so they only appear in dual-run mode. Each carries a one-sentence subtitle framing what the run is. The baseline divider explicitly mentions the email-follow-up acceptance pattern. Print stylesheet inherits `.slide` page-break automatically — no new CSS needed.
+
+5. **Report IIFE rewrite** (`retirement_drawdown_report.html` ~lines 1855–2700). Was a flat top-to-bottom binder with global `setField` calls; restructured into:
+   - **Schema detection** → `hasDualRun = schema >= 2 && snap.baseline && snap.baseline.plan && snap.baseline.projection`.
+   - **DOM helpers**: `setField(name, value)` (shared), `setRunField(suffix, name, value)` (per-run), `runEl(suffix, id)` (scoped lookup), `suffixSlide(node, suffix)` (recursive walker).
+   - **`SHARED_FIELDS`** set: field names that appear inside doubled slides but represent shared values (`familyName`, `familyNamePoss`, `preparedOn`, `pageNum`, `pageTotal`). The walker exempts these so a single `setField` call paints them across baseline-clone, scenario-original, and static slides simultaneously.
+   - **`setupDualRun()`**: clones the seven doubled slides (Answer, Household, Projection, Capital, Tax, Events, Year-table) for the baseline run, suffixes their IDs/data-fields with `-baseline`, marks originals as scenario with `-scenario`, builds a fragment in the desired order (Cover → divider-baseline → baseline run → Compare → divider-scenario → scenario run), inserts after Cover. Static slides (Assumptions, Levers, Methodology, Compliance, Next) auto-end-up after the fragment.
+   - **`setupSingleRun()`**: drops divider templates, drops Events if no events, drops Compare if no v1 baseline metadata. Today's behaviour preserved byte-for-byte.
+   - **`renderRun(plan, proj, suffix)`**: encapsulates the per-run rendering — Answer fields, Household cards, Tax cards, Projection foot, Events ledger, Year-table, three charts. Pure of side-effects beyond writing into its scoped DOM. Called once for single-run, twice for dual-run.
+   - **`renderCompare()`**: v2 path reads from `snap.baseline.plan` + `snap.plan` directly and constructs proper baseline-vs-scenario mini-charts (each from its own projection rows). v1 path falls through to the legacy `plan.baseline` metadata binder.
+   - **`renumberSlides()`**: runs once after all DOM rearrangement; walks `.slide` in document order, writes pageNum + Roman numerals + page total. Roman array extended to XXIV (24) since dual-run mode produces up to 22 slides.
+   - **Per-run events conditional drop**: a baseline with 2 events + a scenario with 0 events shows the baseline events slide and not the scenario one. Evaluated independently per run.
+
+6. **Compare slide stays as the bridge** (`retirement_drawdown_report.html` ~line 1496). Same DOM, rebound to read either v2's two-projection structure or v1's metadata. In dual-run it sits between the two runs as the "what changed" recap; today's adviser-facing positioning works.
+
+7. **Sensible-defaults piece** — confirmed with user that no code change needed. Existing input defaults (Return 6.5%, CPI 3%, etc.) already serve as the meeting-time "sensible assumptions" for inputs not set in stone.
+
+**Architectural decisions**
+- **Capture inputs at lock time, not at export time.** Considered making `buildReportSnapshot` always read live DOM for both runs and storing only the projection result on the baseline global. Rejected: the live store can mutate between lock and export (Pierre edits Other-income rows on Scenarios), which would corrupt the "baseline" half. Freezing `baselineInputs` at lock time + deep-cloning list-shaped fields is the only correct contract.
+- **Schema bump to v2 over additive fields on v1.** Considered keeping v1 and adding optional `baselineRuns` etc. Rejected: the report's render strategy diverges between single-run and dual-run (DOM cloning, slide reorder, Compare slide rebinding). A clean schema flag at the top of the snapshot makes the branch obvious; the `schemaVersion >= 2` check costs one line and the v1 fallback path is preserved in `renderCompare` for any old localStorage out there.
+- **Clone-at-runtime over duplicate-DOM-on-disk.** Considered hardcoding two sets of HTML (one for baseline, one for scenario). Rejected: doubles the file size for the no-baseline case, and the slides drift apart over time as one or the other gets edited. Cloning at runtime keeps a single source of truth in HTML; the walker is ~12 lines.
+- **Suffixing the originals as `-scenario` rather than the clones.** Originals stay in document order; clones get attached after the baseline-divider. The originals' `data-field` and `id` attrs get rewritten in-place to `-scenario`. Risk: if any code OUTSIDE my refactor still does `getElementById('chart-answer')` it'll fail. Mitigated by rewriting all such call sites into `runEl(suffix, ...)` calls. Verified by smoke test: when no baseline, runEl('', 'household-grid') resolves to the unsuffixed id; when dual-run, the originals are now `household-grid-scenario` and the runEl call routes correctly.
+- **`SHARED_FIELDS` as an exemption list rather than a per-call decision.** The walker has one rule: if `data-field` is in SHARED_FIELDS, leave it alone; otherwise suffix it. Nine lines of code. Alternative (pass a `shared: true` flag at every setField call site) would have peppered the renderer with boilerplate. The set has 5 entries; if a new shared field is added later, it's a one-line update.
+- **Compare slide as bridge, not delete.** First instinct was to drop the Compare slide entirely once both runs render in full (it'd be redundant). Rejected after consideration: with full runs spanning ~7 slides each, the Compare slide gives Pierre a one-page "what changed in 4 numbers" recap when the conversation gets long. Kept. v2 binding rebuilds it from the two projections directly so the data stays correct as Pierre's runs evolve.
+- **Engine untouched.** `project()`, `solveTopUp`, `stepPerson`, tax helpers all unchanged. The only engine-shape addition was no addition — both `baseline` (the global) and the new `baselineInputs` (the global) are populated from the SAME `project()` calls and SAME DOM reads as before, just frozen earlier. 108/108 + 19/19 pass.
+
+**Smoke tests**
+Three snapshot shapes verified end-to-end via JSDOM-driven IIFE execution:
+- v1 legacy (with `plan.baseline` metadata): renders 14 slides, no clones, Compare slide via legacy binder. Today's exact behaviour.
+- v2 no baseline: renders 13 slides (Compare dropped), no clones, no dividers. Same as today minus Compare.
+- v2 dual-run: renders 22 slides in the order Cover → divider-baseline → 6/7 baseline-run slides → Compare → divider-scenario → 7 scenario-run slides → 5 static slides. Per-run events conditional drop verified (baseline with 0 events drops events-baseline; scenario with 2 events keeps events). Roman numerals renumber correctly.
+
+**Follow-ups**
+- Browser walkthrough at the 1366×768 target: open `retirement_drawdown.html` fresh, set up a couple, confirm Export Report on Comparison Summary still produces today's 14-slide PDF (no baseline locked). Then on Planning click Explore Scenario, edit a slider on Scenarios, edit a capital event, click Export Report; confirm the new dual-run PDF renders in the order described above and prints cleanly to A4 landscape.
+- Baseline-divider subtitle copy mentions "by email after the meeting" — confirm with Pierre this matches his actual workflow phrasing.
+- Single-client toggle between lock and export is unsupported (rendering uses each run's frozen `single` flag). If Pierre flips couple → single in Scenarios, the baseline run still renders couple-mode. Edge case; not blocking. Document in `TECH_DEBT.md` if it becomes an issue.
+- Assumptions slide shows scenario values for `returnPct` / `cpiPct` / `autoTopUp` only. If a scenario tweaks return/CPI, the baseline values aren't shown on this slide (Compare still shows them). Acceptable per user agreement; revisit if the scenarios-tweak-return pattern becomes common.
+- `docs/ARCHITECTURE.md` references `buildReportSnapshot`'s old monolithic shape; update to reflect the three-helper split.
+
 ### Session 18 — 2026-04-25 (chore/misc-fixes-2)
 
 **Built / changed** on branch `chore/misc-fixes-2` — eight UI / interaction polish pieces. Engine untouched; tests still 108/108 Python + 19/19 JS.
