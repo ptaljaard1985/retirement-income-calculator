@@ -107,6 +107,27 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 23 — 2026-04-27 (sustainableTo fix · assume-strip removal · flush bars)
+
+**Built / changed** — three small follow-ups after Pierre's screenshot review of the Session 22 report. Engine math untouched: **108/108 Python + 19/19 JS** still pass.
+
+1. **`sustainableTo` was reading the wrong engine series.** Same naming-trap bug as Session 22 but on the calculator side: `deriveMilestones()` (`retirement_drawdown.html:6285`) compared `pp.nominal.total[i]` against `pp.nominal.target[i]` to detect shortfall. `pp.nominal.total` is the engine's CAPITAL series (line 3812 pushes `capAtStart`, the start-of-year LA + Disc balance), not gross income. With capital ≈ R 10m and target ≈ R 700k the shortfall test almost never tripped, so `sustainableTo` kept advancing all the way to ~age 98 even when the chart visibly showed bars dropping below the target line at the LA ceiling (age 89). Fix: read `pp.nominal.draw[i]` (the actual gross-income series — `laDraw + discDraw + otherIncome` per year). After fix, `sustainableTo` is the last age before income < target — matching what the chart shows. Headlines on the run-income slide ("the lifestyle holds until age N") now read correctly.
+
+2. **Removed the `.assume-strip` below the run-income chart.** Six-cell summary row (Monthly need · Return·CPI · Other income · Capital events · Auto top-up · Sustainable to) sat directly below each run-income chart, duplicating values already carried by the headline ("At R 50 000/mo... lifestyle holds until age 88") and the chart annotations (disc-exhausts / LA-ceiling verticals). Pierre asked for it gone. Removed the HTML block, the `assume-*` `setRunField` calls in `renderRunV2`, and the `.assume-strip` / `.assume-cell` / `.assume-label` / `.assume-value` CSS rules. Slide-body still flexes to fill the height; chart-card now sits with the headline above and clean space below.
+
+3. **Flush bars + 1px white year dividers in the report charts.** `renderIncomeChart` and `renderCapitalChart` were rendering bars at 68% slot width with the bar centered inside the slot — so adjacent years had a 32% horizontal gap. The calculator's Chart.js setup uses `categoryPercentage: 1.0, barPercentage: 1.0` (flush bars) plus a 1px white right-border per dataset to mark year boundaries. Match it: `bw = slot`, `x = pad.left + slot * i` (left-aligned, no centering offset), and after rendering all bars paint 1px white `<line>` elements at every internal slot boundary. Applies to both income (Answer / Projection / dual-run / compare-mini) and capital (single-run only).
+
+**Architectural decisions**
+- **Engine series stays misleading-named.** Same call as Session 22: renaming `p.nominal.total` to `p.nominal.capital` would touch the engine + UI + every consumer (`set('s-end-real', fmtR(p.real.total[endIdx]))` reads it correctly as capital). Surgical per-call-site fixes plus a comment in `deriveMilestones` pin the trap for future readers.
+- **White year dividers, not paper-coloured gaps.** Considered `bw = slot - 1` (1px gap, paper background showing through) instead of overlay lines. Rejected: paper colour would muddy the visual against the warm `#faf9f5` background; the calculator uses literal white so the dividers read as crisp editorial polish. SVG `<line>` overlay is one extra loop, ~6 lines.
+
+**Smoke check**
+Manual walkthrough (dual-run, seeded defaults): headline reads "lifestyle holds until age 88" matching the chart's first-shortfall age 89; assume-strip gone; bars touch flush with thin white dividers. Print preview at A4 landscape clean.
+
+**Follow-ups**
+- Pierre to confirm post-depletion target-line visibility in the shortfall wash zone — flagged in conversation as a possible follow-up but no specific issue spotted yet.
+- Capital chart still nominal in dual-run report — tracked in `TECH_DEBT.md` since Session 21.
+
 ### Session 22 — 2026-04-27 (real y-axis fix · cold-init render · GE single-column redesign)
 
 **Built / changed** — three follow-ups after the Session 21 PR landed and Pierre opened the report against the seeded defaults. The first two were bugs masquerading as the "y-axis still too high" complaint; the third is a layout redesign Pierre asked for once the chart was actually rendering correctly. Engine math untouched: **108/108 Python + 19/19 JS** unaffected.
