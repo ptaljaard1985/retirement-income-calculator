@@ -6442,7 +6442,11 @@
       var laDraw = (t.laA_draw[i] || 0) + (t.laB_draw[i] || 0);
       var discDraw = (t.discA_draw[i] || 0) + (t.discB_draw[i] || 0);
       var otherInc = (t.otherA[i] || 0) + (t.otherB[i] || 0);
-      var totalIncome = (p.nominal.total[i] || 0);
+      // p.nominal.total[i] is the engine's TOTAL CAPITAL series (start-of-year
+      // LA + Disc balance) — its name is misleading. Compute totalIncome
+      // directly from the three income components so the report's chart
+      // y-axis scales to expense-shape, not capital-shape.
+      var totalIncome = laDraw + discDraw + otherInc;
       var laBalance = (t.laA_bal[i] || 0) + (t.laB_bal[i] || 0);
       var discBalance = (t.discA_bal[i] || 0) + (t.discB_bal[i] || 0);
       var requiredReal = p.targetPVAnnual;
@@ -6636,6 +6640,14 @@
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) {}
   try { window.scrollTo(0, 0); } catch (_) {}
   window.addEventListener('load', function(){ try { window.scrollTo(0, 0); } catch (_) {} });
+
+  // Paint the store-backed lists once at init. setTab() re-renders them on
+  // every tab switch, but cold-load before any tab click also needs them
+  // (the seeded eventsStore / goalsStore / incomeStore defaults would
+  // otherwise live in memory but never reach the DOM).
+  renderEvents();
+  renderIncomes();
+  renderGoals();
 
   refresh();
 })();
