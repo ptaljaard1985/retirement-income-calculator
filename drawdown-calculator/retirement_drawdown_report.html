@@ -1254,27 +1254,27 @@ html, body {
   text-transform: none;
 }
 
-.ge-grid {
-  display: grid;
-  grid-template-columns: 1.05fr 1.25fr 1.25fr;
-  gap: 0;
+/* Single-column GE stack — replaces the 3-col .ge-grid layout. Sections
+   stack top-to-bottom, each with its own roman-numeral heading. */
+.ge-stack {
+  display: flex;
+  flex-direction: column;
   margin-top: 18px;
   border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
 }
-.ge-col {
-  padding: 22px 28px 26px;
-  border-left: 1px solid var(--hairline);
-  display: flex; flex-direction: column; gap: 18px;
+.ge-section {
+  padding: 22px 0 26px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 16px;
   min-width: 0;
 }
-.ge-col:first-child { border-left: none; }
-.ge-col-head {
-  display: flex; align-items: baseline; gap: 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--hairline);
+.ge-section:last-child { border-bottom: none; }
+.ge-sec-head {
+  display: flex; align-items: baseline; gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--hairline);
 }
-.ge-col-rn {
+.ge-sec-rn {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 300;
@@ -1282,15 +1282,15 @@ html, body {
   color: var(--gold-2);
   line-height: 0.9;
 }
-.ge-col-title {
+.ge-sec-title {
   font-family: var(--serif);
   font-weight: 400;
   font-size: 19px;
   letter-spacing: -0.2px;
   color: var(--ink);
 }
-.ge-col-title em { font-style: italic; font-weight: 300; }
-.ge-col-sub {
+.ge-sec-title em { font-style: italic; font-weight: 300; }
+.ge-sec-sub {
   font-family: var(--sans);
   font-size: 9.5px;
   font-weight: 600;
@@ -1299,9 +1299,9 @@ html, body {
   color: var(--mute);
   margin-left: auto;
 }
-.ge-col-foot {
-  margin-top: auto;
-  padding-top: 18px;
+.ge-sec-foot {
+  margin-top: 6px;
+  padding-top: 14px;
   border-top: 1px dashed var(--hairline);
   font-family: var(--serif);
   font-style: italic;
@@ -1310,9 +1310,26 @@ html, body {
   color: var(--ink-2);
   line-height: 1.5;
 }
-.ge-col-foot .num { font-family: var(--mono); font-size: 12.5px; }
-.ge-col-foot strong { color: var(--ink); font-weight: 500; }
-.ge-col-foot strong.warn { color: var(--neg); font-weight: 500; }
+.ge-sec-foot .num { font-family: var(--mono); font-size: 12.5px; }
+.ge-sec-foot strong { color: var(--ink); font-weight: 500; }
+.ge-sec-foot strong.warn { color: var(--neg); font-weight: 500; }
+
+/* Run-income / run-ge slides have an extra <div class="run-strip"> child
+   between slide-top and slide-body. Without an extra grid row, run-strip
+   lands in the 1fr row and slide-body falls into an implicit auto row at
+   the bottom — leaving a big empty band above the body content. Define
+   four explicit rows so slide-body always takes the 1fr expansion row. */
+.slide[data-slide^="run-income"],
+.slide[data-slide^="run-ge"] {
+  grid-template-rows: auto auto 1fr auto;
+}
+/* On run-ge, make slide-body a flex column so .ge-stack content aligns to
+   the top and the stack itself can absorb the remaining vertical space. */
+.slide[data-slide^="run-ge"] .slide-body {
+  display: flex;
+  flex-direction: column;
+}
+.slide[data-slide^="run-ge"] .ge-stack { flex: 1 1 auto; }
 
 .goal-row {
   display: grid;
@@ -2271,32 +2288,40 @@ html, body {
   <div class="slide-body">
     <div class="eyebrow"><span class="rn">—</span> <span data-field="runGeEyebrow">—</span></div>
     <h2 class="run-headline" data-field="runGeHeadline">—</h2>
-    <div class="ge-grid">
-      <div class="ge-col" id="ge-col-goals">
-        <div class="ge-col-head">
-          <span class="ge-col-rn">i.</span>
-          <span class="ge-col-title"><em>Goals</em> the plan must serve</span>
-          <span class="ge-col-sub" data-field="geGoalsCount">—</span>
+    <div class="ge-stack">
+      <section class="ge-section" id="ge-sec-lifestyle">
+        <div class="ge-sec-head">
+          <span class="ge-sec-rn">i.</span>
+          <span class="ge-sec-title"><em>Lifestyle expenses</em> — what the household pays itself</span>
+          <span class="ge-sec-sub" data-field="geLifestyleCount">—</span>
+        </div>
+        <div data-field="geLifestyleBody"></div>
+      </section>
+      <section class="ge-section" id="ge-sec-goals">
+        <div class="ge-sec-head">
+          <span class="ge-sec-rn">ii.</span>
+          <span class="ge-sec-title"><em>Goals</em> the plan must serve</span>
+          <span class="ge-sec-sub" data-field="geGoalsCount">—</span>
         </div>
         <div data-field="geGoalsBody"></div>
-      </div>
-      <div class="ge-col" id="ge-col-other">
-        <div class="ge-col-head">
-          <span class="ge-col-rn">ii.</span>
-          <span class="ge-col-title"><em>Other income</em> — outside the portfolio</span>
-          <span class="ge-col-sub" data-field="geOtherCount">—</span>
+      </section>
+      <section class="ge-section" id="ge-sec-other">
+        <div class="ge-sec-head">
+          <span class="ge-sec-rn">iii.</span>
+          <span class="ge-sec-title"><em>Other income</em> — outside the portfolio</span>
+          <span class="ge-sec-sub" data-field="geOtherCount">—</span>
         </div>
         <div data-field="geOtherBody"></div>
-      </div>
-      <div class="ge-col" id="ge-col-events">
-        <div class="ge-col-head">
-          <span class="ge-col-rn">iii.</span>
-          <span class="ge-col-title"><em>Capital events</em> — one-off in/outflows</span>
-          <span class="ge-col-sub" data-field="geEventsCount">—</span>
+      </section>
+      <section class="ge-section" id="ge-sec-events">
+        <div class="ge-sec-head">
+          <span class="ge-sec-rn">iv.</span>
+          <span class="ge-sec-title"><em>Capital events</em> — one-off in/outflows</span>
+          <span class="ge-sec-sub" data-field="geEventsCount">—</span>
         </div>
         <div data-field="geEventsBody"></div>
-        <div class="ge-col-foot" data-field="geEventsFoot"></div>
-      </div>
+        <div class="ge-sec-foot" data-field="geEventsFoot"></div>
+      </section>
     </div>
   </div>
   <footer class="slide-foot">
@@ -3550,48 +3575,75 @@ html, body {
   // ---- v2 GE column renderers --------------------------------------------
   // opts: { diff?: <diffByKey result>, baseline?: <plan> } — only passed
   // when rendering the scenario column in dual-run mode.
+  // Lifestyle section — two rows: monthly recurring need + annual lump-sum
+  // need. Both come from plan inputs (monthlyNeed, annualLumpSums). When
+  // baseline differs from scenario, the differing row gets the gold "↑
+  // uplifted/reduced" badge + warn-coloured amount + delta-vs-baseline note.
+  function renderLifestyleSection(plan, opts) {
+    opts = opts || {};
+    var baseline = opts.baseline || null;
+    var monthly = plan.monthlyNeed || 0;
+    var annualLump = plan.annualLumpSums || 0;
+
+    function row(name, amount, unit, defaultNote, baselineAmount, deltaUnit, deltaNounSingular) {
+      var nameInner = name;
+      var amtCls = '';
+      var note = defaultNote;
+      if (baseline && baselineAmount != null && baselineAmount !== amount) {
+        var delta = amount - baselineAmount;
+        var verb = delta > 0 ? 'uplifted' : 'reduced';
+        nameInner += ' <em class="changed-badge">↑ ' + verb + '</em>';
+        amtCls = ' warn';
+        var sign = delta > 0 ? '+ ' : '− ';
+        note = sign + 'R ' + fmtRPlain(Math.abs(delta)) + deltaUnit + ' vs. baseline · ' +
+          'this is the ' + deltaNounSingular + ' the household pulled today.';
+      }
+      return '<div class="goal-row">' +
+        '<div><span class="goal-name">' + nameInner + '</span></div>' +
+        '<div class="goal-amt' + amtCls + '">R ' + fmtRPlain(amount) + ' <em>' + unit + '</em></div>' +
+        '<div class="goal-note">' + note + '</div>' +
+      '</div>';
+    }
+
+    var html = row(
+      'Monthly lifestyle income', monthly, '/mo',
+      'Real-terms target across the household. Escalates with CPI.',
+      baseline ? baseline.monthlyNeed : null,
+      '/mo', 'lever'
+    );
+    html += row(
+      'Annual lump-sum needs', annualLump, '/yr',
+      'Once-a-year provision on top of the monthly target. Escalates with CPI.',
+      baseline ? baseline.annualLumpSums : null,
+      '/yr', 'lever'
+    );
+    return html;
+  }
+
   function renderGoalsCol(plan, opts) {
     opts = opts || {};
     var diff = opts.diff || null;
-    var baseline = opts.baseline || null;
-    var monthlyNeed = plan.monthlyNeed || 0;
-
-    // Lifestyle income row — implicit. When scenario AND baseline.monthlyNeed
-    // differs, render with "↑ uplifted" badge + warn-coloured amount + delta
-    // narrative in the note.
-    var lifestyleNameInner = 'Lifestyle income';
-    var lifestyleAmtCls = '';
-    var lifestyleNote = 'Real-terms target across the household. Escalates with CPI.';
-    if (baseline && baseline.monthlyNeed != null && baseline.monthlyNeed !== monthlyNeed) {
-      var diffMonthly = monthlyNeed - baseline.monthlyNeed;
-      var verb = diffMonthly > 0 ? 'uplifted' : 'reduced';
-      lifestyleNameInner = 'Lifestyle income <em class="changed-badge">↑ ' + verb + '</em>';
-      lifestyleAmtCls = ' warn';
-      var sign = diffMonthly > 0 ? '+ ' : '− ';
-      lifestyleNote = sign + 'R ' + fmtRPlain(Math.abs(diffMonthly)) +
-        '/mo vs. baseline · this is the lever the household pulled today.';
+    var goals = plan.goals || [];
+    if (!goals.length) {
+      return '<div class="ev-row muted">' +
+        '<div class="ev-age">—</div>' +
+        '<div class="ev-name placeholder">No additional goals on this run.</div>' +
+        '<div class="ev-amt placeholder">—</div>' +
+      '</div>';
     }
-
-    var html = '<div class="goal-row">' +
-      '<div><span class="goal-name">' + lifestyleNameInner + '</span></div>' +
-      '<div class="goal-amt' + lifestyleAmtCls + '">R ' + fmtRPlain(monthlyNeed) + ' <em>/mo</em></div>' +
-      '<div class="goal-note">' + lifestyleNote + '</div>' +
-    '</div>';
-
-    (plan.goals || []).forEach(function (g) {
+    return goals.map(function (g) {
       var unit = g.everyNYears === 1 ? '/yr' : ('every ' + g.everyNYears + ' yr');
       var badge = '';
       if (diff) {
         if (diff.isAdded(g)) badge = ' <em class="changed-badge">↑ added</em>';
         else if (diff.isChanged(g)) badge = ' <em class="changed-badge">↑ updated</em>';
       }
-      html += '<div class="goal-row">' +
+      return '<div class="goal-row">' +
         '<div><span class="goal-name">' + esc(g.label) + badge + '</span></div>' +
         '<div class="goal-amt">R ' + fmtRPlain(g.amountPV) + ' <em>' + unit + '</em></div>' +
         '<div class="goal-note">Drawn from discretionary, ages ' + g.startAge + '–' + g.endAge + '.</div>' +
       '</div>';
-    });
-    return html;
+    }).join('');
   }
 
   function renderOtherCol(streams, opts) {
@@ -3747,13 +3799,14 @@ html, body {
       });
     }
 
-    // GE slide — eyebrow + headline + 3 columns.
+    // GE slide — eyebrow + headline + 4 stacked sections (lifestyle, goals,
+    // other income, capital events).
     setRunField(suffix, 'runGeEyebrow', eyebrowGe);
     setRunField(suffix, 'runGeFootLabel', footGe);
     var goals = plan.goals || [];
     var streams = collectOtherStreams(plan);
     var events = (plan.capitalEvents || []).slice().sort(function (a, b) { return a.year - b.year; });
-    var goalCt = goals.length + 1; // +1 for implicit Lifestyle income row.
+    var goalCt = goals.length;
 
     // Build diffs only for the scenario column in dual-run. Identity keys
     // mirror the calculator's diffCollection: goals (label|startAge),
@@ -3775,22 +3828,29 @@ html, body {
         return (e.spouse || '') + '|' + (e.year || 0) + '|' + (e.label || '').toString().trim().toLowerCase();
       });
     }
-    // Lifestyle is "changed" iff scenario.monthlyNeed differs from baseline.
-    var lifestyleChanged = !!(baselinePlan && baselinePlan.monthlyNeed !== plan.monthlyNeed);
+    // Lifestyle change-count: monthlyNeed + annualLumpSums each count
+    // independently, so the section subtitle can read "2 items · 2 changed"
+    // when both move.
+    var lifestyleChangeCount = 0;
+    if (baselinePlan) {
+      if (baselinePlan.monthlyNeed !== plan.monthlyNeed) lifestyleChangeCount++;
+      if (baselinePlan.annualLumpSums !== plan.annualLumpSums) lifestyleChangeCount++;
+    }
 
     var geHeadline;
     if (which === 'baseline') {
-      geHeadline = 'The plan rests on <em>' + numWord(goalCt) + '</em> goals,<br>' +
+      geHeadline = 'Lifestyle income, <em>' + numWord(goalCt) + '</em> goal' + (goalCt === 1 ? '' : 's') + ',<br>' +
         '<span class="num">' + numWord(streams.length) + '</span> income stream' + (streams.length === 1 ? '' : 's') +
         ', and <span class="num">' + numWord(events.length) + '</span> capital event' + (events.length === 1 ? '' : 's') + '.';
     } else {
-      geHeadline = 'The same <em>' + numWord(goalCt) + '</em> goals — with <span class="num">' + numWord(streams.length) + '</span><br>' +
-        'income stream' + (streams.length === 1 ? '' : 's') + ' and <span class="num">' + numWord(events.length) + '</span> capital event' + (events.length === 1 ? '' : 's') + '.';
+      geHeadline = 'The same lifestyle and <em>' + numWord(goalCt) + '</em> goal' + (goalCt === 1 ? '' : 's') + ' — with<br>' +
+        '<span class="num">' + numWord(streams.length) + '</span> stream' + (streams.length === 1 ? '' : 's') +
+        ' and <span class="num">' + numWord(events.length) + '</span> capital event' + (events.length === 1 ? '' : 's') + '.';
     }
     setRunFieldHTML(suffix, 'runGeHeadline', geHeadline);
 
-    // Column subtitles — append "· N added" / "· N changed" tail when diff
-    // produced any. Lifestyle row counts as 1 changed when scenario uplift.
+    // Section subtitles — append "· N added" / "· N changed" tail when a
+    // diff produced any.
     function diffTail(d, extraChanged) {
       if (!d) return '';
       var added = d.addedCount;
@@ -3800,12 +3860,16 @@ html, body {
       if (changed > 0) bits.push(changed + ' changed');
       return bits.length ? ' · ' + bits.join(' · ') : '';
     }
+    setRunField(suffix, 'geLifestyleCount',
+      '2 items' + (lifestyleChangeCount > 0 ? ' · ' + lifestyleChangeCount + ' changed' : ''));
     setRunField(suffix, 'geGoalsCount',
-      goalCt + (goalCt === 1 ? ' goal' : ' goals') + diffTail(goalDiff, lifestyleChanged ? 1 : 0));
+      (goalCt === 0 ? 'none' : goalCt + (goalCt === 1 ? ' goal' : ' goals')) + diffTail(goalDiff, 0));
     setRunField(suffix, 'geOtherCount',
       (streams.length === 0 ? 'none' : streams.length + (streams.length === 1 ? ' stream' : ' streams')) + diffTail(streamDiff));
     setRunField(suffix, 'geEventsCount', eventsLabel + diffTail(eventDiff));
 
+    setRunFieldHTML(suffix, 'geLifestyleBody',
+      renderLifestyleSection(plan, { baseline: baselinePlan }));
     setRunFieldHTML(suffix, 'geGoalsBody',
       renderGoalsCol(plan, { diff: goalDiff, baseline: baselinePlan }));
     setRunFieldHTML(suffix, 'geOtherBody',
