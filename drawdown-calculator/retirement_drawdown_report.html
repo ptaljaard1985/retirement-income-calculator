@@ -1768,6 +1768,63 @@ html, body {
   </div>
 </section>
 
+<!-- =========================================================================
+     SECTION DIVIDERS (dual-run only)
+     Hidden by default; the loader IIFE clears the inline display:none and
+     repositions them inside the deck when a baseline snapshot is present.
+     ========================================================================= -->
+<section class="slide cover divider" data-slide="divider-baseline" data-conditional="dualrun" style="display:none">
+  <div class="slide-body cover-body">
+    <div class="cover-mark">
+      <span class="cover-mark-glyph">sw</span>
+      <span class="cover-mark-firm">Simple Wealth</span>
+    </div>
+    <div class="cover-stack">
+      <div class="eyebrow" style="margin:0 0 28px"><span class="rn">—</span> Section one · the baseline plan</div>
+      <h1 class="h1-editorial">
+        The plan as it <em>stands today</em>,<br>
+        for the <em>&nbsp;<span data-field="familyName">Client</span>&nbsp;</em> household.
+      </h1>
+      <p class="prose" style="margin-top: 28px; max-width: 78ch; font-size: 18px; color: var(--ink-2);">
+        The pages that follow show the projection on the inputs we agreed at the start of the meeting,
+        before any what-if changes. This is the trajectory if nothing else moves.
+      </p>
+    </div>
+    <div class="cover-foot">
+      <div><div class="cover-foot-label">Run</div><div class="cover-foot-value">Baseline</div></div>
+      <div><div class="cover-foot-label">Family</div><div class="cover-foot-value" data-field="familyName">—</div></div>
+      <div><div class="cover-foot-label">Prepared on</div><div class="cover-foot-value" data-field="preparedOn">—</div></div>
+      <div><div class="cover-foot-label">FSP</div><div class="cover-foot-value">No. 50637</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide cover divider" data-slide="divider-scenario" data-conditional="dualrun" style="display:none">
+  <div class="slide-body cover-body">
+    <div class="cover-mark">
+      <span class="cover-mark-glyph">sw</span>
+      <span class="cover-mark-firm">Simple Wealth</span>
+    </div>
+    <div class="cover-stack">
+      <div class="eyebrow" style="margin:0 0 28px"><span class="rn">—</span> Section two · the scenario explored</div>
+      <h1 class="h1-editorial">
+        The plan with the <em>levers we tried</em><br>
+        in this meeting.
+      </h1>
+      <p class="prose" style="margin-top: 28px; max-width: 78ch; font-size: 18px; color: var(--ink-2);">
+        The same family, the same household capital, with the changes we worked through together.
+        Whether to act on these changes is a separate decision — confirmed by email after the meeting.
+      </p>
+    </div>
+    <div class="cover-foot">
+      <div><div class="cover-foot-label">Run</div><div class="cover-foot-value">Scenario</div></div>
+      <div><div class="cover-foot-label">Family</div><div class="cover-foot-value" data-field="familyName">—</div></div>
+      <div><div class="cover-foot-label">Prepared on</div><div class="cover-foot-value" data-field="preparedOn">—</div></div>
+      <div><div class="cover-foot-label">FSP</div><div class="cover-foot-value">No. 50637</div></div>
+    </div>
+  </div>
+</section>
+
 </div><!-- /#deck -->
 
 <!-- Empty-state banner shown when no snapshot is loaded. -->
@@ -1814,9 +1871,6 @@ html, body {
     return;
   }
 
-  var plan = snap.plan;
-  var proj = snap.projection;
-
   // ---- Formatters ---------------------------------------------------------
   var NBSP = ' ';
 
@@ -1853,9 +1907,27 @@ html, body {
   function fmtAge(n) { return n != null ? 'age' + NBSP + n : 'never'; }
 
   // ---- DOM helpers --------------------------------------------------------
+  // setField targets all matching [data-field="name"] across the deck. Used
+  // for shared fields (familyName, preparedOn, etc.) that appear in both
+  // runs' clones and in static slides — those names are exempt from the
+  // suffixing walker so a single setField call paints them everywhere.
   function setField(name, value) {
     var nodes = document.querySelectorAll('[data-field="' + name + '"]');
     for (var i = 0; i < nodes.length; i++) nodes[i].textContent = value;
+  }
+
+  // setRunField targets a per-run field by appending the run's suffix to
+  // the field name. Suffix is '' for single-run snapshots; '-baseline' or
+  // '-scenario' for the dual-run case.
+  function setRunField(suffix, name, value) {
+    var nodes = document.querySelectorAll('[data-field="' + name + suffix + '"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = value;
+  }
+
+  // runEl returns the element id'd by `id+suffix`, falling back to the
+  // unsuffixed id for single-run safety.
+  function runEl(suffix, id) {
+    return document.getElementById(id + suffix);
   }
 
   function esc(s) {
@@ -1864,247 +1936,164 @@ html, body {
     });
   }
 
-  // ---- 1. Drop conditional slides ----------------------------------------
-  var hideEvents = !(plan.capitalEvents && plan.capitalEvents.length);
-  var hideCompare = !plan.baseline;
-  if (hideEvents) {
-    var ev = document.querySelector('[data-slide="events"]');
-    if (ev) ev.remove();
+  // Field names that appear inside doubled slides (Answer, Household, etc.)
+  // but represent shared-across-runs values — never suffixed when the
+  // walker rewrites a clone, so a single setField('familyName', ...) finds
+  // baseline-clone, scenario-original, and all static slides at once.
+  var SHARED_FIELDS = {
+    familyName: true,
+    familyNamePoss: true,
+    preparedOn: true,
+    pageNum: true,
+    pageTotal: true
+  };
+
+  // Recursively rewrite a cloned slide's element ids and per-run
+  // [data-field] attrs by appending the suffix. Shared fields keep their
+  // unsuffixed names. Slide-level metadata attrs (data-slide, data-conditional,
+  // data-run) are left alone.
+  function suffixSlide(node, suffix) {
+    if (!node || node.nodeType !== 1) return;
+    if (node.id) node.id = node.id + suffix;
+    var df = node.getAttribute && node.getAttribute('data-field');
+    if (df && !SHARED_FIELDS[df]) node.setAttribute('data-field', df + suffix);
+    for (var i = 0; i < node.children.length; i++) suffixSlide(node.children[i], suffix);
   }
-  if (hideCompare) {
-    var cp = document.querySelector('[data-slide="compare"]');
-    if (cp) cp.remove();
+
+  // ---- Schema detection --------------------------------------------------
+  // v1 snapshots have `plan.baseline` metadata + a single projection.
+  // v2 snapshots add a top-level `baseline: {plan, projection}` block when
+  // a baseline was locked at export time. The dual-run renderer fires only
+  // when both halves of v2 are present; otherwise we fall back to today's
+  // single-run path.
+  var schemaVersion = snap.schemaVersion || 1;
+  var hasDualRun = schemaVersion >= 2 && snap.baseline && snap.baseline.plan && snap.baseline.projection;
+
+  // ---- Dual-run setup ----------------------------------------------------
+  // Slides that get rendered twice when both runs are present. The originals
+  // become the scenario run; deep-clones (with -baseline suffix) become the
+  // baseline run.
+  var DOUBLED_SLIDES = ['answer','household','projection','capital','tax','events','year-table'];
+
+  function setupDualRun() {
+    var deck = document.getElementById('deck');
+    var cover = deck.querySelector('[data-slide="cover"]');
+    var dividerBaseline = deck.querySelector('[data-slide="divider-baseline"]');
+    var dividerScenario = deck.querySelector('[data-slide="divider-scenario"]');
+    var compare = deck.querySelector('[data-slide="compare"]');
+    if (!cover || !dividerBaseline || !dividerScenario || !compare) return;
+
+    // Reveal the dividers (templates ship with display:none).
+    dividerBaseline.style.display = '';
+    dividerScenario.style.display = '';
+    // Compare slide always shown in dual-run mode (it's the bridge).
+    compare.style.display = '';
+
+    // Per-run conditional drops for the events slide.
+    var dropBaselineEvents = !(snap.baseline.plan.capitalEvents && snap.baseline.plan.capitalEvents.length);
+    var dropScenarioEvents = !(snap.plan.capitalEvents && snap.plan.capitalEvents.length);
+
+    var baselineSlides = [];
+    var scenarioSlides = [];
+
+    DOUBLED_SLIDES.forEach(function (id) {
+      var orig = deck.querySelector('[data-slide="' + id + '"]');
+      if (!orig) return;
+
+      // Clone for baseline run (unless dropping events for baseline).
+      if (!(id === 'events' && dropBaselineEvents)) {
+        var clone = orig.cloneNode(true);
+        clone.setAttribute('data-slide', id + '-baseline');
+        clone.setAttribute('data-run', 'baseline');
+        suffixSlide(clone, '-baseline');
+        baselineSlides.push(clone);
+      }
+
+      // Originals become the scenario run (unless dropping events for scenario).
+      if (id === 'events' && dropScenarioEvents) {
+        orig.remove();
+      } else {
+        orig.setAttribute('data-run', 'scenario');
+        suffixSlide(orig, '-scenario');
+        scenarioSlides.push(orig);
+      }
+    });
+
+    // Reorder: cover → baseline divider → baseline run → compare → scenario divider → scenario run.
+    // Static slides (assumptions, levers, methodology, compliance, next) stay
+    // in their current trailing positions and end up after the fragment.
+    var fragment = document.createDocumentFragment();
+    fragment.appendChild(dividerBaseline);
+    baselineSlides.forEach(function (s) { fragment.appendChild(s); });
+    fragment.appendChild(compare);
+    fragment.appendChild(dividerScenario);
+    scenarioSlides.forEach(function (s) { fragment.appendChild(s); });
+    cover.parentNode.insertBefore(fragment, cover.nextSibling);
   }
 
-  // ---- 2. Renumber slides + page totals ----------------------------------
-  var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI'];
-  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
-  slides.forEach(function (s, i) {
-    var pn = String(i + 1).padStart(2, '0');
-    s.querySelectorAll('[data-field="pageNum"]').forEach(function (n) { n.textContent = pn; });
-    var rn = ROMAN[i] || String(i + 1);
-    var footRN = s.querySelector('.slide-foot .rn');
-    if (footRN) footRN.textContent = rn + '.';
-    var eyebrowRN = s.querySelector('.eyebrow .rn');
-    if (eyebrowRN) eyebrowRN.textContent = rn + '.';
-  });
-  document.querySelectorAll('[data-field="pageTotal"]').forEach(function (n) {
-    n.textContent = String(slides.length).padStart(2, '0');
-  });
+  // ---- Single-run setup --------------------------------------------------
+  function setupSingleRun() {
+    var deck = document.getElementById('deck');
+    // Drop divider templates outright — they only render in dual-run mode.
+    deck.querySelectorAll('[data-conditional="dualrun"]').forEach(function (n) { n.remove(); });
 
-  // ---- 3. Top-level cover + meta fields ----------------------------------
-  var horizon = proj.sustainableTo;
-  var horizonYears = horizon != null ? Math.max(0, horizon - proj.startAge + 1) : 0;
-  var totalLA = plan.spouses.reduce(function (a, s) { return a + (s.laBalance || 0); }, 0);
-  var totalDisc = plan.spouses.reduce(function (a, s) { return a + (s.discretionary || 0); }, 0);
-  var otherMonthly = plan.spouses.reduce(function (a, s) {
-    return a + (s.otherIncome || []).reduce(function (b, x) { return b + (x.monthly || 0); }, 0);
-  }, 0);
-
-  var verdict = horizonYears >= 30
-    ? 'sustainable'
-    : (horizonYears >= 20 ? 'workable' : 'stretched');
-
-  setField('familyName', plan.familyName || 'Client');
-  setField('familyNamePoss', plan.familyName ? plan.familyName + 's' : 'household');
-  setField('preparedFor', plan.preparedFor || '—');
-  setField('preparedOn', plan.preparedOn || '—');
-  setField('adviser', plan.adviser || 'Simple Wealth');
-  setField('monthlyNeedCover', fmtR(plan.monthlyNeed));
-  setField('monthlyNeedInline', fmtR(plan.monthlyNeed));
-  setField('verdictWord', verdict);
-  setField('horizonInline', horizon != null ? fmtAge(horizon) : 'further than the projection runs');
-  setField('horizonAge', horizon != null ? fmtAge(horizon) : '—');
-  setField('horizonYears', String(horizonYears));
-  setField('horizonYearsInline', String(horizonYears));
-  setField('otherMonthlyInline', fmtR(otherMonthly));
-  setField('discExhaustsInline', proj.discExhaustsAt != null ? fmtAge(proj.discExhaustsAt) : 'never');
-  setField('laCapInline', proj.laCapHitAt != null ? fmtAge(proj.laCapHitAt) : 'never');
-  setField('totalLA', fmtR(totalLA, { compact: true }));
-  setField('totalDisc', fmtR(totalDisc, { compact: true }));
-  setField('totalOtherMonthly', fmtR(otherMonthly));
-
-  setField('returnPct', fmtPct(plan.returnPct, 2));
-  setField('cpiPct', fmtPct(plan.cpiPct, 2));
-  setField('autoTopUp', plan.autoTopUp ? 'On' : 'Off');
-
-  // Single-client mode: swap "younger spouse" / "of the younger spouse" copy
-  // on the methodology slides so a widow/widower's report reads cleanly.
-  if (plan.single){
-    var horizonNote = document.getElementById('longevity-horizon-note');
-    if (horizonNote) horizonNote.textContent = 'The projection runs to age 100 for the client. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.';
-    var methodBody = document.getElementById('methodology-what-we-model');
-    if (methodBody){
-      methodBody.innerHTML = 'For each year from retirement to age 100 of the client, the projection '
-        + 'computes the household’s required income in <em>today’s money</em>, converts it to '
-        + 'nominal rands at the year’s CPI-adjusted level, then fills it from three sources: '
-        + 'other income, a living-annuity draw inside the <span class="num">2.5–17.5%</span> '
-        + 'band, and (if auto top-up is on) a discretionary draw to cover any shortfall. Both '
-        + 'pots grow at the expected return, applied to the post-draw balance.';
+    // Today's conditional drops: events if no events; compare if no v1 baseline.
+    var hideEvents = !(snap.plan.capitalEvents && snap.plan.capitalEvents.length);
+    if (hideEvents) {
+      var ev = deck.querySelector('[data-slide="events"]');
+      if (ev) ev.remove();
+    }
+    var hideCompare = !(snap.plan.baseline);
+    if (hideCompare) {
+      var cp = deck.querySelector('[data-slide="compare"]');
+      if (cp) cp.remove();
     }
   }
 
-  // Next-review default = preparedOn + 1 year
-  function nextReviewLabel() {
-    var d = plan.preparedOn ? new Date(plan.preparedOn) : new Date();
+  if (hasDualRun) setupDualRun(); else setupSingleRun();
+
+  // ---- Shared fields (set once, regardless of run count) -----------------
+  // These appear on the cover, slide-tops, footers, dividers, and static
+  // slides. They aren't suffixed by the walker, so a single setField call
+  // hits every occurrence in every clone and original.
+  function renderShared() {
+    // Cover + meta — uses scenario plan as the canonical source for fields
+    // that have to pick a single value (familyName, monthlyNeedCover, etc.).
+    var sp = snap.plan;
+    setField('familyName', sp.familyName || 'Client');
+    setField('familyNamePoss', sp.familyName ? sp.familyName + 's' : 'household');
+    setField('preparedFor', sp.preparedFor || '—');
+    setField('preparedOn', sp.preparedOn || '—');
+    setField('adviser', sp.adviser || 'Simple Wealth');
+    setField('monthlyNeedCover', fmtR(sp.monthlyNeed));
+
+    // Assumptions slide — single, shows scenario values. (If Pierre wants
+    // a baseline-vs-scenario assumptions row in future, that's a follow-up;
+    // most scenario tweaks don't touch return / CPI.)
+    setField('returnPct', fmtPct(sp.returnPct, 2));
+    setField('cpiPct', fmtPct(sp.cpiPct, 2));
+    setField('autoTopUp', sp.autoTopUp ? 'On' : 'Off');
+
+    // Single-client copy swap on the methodology + assumptions slides.
+    if (sp.single) {
+      var horizonNote = document.getElementById('longevity-horizon-note');
+      if (horizonNote) horizonNote.textContent = 'The projection runs to age 100 for the client. "Sustainable until age N" means the household stays at or above its target income through age N, whether capital remains or not.';
+      var methodBody = document.getElementById('methodology-what-we-model');
+      if (methodBody) {
+        methodBody.innerHTML = 'For each year from retirement to age 100 of the client, the projection '
+          + 'computes the household’s required income in <em>today’s money</em>, converts it to '
+          + 'nominal rands at the year’s CPI-adjusted level, then fills it from three sources: '
+          + 'other income, a living-annuity draw inside the <span class="num">2.5–17.5%</span> '
+          + 'band, and (if auto top-up is on) a discretionary draw to cover any shortfall. Both '
+          + 'pots grow at the expected return, applied to the post-draw balance.';
+      }
+    }
+
+    // Next-review label = preparedOn + 1 year.
+    var d = sp.preparedOn ? new Date(sp.preparedOn) : new Date();
     if (isNaN(d.getTime())) d = new Date();
     var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    return months[d.getMonth()] + ' ' + (d.getFullYear() + 1);
-  }
-  setField('nextReview', nextReviewLabel());
-
-  // ---- 4. Year-1 funding mix + outcome strip -----------------------------
-  var y1 = proj.year1 || (proj.rows && proj.rows[0]) || {};
-  var y1Total = Math.max(1, (y1.laDraw || 0) + (y1.discDraw || 0) + (y1.otherIncome || 0));
-  function pct(n) { return Math.round((n / y1Total) * 100); }
-  setField('year1Need', fmtR((plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)));
-  setField('funded', 'LA ' + pct(y1.laDraw || 0) + ' · Disc ' + pct(y1.discDraw || 0) + ' · Other ' + pct(y1.otherIncome || 0));
-
-  // ---- 5. Household spouse cards -----------------------------------------
-  var grid = document.getElementById('household-grid');
-  if (grid) {
-    grid.innerHTML = plan.spouses.map(function (s) {
-      var oi = (s.otherIncome || []).filter(function (x) { return (x.monthly || 0) > 0; });
-      return '' +
-        '<div class="spouse-card">' +
-          '<div class="spouse-head">' +
-            '<div class="spouse-name">' + esc(s.name || 'Spouse') + '</div>' +
-            '<div class="spouse-age">age <span class="num">' + (s.age || '—') + '</span></div>' +
-          '</div>' +
-          '<div class="spouse-row">' +
-            '<div class="spouse-row-label">Living annuity</div>' +
-            '<div class="spouse-row-val">' + fmtR(s.laBalance || 0) + '</div>' +
-          '</div>' +
-          '<div class="spouse-row">' +
-            '<div class="spouse-row-label">Discretionary <span class="hint">base cost ' + fmtR(s.discBaseCost || 0, { compact: true }) + '</span></div>' +
-            '<div class="spouse-row-val">' + fmtR(s.discretionary || 0) + '</div>' +
-          '</div>' +
-          '<div class="spouse-subhead">Other income · monthly</div>' +
-          (oi.length
-            ? oi.map(function (x) {
-                return '<div class="spouse-other"><div class="spouse-other-kind">' + esc(x.kind || 'Other income') + '</div><div class="spouse-other-val">' + fmtR(x.monthly) + '</div></div>';
-              }).join('')
-            : '<div class="spouse-other empty"><div class="spouse-other-kind">No additional income at year 1</div><div></div></div>') +
-        '</div>';
-    }).join('');
-  }
-
-  // ---- 6. Year-1 tax cards (numbers come from the calc, not re-derived) -
-  var taxGrid = document.getElementById('tax-grid');
-  if (taxGrid) {
-    var taxByPerson = (proj.taxByPerson || []).slice();
-    if (!taxByPerson.length) {
-      // Fallback: build from proj.taxA / proj.taxB if older snapshot shape.
-      if (proj.taxA) taxByPerson.push(Object.assign({ name: plan.spouses[0] && plan.spouses[0].name, age: plan.spouses[0] && plan.spouses[0].age }, proj.taxA));
-      if (proj.taxB) taxByPerson.push(Object.assign({ name: plan.spouses[1] && plan.spouses[1].name, age: plan.spouses[1] && plan.spouses[1].age }, proj.taxB));
-    }
-    taxGrid.innerHTML = taxByPerson.map(function (t) {
-      var gross = t.grossIncome != null ? t.grossIncome : (t.laDraw || 0) + (t.otherIncome || 0);
-      var tax = t.tax || 0;
-      var eff = gross > 0 ? tax / gross : 0;
-      return '' +
-        '<div class="tax-card">' +
-          '<div class="tax-head">' +
-            '<div class="tax-name">' + esc(t.name || 'Spouse') + '</div>' +
-            '<div class="tax-rate-chip">age ' + (t.age || '—') + ' · eff ' + (eff * 100).toFixed(1) + '%</div>' +
-          '</div>' +
-          '<div class="tax-row"><div class="tax-row-label">Living annuity draw</div><div class="tax-row-val">' + fmtR(t.laDraw || 0) + '</div></div>' +
-          '<div class="tax-row"><div class="tax-row-label">Other taxable income</div><div class="tax-row-val">' + fmtR(t.otherIncome || 0) + '</div></div>' +
-          '<div class="tax-row"><div class="tax-row-label">Discretionary draw <span style="color:var(--mute)">(after-tax)</span></div><div class="tax-row-val">' + fmtR(t.discDraw || 0) + '</div></div>' +
-          '<div class="tax-row total"><div class="tax-row-label">Gross taxable income</div><div class="tax-row-val">' + fmtR(gross) + '</div></div>' +
-          '<div class="tax-row"><div class="tax-row-label">Income tax (SARS 2026/27)</div><div class="tax-row-val">' + fmtR(tax) + '</div></div>' +
-          '<div class="tax-row total"><div class="tax-row-label">Net to bank</div><div class="tax-row-val">' + fmtR(gross - tax + (t.discDraw || 0)) + '</div></div>' +
-        '</div>';
-    }).join('');
-  }
-  setField('hhGross', fmtR(proj.hhGross || 0));
-  setField('hhTax', fmtR(proj.hhTax || 0));
-  setField('hhNet', fmtR(proj.hhNet || 0));
-  setField('hhEff', proj.hhGross > 0 ? fmtPct(proj.hhTax / proj.hhGross, 1) : '—');
-
-  // ---- 7. Projection foot -----------------------------------------------
-  var rows = proj.rows || [];
-  if (rows.length) {
-    setField('year1Total', fmtR(y1.totalIncome || 0));
-    var midIdx = Math.min(15, rows.length - 1);
-    setField('midHorizonTotal', fmtR(rows[midIdx].totalIncome));
-    var lastSustainedIdx = horizon != null
-      ? Math.max(0, Math.min(rows.length - 1, horizon - proj.startAge))
-      : rows.length - 1;
-    setField('finalYearTotal', fmtR(rows[lastSustainedIdx].totalIncome));
-    var firstShortfall = rows.find(function (r) { return r.shortfall; });
-    setField('shortfallFrom', firstShortfall ? fmtAge(firstShortfall.age) : 'never');
-  }
-
-  // ---- 8. Capital-events slide -------------------------------------------
-  if (!hideEvents) {
-    var events = (plan.capitalEvents || []).slice().sort(function (a, b) { return a.year - b.year; });
-    var tbody = document.getElementById('events-tbody');
-    if (tbody) {
-      tbody.innerHTML = events.map(function (e) {
-        var pos = (e.amount || 0) >= 0;
-        return '<tr>' +
-          '<td class="num">' + esc(e.year) + '</td>' +
-          '<td>' + esc(e.label || 'Capital event') + '</td>' +
-          '<td>' + esc(e.forWhom || 'Household') + '</td>' +
-          '<td class="num event-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+ ' : '− ') + fmtR(Math.abs(e.amount || 0), { compact: true }) + '</td>' +
-        '</tr>';
-      }).join('');
-    }
-    var tl = document.getElementById('events-timeline');
-    if (tl && events.length) renderTimeline(tl, events);
-  }
-
-  // ---- 9. Compare slide --------------------------------------------------
-  if (!hideCompare && plan.baseline) {
-    var b = plan.baseline;
-    setField('baselineAge', b.sustainableTo != null ? String(b.sustainableTo) : '—');
-    setField('baselineNote', b.note || '');
-    setField('baselineNeed', fmtR(b.monthlyNeed != null ? b.monthlyNeed : plan.monthlyNeed));
-    setField('baselineMkt', fmtPct(b.returnPct != null ? b.returnPct : plan.returnPct, 1) + ' · ' + fmtPct(b.cpiPct != null ? b.cpiPct : plan.cpiPct, 1));
-    setField('scenarioAge', horizon != null ? String(horizon) : '—');
-    setField('scenarioNote', fmtR(plan.monthlyNeed) + '/mo · auto top-up ' + (plan.autoTopUp ? 'on' : 'off'));
-    setField('scenarioNeed', fmtR(plan.monthlyNeed));
-    setField('scenarioMkt', fmtPct(plan.returnPct, 1) + ' · ' + fmtPct(plan.cpiPct, 1));
-
-    var delta = (horizon != null && b.sustainableTo != null) ? (horizon - b.sustainableTo) : 0;
-    var chip = document.querySelector('[data-field="compareChip"]');
-    if (chip) {
-      chip.textContent = (delta >= 0 ? '+ ' : '− ') + Math.abs(delta) + ' years' + (proj.depletesAt != null ? ' · depletes at ' + proj.depletesAt : '');
-      chip.classList.remove('neg', 'pos');
-      chip.classList.add(delta >= 0 ? 'pos' : 'neg');
-    }
-  }
-
-  // ---- 10. Year-by-year table -------------------------------------------
-  var keyAges = new Set([proj.startAge, proj.discExhaustsAt, proj.laCapHitAt, horizon, proj.depletesAt].filter(function (x) { return x != null; }));
-  var tableRows = rows.filter(function (r) {
-    var offset = r.age - proj.startAge;
-    return offset % 5 === 0 || keyAges.has(r.age);
-  });
-  var yearTbody = document.getElementById('year-tbody');
-  if (yearTbody) {
-    yearTbody.innerHTML = tableRows.map(function (r) {
-      var notes = [];
-      if (r.age === proj.startAge) notes.push('retirement starts');
-      if (r.age === proj.discExhaustsAt) notes.push('disc exhausts');
-      if (r.age === proj.laCapHitAt) notes.push('LA ceiling');
-      if (r.age === horizon) notes.push('horizon');
-      if (r.age === proj.depletesAt) notes.push('depletes');
-      var cls = (r.age === horizon) ? 'end' : (notes.length ? 'milestone' : '');
-      return '<tr class="' + cls + '">' +
-        '<td class="num">' + r.year + '</td>' +
-        '<td class="num">' + r.age + '</td>' +
-        '<td class="num">' + fmtR(r.laDraw, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.discDraw, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.otherIncome, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.totalIncome, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.laBalance, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.discBalance, { compact: true }) + '</td>' +
-        '<td class="num">' + fmtR(r.totalCapital, { compact: true }) + '</td>' +
-        '<td class="note">' + notes.join(' · ') + '</td>' +
-      '</tr>';
-    }).join('');
+    setField('nextReview', months[d.getMonth()] + ' ' + (d.getFullYear() + 1));
   }
 
   // ---- 11. Charts (inline SVG) ------------------------------------------
@@ -2420,47 +2409,323 @@ html, body {
     container.appendChild(svg);
   }
 
-  // Slice rows for each chart so we don't paint empty depleted years past the horizon.
-  function chartSlice(extraYears) {
-    if (!horizon || !rows.length) return rows;
-    var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
-    return rows.filter(function (r) { return r.age <= endAge; });
+  // ---- Per-run rendering -------------------------------------------------
+  // Renders all per-run fields, ledgers, tables, and charts for a single
+  // run (plan + projection pair). suffix is '' for single-run, '-baseline'
+  // or '-scenario' for dual-run. Pure of side-effects beyond writing into
+  // its scoped DOM nodes.
+  function renderRun(plan, proj, suffix) {
+    var horizon = proj.sustainableTo;
+    var horizonYears = horizon != null ? Math.max(0, horizon - proj.startAge + 1) : 0;
+    var rows = proj.rows || [];
+    var y1 = proj.year1 || (rows[0]) || {};
+
+    var totalLA = (plan.spouses || []).reduce(function (a, s) { return a + (s.laBalance || 0); }, 0);
+    var totalDisc = (plan.spouses || []).reduce(function (a, s) { return a + (s.discretionary || 0); }, 0);
+    var otherMonthly = (plan.spouses || []).reduce(function (a, s) {
+      return a + (s.otherIncome || []).reduce(function (b, x) { return b + (x.monthly || 0); }, 0);
+    }, 0);
+
+    var verdict = horizonYears >= 30 ? 'sustainable' : (horizonYears >= 20 ? 'workable' : 'stretched');
+
+    // Answer slide + Household top fields.
+    setRunField(suffix, 'monthlyNeedInline', fmtR(plan.monthlyNeed));
+    setRunField(suffix, 'verdictWord', verdict);
+    setRunField(suffix, 'horizonInline', horizon != null ? fmtAge(horizon) : 'further than the projection runs');
+    setRunField(suffix, 'horizonAge', horizon != null ? fmtAge(horizon) : '—');
+    setRunField(suffix, 'horizonYears', String(horizonYears));
+    setRunField(suffix, 'horizonYearsInline', String(horizonYears));
+    setRunField(suffix, 'otherMonthlyInline', fmtR(otherMonthly));
+    setRunField(suffix, 'discExhaustsInline', proj.discExhaustsAt != null ? fmtAge(proj.discExhaustsAt) : 'never');
+    setRunField(suffix, 'laCapInline', proj.laCapHitAt != null ? fmtAge(proj.laCapHitAt) : 'never');
+    setRunField(suffix, 'totalLA', fmtR(totalLA, { compact: true }));
+    setRunField(suffix, 'totalDisc', fmtR(totalDisc, { compact: true }));
+    setRunField(suffix, 'totalOtherMonthly', fmtR(otherMonthly));
+
+    // Year-1 funding mix + outcome strip.
+    var y1Total = Math.max(1, (y1.laDraw || 0) + (y1.discDraw || 0) + (y1.otherIncome || 0));
+    var pctOf = function (n) { return Math.round((n / y1Total) * 100); };
+    setRunField(suffix, 'year1Need', fmtR((plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)));
+    setRunField(suffix, 'funded', 'LA ' + pctOf(y1.laDraw || 0) + ' · Disc ' + pctOf(y1.discDraw || 0) + ' · Other ' + pctOf(y1.otherIncome || 0));
+
+    // Household spouse cards.
+    var grid = runEl(suffix, 'household-grid');
+    if (grid) {
+      grid.innerHTML = (plan.spouses || []).map(function (s) {
+        var oi = (s.otherIncome || []).filter(function (x) { return (x.monthly || 0) > 0; });
+        return '' +
+          '<div class="spouse-card">' +
+            '<div class="spouse-head">' +
+              '<div class="spouse-name">' + esc(s.name || 'Spouse') + '</div>' +
+              '<div class="spouse-age">age <span class="num">' + (s.age || '—') + '</span></div>' +
+            '</div>' +
+            '<div class="spouse-row">' +
+              '<div class="spouse-row-label">Living annuity</div>' +
+              '<div class="spouse-row-val">' + fmtR(s.laBalance || 0) + '</div>' +
+            '</div>' +
+            '<div class="spouse-row">' +
+              '<div class="spouse-row-label">Discretionary <span class="hint">base cost ' + fmtR(s.discBaseCost || 0, { compact: true }) + '</span></div>' +
+              '<div class="spouse-row-val">' + fmtR(s.discretionary || 0) + '</div>' +
+            '</div>' +
+            '<div class="spouse-subhead">Other income · monthly</div>' +
+            (oi.length
+              ? oi.map(function (x) {
+                  return '<div class="spouse-other"><div class="spouse-other-kind">' + esc(x.kind || 'Other income') + '</div><div class="spouse-other-val">' + fmtR(x.monthly) + '</div></div>';
+                }).join('')
+              : '<div class="spouse-other empty"><div class="spouse-other-kind">No additional income at year 1</div><div></div></div>') +
+          '</div>';
+      }).join('');
+    }
+
+    // Year-1 tax cards.
+    var taxGrid = runEl(suffix, 'tax-grid');
+    if (taxGrid) {
+      var taxByPerson = (proj.taxByPerson || []).slice();
+      if (!taxByPerson.length) {
+        if (proj.taxA) taxByPerson.push(Object.assign({ name: plan.spouses[0] && plan.spouses[0].name, age: plan.spouses[0] && plan.spouses[0].age }, proj.taxA));
+        if (proj.taxB) taxByPerson.push(Object.assign({ name: plan.spouses[1] && plan.spouses[1].name, age: plan.spouses[1] && plan.spouses[1].age }, proj.taxB));
+      }
+      taxGrid.innerHTML = taxByPerson.map(function (t) {
+        var gross = t.grossIncome != null ? t.grossIncome : (t.laDraw || 0) + (t.otherIncome || 0);
+        var tax = t.tax || 0;
+        var eff = gross > 0 ? tax / gross : 0;
+        return '' +
+          '<div class="tax-card">' +
+            '<div class="tax-head">' +
+              '<div class="tax-name">' + esc(t.name || 'Spouse') + '</div>' +
+              '<div class="tax-rate-chip">age ' + (t.age || '—') + ' · eff ' + (eff * 100).toFixed(1) + '%</div>' +
+            '</div>' +
+            '<div class="tax-row"><div class="tax-row-label">Living annuity draw</div><div class="tax-row-val">' + fmtR(t.laDraw || 0) + '</div></div>' +
+            '<div class="tax-row"><div class="tax-row-label">Other taxable income</div><div class="tax-row-val">' + fmtR(t.otherIncome || 0) + '</div></div>' +
+            '<div class="tax-row"><div class="tax-row-label">Discretionary draw <span style="color:var(--mute)">(after-tax)</span></div><div class="tax-row-val">' + fmtR(t.discDraw || 0) + '</div></div>' +
+            '<div class="tax-row total"><div class="tax-row-label">Gross taxable income</div><div class="tax-row-val">' + fmtR(gross) + '</div></div>' +
+            '<div class="tax-row"><div class="tax-row-label">Income tax (SARS 2026/27)</div><div class="tax-row-val">' + fmtR(tax) + '</div></div>' +
+            '<div class="tax-row total"><div class="tax-row-label">Net to bank</div><div class="tax-row-val">' + fmtR(gross - tax + (t.discDraw || 0)) + '</div></div>' +
+          '</div>';
+      }).join('');
+    }
+    setRunField(suffix, 'hhGross', fmtR(proj.hhGross || 0));
+    setRunField(suffix, 'hhTax', fmtR(proj.hhTax || 0));
+    setRunField(suffix, 'hhNet', fmtR(proj.hhNet || 0));
+    setRunField(suffix, 'hhEff', proj.hhGross > 0 ? fmtPct(proj.hhTax / proj.hhGross, 1) : '—');
+
+    // Projection foot.
+    if (rows.length) {
+      setRunField(suffix, 'year1Total', fmtR(y1.totalIncome || 0));
+      var midIdx = Math.min(15, rows.length - 1);
+      setRunField(suffix, 'midHorizonTotal', fmtR(rows[midIdx].totalIncome));
+      var lastSustainedIdx = horizon != null
+        ? Math.max(0, Math.min(rows.length - 1, horizon - proj.startAge))
+        : rows.length - 1;
+      setRunField(suffix, 'finalYearTotal', fmtR(rows[lastSustainedIdx].totalIncome));
+      var firstShortfall = rows.find(function (r) { return r.shortfall; });
+      setRunField(suffix, 'shortfallFrom', firstShortfall ? fmtAge(firstShortfall.age) : 'never');
+    }
+
+    // Capital-events ledger + timeline (only present when this run has events;
+    // setupDualRun / setupSingleRun already removed the slide for empty runs).
+    var events = (plan.capitalEvents || []).slice().sort(function (a, b) { return a.year - b.year; });
+    var tbody = runEl(suffix, 'events-tbody');
+    if (tbody) {
+      tbody.innerHTML = events.map(function (e) {
+        var pos = (e.amount || 0) >= 0;
+        return '<tr>' +
+          '<td class="num">' + esc(e.year) + '</td>' +
+          '<td>' + esc(e.label || 'Capital event') + '</td>' +
+          '<td>' + esc(e.forWhom || 'Household') + '</td>' +
+          '<td class="num event-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+ ' : '− ') + fmtR(Math.abs(e.amount || 0), { compact: true }) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+    var tl = runEl(suffix, 'events-timeline');
+    if (tl && events.length) renderTimeline(tl, events);
+
+    // Year-by-year table (5-year checkpoints + milestone ages).
+    var keyAges = new Set([proj.startAge, proj.discExhaustsAt, proj.laCapHitAt, horizon, proj.depletesAt].filter(function (x) { return x != null; }));
+    var tableRows = rows.filter(function (r) {
+      var offset = r.age - proj.startAge;
+      return offset % 5 === 0 || keyAges.has(r.age);
+    });
+    var yearTbody = runEl(suffix, 'year-tbody');
+    if (yearTbody) {
+      yearTbody.innerHTML = tableRows.map(function (r) {
+        var notes = [];
+        if (r.age === proj.startAge) notes.push('retirement starts');
+        if (r.age === proj.discExhaustsAt) notes.push('disc exhausts');
+        if (r.age === proj.laCapHitAt) notes.push('LA ceiling');
+        if (r.age === horizon) notes.push('horizon');
+        if (r.age === proj.depletesAt) notes.push('depletes');
+        var cls = (r.age === horizon) ? 'end' : (notes.length ? 'milestone' : '');
+        return '<tr class="' + cls + '">' +
+          '<td class="num">' + r.year + '</td>' +
+          '<td class="num">' + r.age + '</td>' +
+          '<td class="num">' + fmtR(r.laDraw, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.discDraw, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.otherIncome, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.totalIncome, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.laBalance, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.discBalance, { compact: true }) + '</td>' +
+          '<td class="num">' + fmtR(r.totalCapital, { compact: true }) + '</td>' +
+          '<td class="note">' + notes.join(' · ') + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    // Charts. chartSlice is local — closes over rows + horizon for this run.
+    function chartSlice(extraYears) {
+      if (!horizon || !rows.length) return rows;
+      var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
+      return rows.filter(function (r) { return r.age <= endAge; });
+    }
+
+    var needBase = (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0);
+
+    var ans = runEl(suffix, 'chart-answer');
+    if (ans) renderIncomeChart(ans, chartSlice(3), {
+      width: 1428, height: 300, needBase: needBase
+    });
+
+    var pc = runEl(suffix, 'chart-projection');
+    if (pc) renderIncomeChart(pc, chartSlice(6), {
+      width: 1428, height: 480, needBase: needBase
+    });
+
+    var cap = runEl(suffix, 'chart-capital');
+    if (cap) renderCapitalChart(cap, chartSlice(6), {
+      width: 1428, height: 440,
+      laCapAt: proj.laCapHitAt,
+      depleteAt: proj.depletesAt,
+      withdrawalRate: true
+    });
   }
 
-  var ans = document.getElementById('chart-answer');
-  if (ans) renderIncomeChart(ans, chartSlice(3), {
-    width: 1428, height: 300,
-    needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
-  });
+  // ---- Compare slide -----------------------------------------------------
+  // v2 dual-run: read from snap.baseline + snap directly, no metadata block.
+  // v1 single-run: legacy plan.baseline metadata path (kept for backward
+  // compat with old localStorage snapshots).
+  function renderCompare() {
+    var compare = document.querySelector('[data-slide="compare"]');
+    if (!compare) return; // setupSingleRun dropped it when no baseline.
 
-  var pc = document.getElementById('chart-projection');
-  if (pc) renderIncomeChart(pc, chartSlice(6), {
-    width: 1428, height: 480,
-    needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
-  });
+    var sp = snap.plan;
+    var spProj = snap.projection;
+    var horizon = spProj.sustainableTo;
 
-  var cap = document.getElementById('chart-capital');
-  if (cap) renderCapitalChart(cap, chartSlice(6), {
-    width: 1428, height: 440,
-    laCapAt: proj.laCapHitAt,
-    depleteAt: proj.depletesAt,
-    withdrawalRate: true
-  });
+    if (hasDualRun) {
+      var bp = snap.baseline.plan;
+      var bpProj = snap.baseline.projection;
+      var bHorizon = bpProj.sustainableTo;
 
-  if (!hideCompare && plan.baseline) {
-    var bel = document.getElementById('compare-baseline');
-    if (bel) renderIncomeChart(bel, chartSlice(3), {
+      setField('baselineAge', bHorizon != null ? String(bHorizon) : '—');
+      setField('baselineNote', 'Locked baseline · ' + (bHorizon != null ? 'age ' + bHorizon : '—'));
+      setField('baselineNeed', fmtR(bp.monthlyNeed));
+      setField('baselineMkt', fmtPct(bp.returnPct, 1) + ' · ' + fmtPct(bp.cpiPct, 1));
+      setField('scenarioAge', horizon != null ? String(horizon) : '—');
+      setField('scenarioNote', fmtR(sp.monthlyNeed) + '/mo · auto top-up ' + (sp.autoTopUp ? 'on' : 'off'));
+      setField('scenarioNeed', fmtR(sp.monthlyNeed));
+      setField('scenarioMkt', fmtPct(sp.returnPct, 1) + ' · ' + fmtPct(sp.cpiPct, 1));
+
+      var delta = (horizon != null && bHorizon != null) ? (horizon - bHorizon) : 0;
+      var chip = document.querySelector('[data-field="compareChip"]');
+      if (chip) {
+        chip.textContent = (delta >= 0 ? '+ ' : '− ') + Math.abs(delta) + ' years' + (spProj.depletesAt != null ? ' · depletes at ' + spProj.depletesAt : '');
+        chip.classList.remove('neg', 'pos');
+        chip.classList.add(delta >= 0 ? 'pos' : 'neg');
+      }
+
+      // Mini-charts: derive from each run's projection rows.
+      function mini(rows, sustainableTo, monthlyNeed, lumps) {
+        if (!rows || !rows.length) return rows;
+        if (sustainableTo == null) return rows.slice(0, Math.min(35, rows.length));
+        var endAge = Math.min(sustainableTo + 3, rows[rows.length - 1].age);
+        return rows.filter(function (r) { return r.age <= endAge; });
+      }
+      var bel = document.getElementById('compare-baseline');
+      if (bel) renderIncomeChart(bel, mini(bpProj.rows || [], bHorizon), {
+        width: 700, height: 180,
+        needBase: (bp.monthlyNeed || 0) * 12 + (bp.annualLumpSums || 0)
+      });
+      var sel = document.getElementById('compare-scenario');
+      if (sel) renderIncomeChart(sel, mini(spProj.rows || [], horizon), {
+        width: 700, height: 180,
+        needBase: (sp.monthlyNeed || 0) * 12 + (sp.annualLumpSums || 0)
+      });
+      return;
+    }
+
+    // v1 fallback (legacy plan.baseline metadata).
+    if (!sp.baseline) return;
+    var b = sp.baseline;
+    setField('baselineAge', b.sustainableTo != null ? String(b.sustainableTo) : '—');
+    setField('baselineNote', b.note || '');
+    setField('baselineNeed', fmtR(b.monthlyNeed != null ? b.monthlyNeed : sp.monthlyNeed));
+    setField('baselineMkt', fmtPct(b.returnPct != null ? b.returnPct : sp.returnPct, 1) + ' · ' + fmtPct(b.cpiPct != null ? b.cpiPct : sp.cpiPct, 1));
+    setField('scenarioAge', horizon != null ? String(horizon) : '—');
+    setField('scenarioNote', fmtR(sp.monthlyNeed) + '/mo · auto top-up ' + (sp.autoTopUp ? 'on' : 'off'));
+    setField('scenarioNeed', fmtR(sp.monthlyNeed));
+    setField('scenarioMkt', fmtPct(sp.returnPct, 1) + ' · ' + fmtPct(sp.cpiPct, 1));
+
+    var v1Delta = (horizon != null && b.sustainableTo != null) ? (horizon - b.sustainableTo) : 0;
+    var v1Chip = document.querySelector('[data-field="compareChip"]');
+    if (v1Chip) {
+      v1Chip.textContent = (v1Delta >= 0 ? '+ ' : '− ') + Math.abs(v1Delta) + ' years' + (spProj.depletesAt != null ? ' · depletes at ' + spProj.depletesAt : '');
+      v1Chip.classList.remove('neg', 'pos');
+      v1Chip.classList.add(v1Delta >= 0 ? 'pos' : 'neg');
+    }
+
+    // v1 mini-charts use the live projection rows for both halves (legacy
+    // behaviour — no real baseline projection rows stored in v1 metadata).
+    var rows = spProj.rows || [];
+    function v1Slice(extraYears) {
+      if (horizon == null || !rows.length) return rows;
+      var endAge = Math.min(horizon + extraYears, rows[rows.length - 1].age);
+      return rows.filter(function (r) { return r.age <= endAge; });
+    }
+    var bel1 = document.getElementById('compare-baseline');
+    if (bel1) renderIncomeChart(bel1, v1Slice(3), {
       width: 700, height: 180,
-      needBase: ((plan.baseline.monthlyNeed != null ? plan.baseline.monthlyNeed : plan.monthlyNeed) || 0) * 12 + (plan.annualLumpSums || 0)
+      needBase: ((b.monthlyNeed != null ? b.monthlyNeed : sp.monthlyNeed) || 0) * 12 + (sp.annualLumpSums || 0)
     });
-    var sel = document.getElementById('compare-scenario');
-    if (sel) renderIncomeChart(sel, chartSlice(3), {
+    var sel1 = document.getElementById('compare-scenario');
+    if (sel1) renderIncomeChart(sel1, v1Slice(3), {
       width: 700, height: 180,
-      needBase: (plan.monthlyNeed || 0) * 12 + (plan.annualLumpSums || 0)
+      needBase: (sp.monthlyNeed || 0) * 12 + (sp.annualLumpSums || 0)
     });
   }
 
-  // ---- 12. Auto-print after first paint ---------------------------------
+  // ---- Renumber slides + page totals ------------------------------------
+  // Runs once after all DOM rearrangement (dual-run reorder, conditional
+  // drops, divider reveals). Walks the deck in document order, writes
+  // pageNum + Roman numerals into each slide, then sets pageTotal globally.
+  function renumberSlides() {
+    var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV'];
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    slides.forEach(function (s, i) {
+      var pn = String(i + 1).padStart(2, '0');
+      s.querySelectorAll('[data-field="pageNum"]').forEach(function (n) { n.textContent = pn; });
+      var rn = ROMAN[i] || String(i + 1);
+      var footRN = s.querySelector('.slide-foot .rn');
+      if (footRN) footRN.textContent = rn + '.';
+      var eyebrowRN = s.querySelector('.eyebrow .rn');
+      if (eyebrowRN) eyebrowRN.textContent = rn + '.';
+    });
+    document.querySelectorAll('[data-field="pageTotal"]').forEach(function (n) {
+      n.textContent = String(slides.length).padStart(2, '0');
+    });
+  }
+
+  // ---- Orchestration -----------------------------------------------------
+  renderShared();
+  if (hasDualRun) {
+    renderRun(snap.baseline.plan, snap.baseline.projection, '-baseline');
+    renderRun(snap.plan, snap.projection, '-scenario');
+  } else {
+    renderRun(snap.plan, snap.projection, '');
+  }
+  renderCompare();
+  renumberSlides();
+
+  // ---- Auto-print after first paint -------------------------------------
   // Suppressed when the URL carries ?noprint, useful while iterating.
   if (!new URLSearchParams(location.search).has('noprint')) {
     window.addEventListener('load', function () {
