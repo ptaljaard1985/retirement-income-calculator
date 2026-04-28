@@ -445,14 +445,19 @@ console.log('\n== validateSnapshot ==');
 // the assertion (we want to test the assertions, not the falsy fallbacks).
 function makeValidSnapshot() {
   const rows = [];
+  // Self-consistent fixture: scale gross income by CPI alongside requiredNom
+  // so shortfall flags are deterministic across the horizon. Y1 net (240k)
+  // exceeds Y1 target (200k) and stays at the same ratio every year, so all
+  // 35 rows are non-shortfall and sustainableTo = age 99.
   for (let i = 0; i < 35; i++) {
-    const laDraw = 200_000;
-    const discDraw = 50_000;
-    const otherIncome = 30_000;
-    const totalIncome = laDraw + discDraw + otherIncome;  // 280_000
-    const tax = 40_000;
-    const requiredNom = 200_000 * Math.pow(1.03, i);
-    const net = totalIncome - tax;
+    const cpi = Math.pow(1.03, i);
+    const laDraw = 200_000 * cpi;
+    const discDraw = 50_000 * cpi;
+    const otherIncome = 30_000 * cpi;
+    const totalIncome = laDraw + discDraw + otherIncome;  // 280k * cpi
+    const tax = 40_000 * cpi;
+    const requiredNom = 200_000 * cpi;
+    const net = totalIncome - tax;  // 240k * cpi → always > 200k * cpi
     rows.push({
       year: 2026 + i,
       age: 65 + i,
@@ -477,7 +482,7 @@ function makeValidSnapshot() {
       years: 35,
       rNom: 0.065, cpi: 0.03,
       rows: rows,
-      sustainableTo: 95,
+      sustainableTo: 99,  // last non-shortfall age (matches row data)
       depletesAt: null, laCapHitAt: null, discExhaustsAt: null,
       year1: rows[0],
       taxA: { tax: 25_000, grossIncome: 150_000 },
@@ -608,6 +613,21 @@ test('validateSnapshot: I11 fires when netTotal != totalIncome - tax', () => {
   );
 });
 
+test('validateSnapshot: I12 fires when sustainableTo points at a shortfall row', () => {
+  const s = makeValidSnapshot();
+  // Force the row at the sustainableTo age into shortfall while leaving
+  // sustainableTo unchanged. The two paths now disagree.
+  const stIdx = s.proj.sustainableTo - s.proj.startAge;
+  s.proj.rows[stIdx].shortfall = true;
+  // Re-balance the math so I3 doesn't fire first: net must actually be
+  // below requiredNom for shortfall=true to be self-consistent.
+  s.proj.rows[stIdx].requiredNom = (s.proj.rows[stIdx].totalIncome - s.proj.rows[stIdx].tax) + 1000;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I12/
+  );
+});
+
 test('validateSnapshot: single-client mode happy path', () => {
   const s = makeValidSnapshot();
   s.plan.single = true;
@@ -679,6 +699,94 @@ test('fingerprintFromProjection: changes when end-capital changes', () => {
 test('fingerprintFromProjection: handles empty projection gracefully', () => {
   const fp = testAPI.fingerprintFromProjection(null);
   assert.strictEqual(fp.length, 6);  // still a 6-char string, not a throw
+});
+
+
+// ============================================================
+// deriveMilestones — sustainableTo must use NET income vs NET target
+// ============================================================
+//
+// The engine's solver treats nominal.target as a NET target. shortfall
+// detection in deriveMilestones must compare (gross - tax) against target,
+// not gross against target — otherwise sustainableTo over-reports by 2-3
+// years at typical SARS marginal rates and the report's headline disagrees
+// with the chart's coral wash. (Session 27 fix.)
+
+console.log('\n== deriveMilestones (net-vs-net) ==');
+
+test('deriveMilestones: sustainableTo tracks NET income, not gross', () => {
+  // Build a synthetic projection where:
+  //   - gross income = 800k flat (would NEVER fall below 600k target)
+  //   - tax = 250k flat (so net = 550k, BELOW target)
+  // Pre-fix code would have reported sustainableTo = horizon (gross > target).
+  // Post-fix code must report sustainableTo = startAge - 1 (no row sustains).
+  const n = 10;
+  const arr = (v) => Array(n).fill(v);
+  const proj = {
+    startAge: 65,
+    nominal: {
+      draw: arr(800_000),     // gross income
+      tax: arr(250_000),      // tax → net = 550k
+      target: arr(600_000)    // net target
+    },
+    table: {
+      laA_bal: arr(2_000_000), laB_bal: arr(0),
+      discA_bal: arr(500_000), discB_bal: arr(0),
+      clampA: arr('ok'), clampB: arr('ok')
+    }
+  };
+  const ms = testAPI.deriveMilestones(proj);
+  assert.strictEqual(ms.sustainableTo, null,
+    'sustainableTo should be null when net is always below target — got ' + ms.sustainableTo);
+});
+
+test('deriveMilestones: sustainableTo flips when net income recovers', () => {
+  // First 5 years net is below target (sustainable=null so far);
+  // last 5 years tax drops, net is above target → sustainableTo = last age.
+  const n = 10;
+  const proj = {
+    startAge: 65,
+    nominal: {
+      draw:   [800_000, 800_000, 800_000, 800_000, 800_000,
+               800_000, 800_000, 800_000, 800_000, 800_000],
+      tax:    [300_000, 300_000, 300_000, 300_000, 300_000,
+               100_000, 100_000, 100_000, 100_000, 100_000],
+      target: [600_000, 600_000, 600_000, 600_000, 600_000,
+               600_000, 600_000, 600_000, 600_000, 600_000]
+    },
+    table: {
+      laA_bal: Array(n).fill(2_000_000), laB_bal: Array(n).fill(0),
+      discA_bal: Array(n).fill(500_000), discB_bal: Array(n).fill(0),
+      clampA: Array(n).fill('ok'), clampB: Array(n).fill('ok')
+    }
+  };
+  const ms = testAPI.deriveMilestones(proj);
+  // First 5 years: net = 500k < target 600k → shortfall → sustainableTo unchanged.
+  // Last 5 years: net = 700k > target 600k → sustainableTo = each age, ending at 74.
+  assert.strictEqual(ms.sustainableTo, 74, 'expected age 74, got ' + ms.sustainableTo);
+});
+
+test('deriveMilestones: pre-fix behaviour would have over-reported (regression guard)', () => {
+  // Synthetic case where gross > target but net < target every year.
+  // If anyone ever changes deriveMilestones to read gross instead of net,
+  // sustainableTo would jump from null to the horizon. This test asserts
+  // sustainableTo stays null — the contract Session 27 enforces.
+  const n = 5;
+  const proj = {
+    startAge: 65,
+    nominal: {
+      draw:   Array(n).fill(900_000),   // gross is high
+      tax:    Array(n).fill(400_000),   // tax bites hard, net = 500k
+      target: Array(n).fill(700_000)    // net target
+    },
+    table: {
+      laA_bal: Array(n).fill(1_000_000), laB_bal: Array(n).fill(0),
+      discA_bal: Array(n).fill(0), discB_bal: Array(n).fill(0),
+      clampA: Array(n).fill('ok'), clampB: Array(n).fill('ok')
+    }
+  };
+  const ms = testAPI.deriveMilestones(proj);
+  assert.strictEqual(ms.sustainableTo, null);
 });
 
 

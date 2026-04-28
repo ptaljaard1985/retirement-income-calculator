@@ -6292,21 +6292,32 @@
   // Derive horizon / depletion / cap / exhaust ages from any projection.
   // Pure of DOM — takes a project() result, returns milestones.
   function deriveMilestones(pp){
-    // pp.nominal.total is the engine's start-of-year CAPITAL series (a
-    // misleading name). For sustainableTo we need the per-year gross
-    // INCOME — that's pp.nominal.draw (laDraw + discDraw + otherIncome
-    // for the year). Comparing capital against target made shortfall
-    // almost never trip and pushed sustainableTo all the way to ~age 98
-    // even when income visibly fell below the target line at the LA
-    // ceiling. See Session 22 for the parallel fix in buildProjectionPayload.
+    // The engine's solver treats pp.nominal.target[i] as a NET (after-tax)
+    // target — see solveTopUp's `var shortfall = targetNom - netLA;`. So
+    // shortfall detection must compare NET income against the NET target,
+    // matching r.shortfall in buildProjectionPayload (line 6481) and the
+    // chart's coral wash. Using gross-vs-net would over-report
+    // sustainableTo by ~2-3 years at typical SARS marginal rates (gross
+    // sits ~25% above net), causing the report's headline "carries to
+    // age N" to disagree with the income chart's first-shortfall age.
+    //
+    // History: Session 22/23 fixed the older bug where this read
+    // pp.nominal.total (CAPITAL, despite the name) instead of pp.nominal.draw
+    // (gross income). Session 25 then fixed buildProjectionPayload's per-row
+    // shortfall flag from gross-vs-net to net-vs-net but missed the parallel
+    // here. Session 27 carries that fix into deriveMilestones; the I12
+    // invariant in validateSnapshot now ties sustainableTo to r.shortfall
+    // structurally so the two paths can never silently drift again.
     var rs = pp.nominal && pp.nominal.draw ? pp.nominal.draw : [];
     var ts = pp.nominal && pp.nominal.target ? pp.nominal.target : [];
+    var taxes = pp.nominal && pp.nominal.tax ? pp.nominal.tax : [];
     var laBal = pp.table || {};
     var sustainableTo = null, depletesAt = null, laCapHitAt = null, discExhaustsAt = null;
     var n = rs.length;
     for (var i = 0; i < n; i++){
       var age = pp.startAge + i;
-      var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;
+      var net = (rs[i] || 0) - (taxes[i] || 0);
+      var shortfall = net < (ts[i] || 0) - 1;
       if (!shortfall) sustainableTo = age;
       var laTotal = (laBal.laA_bal && laBal.laA_bal[i] || 0) + (laBal.laB_bal && laBal.laB_bal[i] || 0);
       var dTotal = (laBal.discA_bal && laBal.discA_bal[i] || 0) + (laBal.discB_bal && laBal.discB_bal[i] || 0);
@@ -6669,6 +6680,19 @@
     if (proj.sustainableTo !== null && proj.sustainableTo !== undefined){
       if (proj.sustainableTo < proj.startAge || proj.sustainableTo > proj.horizonAge){
         fail('I5', 'sustainableTo outside horizon', {sustainableTo: proj.sustainableTo, startAge: proj.startAge, horizonAge: proj.horizonAge});
+      }
+      // I12: sustainableTo must agree with the row-level shortfall flags.
+      // sustainableTo is set on the LAST non-shortfall age in the loop, so
+      // the row at that age must NOT be in shortfall. Without this tie,
+      // deriveMilestones and buildProjectionPayload's per-row shortfall can
+      // silently drift (Session 27 caught exactly this — the headline read
+      // age 96 from a gross-vs-net derivation while the chart wash started
+      // at age 94 from a net-vs-net per-row flag).
+      var stIdx = proj.sustainableTo - proj.startAge;
+      if (stIdx >= 0 && stIdx < rows.length){
+        if (rows[stIdx].shortfall){
+          fail('I12', 'sustainableTo points at a row flagged shortfall', {age: proj.sustainableTo, row: rows[stIdx]});
+        }
       }
     }
     // I6: taxByPerson length matches single/couple mode.
