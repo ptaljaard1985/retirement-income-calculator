@@ -924,6 +924,82 @@ html, body {
 }
 
 /* ============================================================================
+   COMPLIANCE APPENDIX (Appendix A–E)
+
+   Dense year-by-year verification tables on the last slides of the deck.
+   Adviser strips these pages before sending the client copy; saves the full
+   file (including these slides) to compliance archive.
+
+   Visual treatment is deliberately loud (coral header bar, mono "STRIP"
+   warning) so the slides can never be mistaken for client-facing material
+   even at a glance.
+   ============================================================================ */
+.appendix-slide .slide-top {
+  background: var(--coral);
+  color: var(--paper);
+  border-bottom: none;
+}
+.appendix-slide .slide-top .logo,
+.appendix-slide .slide-top .logo em,
+.appendix-slide .slide-top .meta,
+.appendix-slide .slide-top .meta .num,
+.appendix-slide .slide-top .meta .sep { color: var(--paper); }
+.appendix-slide .slide-top .mark { color: var(--paper); border-color: var(--paper); }
+.appendix-slide .strip-warn {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper);
+  opacity: 0.92;
+  margin-top: 6px;
+}
+.appendix-slide .eyebrow,
+.appendix-slide .eyebrow .rn { color: var(--ink-2); }
+.appendix-slide .h2-slide { font-size: 32px; margin: 8px 0 14px; }
+.appendix-slide .etable.year-table { font-size: 10.5px; margin-top: 4px; }
+.appendix-slide .etable.year-table th { font-size: 8.5px; padding: 4px 8px; }
+.appendix-slide .etable.year-table td { padding: 4px 8px; }
+.appendix-slide .etable.year-table td.num { font-size: 10.5px; }
+.appendix-inputs-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 4px 18px;
+  font-size: 11.5px;
+  margin-top: 6px;
+}
+.appendix-inputs-grid .lbl {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--mute);
+  padding: 4px 0;
+  font-weight: 600;
+}
+.appendix-inputs-grid .val {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink);
+  padding: 4px 0;
+}
+.appendix-inputs-grid .val.serif {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+}
+.appendix-inputs-grid .section-h {
+  grid-column: 1 / -1;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 16px;
+  color: var(--ink);
+  margin: 14px 0 4px;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 4px;
+}
+
+/* ============================================================================
    METHODOLOGY (XII)
    ============================================================================ */
 .methodology-grid {
@@ -1423,6 +1499,7 @@ html, body {
       <div><div class="cover-foot-label">Prepared on</div><div class="cover-foot-value" data-field="preparedOn">—</div></div>
       <div><div class="cover-foot-label">By</div><div class="cover-foot-value" data-field="adviser">—</div></div>
       <div><div class="cover-foot-label">FSP</div><div class="cover-foot-value">No. 50637</div></div>
+      <div><div class="cover-foot-label">Fingerprint</div><div class="cover-foot-value" style="font-family: var(--mono); font-size: 13px; letter-spacing: 0.04em;" data-field="fingerprint">—</div></div>
     </div>
   </div>
 </section>
@@ -2461,6 +2538,208 @@ html, body {
   </footer>
 </section>
 
+<!-- =========================================================================
+     APPENDIX A — Income chart data (per-year net components vs target)
+     ========================================================================= -->
+<section class="slide appendix-slide" data-slide="appendix-a" data-conditional="appendix" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· compliance appendix</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">Appendix A</span> · Income chart data</div>
+    <div class="strip-warn">Strip before sending to client · retain in compliance archive</div>
+    <h2 class="h2-slide">Year-by-year <em>income</em> &amp; target.</h2>
+
+    <table class="etable year-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Age</th>
+          <th style="text-align: right">LA net</th>
+          <th style="text-align: right">Disc net</th>
+          <th style="text-align: right">Other net</th>
+          <th style="text-align: right">Tax</th>
+          <th style="text-align: right">Net total</th>
+          <th style="text-align: right">Target need</th>
+        </tr>
+      </thead>
+      <tbody id="appendix-a-tbody"></tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">Appendix A</span> · INTERNAL</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     APPENDIX B — Capital chart data (per-year balances + draw rate)
+     ========================================================================= -->
+<section class="slide appendix-slide" data-slide="appendix-b" data-conditional="appendix" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· compliance appendix</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">Appendix B</span> · Capital chart data</div>
+    <div class="strip-warn">Strip before sending to client · retain in compliance archive</div>
+    <h2 class="h2-slide">Year-by-year <em>capital</em> balances.</h2>
+
+    <table class="etable year-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Age</th>
+          <th style="text-align: right">LA balance</th>
+          <th style="text-align: right">Disc balance</th>
+          <th style="text-align: right">Total capital</th>
+          <th style="text-align: right">Withdrawal %</th>
+        </tr>
+      </thead>
+      <tbody id="appendix-b-tbody"></tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">Appendix B</span> · INTERNAL</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     APPENDIX C — Spouse A tax breakdown (per-year)
+     ========================================================================= -->
+<section class="slide appendix-slide" data-slide="appendix-c" data-conditional="appendix" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· compliance appendix</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">Appendix C</span> · Spouse A tax breakdown</div>
+    <div class="strip-warn">Strip before sending to client · retain in compliance archive</div>
+    <h2 class="h2-slide"><em data-field="spouseAName">Spouse A</em> tax · year by year.</h2>
+
+    <table class="etable year-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Age</th>
+          <th style="text-align: right">LA draw</th>
+          <th style="text-align: right">Other taxable</th>
+          <th style="text-align: right">Gain</th>
+          <th style="text-align: right">Inclusion</th>
+          <th style="text-align: right">Taxable</th>
+          <th style="text-align: right">Pre-rebate</th>
+          <th style="text-align: right">Rebate</th>
+          <th style="text-align: right">Tax</th>
+          <th style="text-align: right">Eff %</th>
+        </tr>
+      </thead>
+      <tbody id="appendix-c-tbody"></tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">Appendix C</span> · INTERNAL</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     APPENDIX D — Spouse B tax breakdown (per-year)
+
+     Dropped by setupSingleRun / setupDualRun when plan.single === true.
+     ========================================================================= -->
+<section class="slide appendix-slide" data-slide="appendix-d" data-conditional="appendix" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· compliance appendix</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">Appendix D</span> · Spouse B tax breakdown</div>
+    <div class="strip-warn">Strip before sending to client · retain in compliance archive</div>
+    <h2 class="h2-slide"><em data-field="spouseBName">Spouse B</em> tax · year by year.</h2>
+
+    <table class="etable year-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Age</th>
+          <th style="text-align: right">LA draw</th>
+          <th style="text-align: right">Other taxable</th>
+          <th style="text-align: right">Gain</th>
+          <th style="text-align: right">Inclusion</th>
+          <th style="text-align: right">Taxable</th>
+          <th style="text-align: right">Pre-rebate</th>
+          <th style="text-align: right">Rebate</th>
+          <th style="text-align: right">Tax</th>
+          <th style="text-align: right">Eff %</th>
+        </tr>
+      </thead>
+      <tbody id="appendix-d-tbody"></tbody>
+    </table>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">Appendix D</span> · INTERNAL</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
+<!-- =========================================================================
+     APPENDIX E — Plan inputs verbatim
+     ========================================================================= -->
+<section class="slide appendix-slide" data-slide="appendix-e" data-conditional="appendix" style="display:none">
+  <header class="slide-top">
+    <div class="logo"><span class="mark">sw</span> Simple Wealth <em>· compliance appendix</em></div>
+    <div class="meta">
+      <span data-field="familyName">—</span> <span class="sep">·</span>
+      <span data-field="preparedOn">—</span> <span class="sep">·</span>
+      <span class="num" data-field="pageNum">—</span>
+    </div>
+  </header>
+
+  <div class="slide-body">
+    <div class="eyebrow"><span class="rn">Appendix E</span> · Plan inputs as captured</div>
+    <div class="strip-warn">Strip before sending to client · retain in compliance archive</div>
+    <h2 class="h2-slide">What was <em>entered</em>.</h2>
+
+    <div id="appendix-e-grid" class="appendix-inputs-grid"></div>
+  </div>
+
+  <footer class="slide-foot">
+    <div class="firm">Simple Wealth (Pty) Ltd · FSP No. 50637</div>
+    <div><span class="rn">Appendix E</span> · INTERNAL</div>
+    <div class="page"><span data-field="pageNum">—</span> / <span data-field="pageTotal">—</span></div>
+  </footer>
+</section>
+
 </div><!-- /#deck -->
 
 <!-- Empty-state banner shown when no snapshot is loaded. -->
@@ -2621,8 +2900,20 @@ html, body {
     var complianceV2 = deck.querySelector('[data-slide="compliance-v2"]');
     if (!cover || !runIncomeT || !runGeT || !assumeC || !leversV2 || !complianceV2) return;
 
-    // Drop every existing slide that isn't the cover or a v2 template.
-    var KEEP = { 'cover': 1, 'run-income': 1, 'run-ge': 1, 'assumptions-compare': 1, 'levers-v2': 1, 'compliance-v2': 1 };
+    var single = !!snap.plan.single;
+    // Capture appendix templates before they get culled. In single-client
+    // mode, Appendix D (Spouse B tax) is dropped — there's no Spouse B.
+    var APPENDIX_IDS = single
+      ? ['appendix-a', 'appendix-b', 'appendix-c', 'appendix-e']
+      : ['appendix-a', 'appendix-b', 'appendix-c', 'appendix-d', 'appendix-e'];
+    var appendixTs = APPENDIX_IDS.map(function(id){
+      return deck.querySelector('[data-slide="' + id + '"]');
+    }).filter(Boolean);
+
+    // Drop every existing slide that isn't the cover, a v2 template, or an
+    // appendix template (appendix templates get cloned per-run below).
+    var KEEP = { 'cover': 1, 'run-income': 1, 'run-ge': 1, 'assumptions-compare': 1, 'levers-v2': 1, 'compliance-v2': 1,
+                 'appendix-a': 1, 'appendix-b': 1, 'appendix-c': 1, 'appendix-d': 1, 'appendix-e': 1 };
     Array.prototype.slice.call(deck.querySelectorAll('.slide')).forEach(function (s) {
       var id = s.getAttribute('data-slide');
       if (!KEEP[id]) s.remove();
@@ -2632,6 +2923,30 @@ html, body {
     assumeC.style.display = '';
     leversV2.style.display = '';
     complianceV2.style.display = '';
+
+    function cloneAppendix(suffix){
+      var which = suffix.replace('-', '');
+      var runLabel = which === 'baseline' ? 'Baseline run'
+                  : which === 'scenario' ? 'Scenario run' : '';
+      return appendixTs.map(function(t){
+        var c = t.cloneNode(true);
+        c.style.display = '';
+        c.removeAttribute('data-conditional');
+        var origId = t.getAttribute('data-slide');
+        c.setAttribute('data-slide', origId + suffix);
+        c.setAttribute('data-run', which);
+        suffixSlide(c, suffix);
+        // Tag the eyebrow with which run this appendix belongs to so the
+        // adviser can keep baseline / scenario verification straight.
+        if (runLabel) {
+          var eyebrow = c.querySelector('.eyebrow');
+          if (eyebrow) {
+            eyebrow.insertAdjacentHTML('beforeend', ' · <span class="run-tag">' + runLabel + '</span>');
+          }
+        }
+        return c;
+      });
+    }
 
     function makeRun(suffix) {
       var income = runIncomeT.cloneNode(true);
@@ -2652,22 +2967,36 @@ html, body {
 
     var baselinePair = makeRun('-baseline');
     var scenarioPair = makeRun('-scenario');
+    var baselineAppendix = cloneAppendix('-baseline');
+    var scenarioAppendix = cloneAppendix('-scenario');
 
     var fragment = document.createDocumentFragment();
     baselinePair.forEach(function (s) { fragment.appendChild(s); });
     scenarioPair.forEach(function (s) { fragment.appendChild(s); });
     cover.parentNode.insertBefore(fragment, cover.nextSibling);
 
+    // Append per-run appendix slides AFTER the static v2 slides
+    // (assumptions-compare, levers-v2, compliance-v2 already in deck order).
+    var appendixFragment = document.createDocumentFragment();
+    baselineAppendix.forEach(function(s){ appendixFragment.appendChild(s); });
+    scenarioAppendix.forEach(function(s){ appendixFragment.appendChild(s); });
+    deck.appendChild(appendixFragment);
+
     // Remove the now-redundant raw templates (we only kept clones).
     runIncomeT.remove();
     runGeT.remove();
+    appendixTs.forEach(function(t){ t.remove(); });
+    // Drop Appendix D template if it's still around in single mode (we
+    // skipped it above, but the raw template needs removing).
+    var appDT = deck.querySelector('[data-slide="appendix-d"]');
+    if (appDT) appDT.remove();
   }
 
   // ---- Single-run setup --------------------------------------------------
   function setupSingleRun() {
     var deck = document.getElementById('deck');
     // Drop dual-run templates (v1 dividers + v2 templates) — single-run uses
-    // the original 12-slide flow only.
+    // the original 12-slide flow + appendix.
     deck.querySelectorAll('[data-conditional="dualrun"], [data-conditional="dualrun-v2"]').forEach(function (n) { n.remove(); });
 
     // Today's conditional drops: events if no events; compare if no v1 baseline.
@@ -2681,6 +3010,16 @@ html, body {
       var cp = deck.querySelector('[data-slide="compare"]');
       if (cp) cp.remove();
     }
+
+    // Reveal appendix slides (single-run uses no suffix). Drop Appendix D
+    // when in single-client mode.
+    var single = !!snap.plan.single;
+    deck.querySelectorAll('[data-conditional="appendix"]').forEach(function(n){
+      var id = n.getAttribute('data-slide');
+      if (single && id === 'appendix-d') { n.remove(); return; }
+      n.style.display = '';
+      n.removeAttribute('data-conditional');
+    });
   }
 
   if (hasDualRun) setupDualRun(); else setupSingleRun();
@@ -2699,6 +3038,9 @@ html, body {
     setField('preparedOn', sp.preparedOn || '—');
     setField('adviser', sp.adviser || 'Simple Wealth');
     setField('monthlyNeedCover', fmtR(sp.monthlyNeed));
+    // Fingerprint — same hash the calculator paints in its top-nav so the
+    // adviser can confirm the PDF was produced from the live state.
+    setField('fingerprint', snap.fingerprint || '—');
 
     // Assumptions slide — single, shows scenario values. (If Pierre wants
     // a baseline-vs-scenario assumptions row in future, that's a follow-up;
@@ -2788,27 +3130,20 @@ html, body {
       var r = rows[i] || {};
       return r.requiredNom || r.requiredReal || needBase || 0;
     }
-    // Net-to-bank per row. Mirrors the calculator UI's incomeBarSeries
-    // apportionment: household tax is split across LA / Disc / Other
-    // proportional to their gross share, and the bars show the net
-    // portions. The engine's target series (p.nominal.target) is a NET
-    // target, so on-target years land bar tops on the target line and
-    // shortfall years show the real gap above the bars. Legacy snapshots
-    // without `tax` fall through to taxApp = 0 → bars stack at gross.
+    // Net-to-bank per row. Snapshot v2 (post Session 26) ships pre-computed
+    // netLA / netDisc / netOther / netTotal on every row — single source of
+    // truth, derived in the calculator's buildProjectionPayload using the
+    // same apportionment formula as the calculator UI's incomeBarSeries.
+    // Legacy snapshots without those fields (or without `tax`) fall through
+    // to gross stacking — same observable behaviour as the pre-collapse
+    // taxApp = 0 branch.
     function netParts(r) {
-      var la = r.laDraw || 0, di = r.discDraw || 0, ot = r.otherIncome || 0;
-      var grossBase = la + di + ot;
-      var taxApp = r.tax || 0;
-      var laShare = 0, discShare = 0, otherShare = 0;
-      if (grossBase > 0 && taxApp > 0) {
-        laShare = taxApp * (la / grossBase);
-        discShare = taxApp * (di / grossBase);
-        otherShare = taxApp * (ot / grossBase);
+      if (r.netTotal != null) {
+        return { la: r.netLA || 0, disc: r.netDisc || 0,
+                 other: r.netOther || 0, total: r.netTotal || 0 };
       }
-      var laN = Math.max(0, la - laShare);
-      var diN = Math.max(0, di - discShare);
-      var otN = Math.max(0, ot - otherShare);
-      return { la: laN, disc: diN, other: otN, total: laN + diN + otN };
+      var la = r.laDraw || 0, di = r.discDraw || 0, ot = r.otherIncome || 0;
+      return { la: la, disc: di, other: ot, total: la + di + ot };
     }
     var maxVal = 0;
     rows.forEach(function (r, i) {
@@ -3117,6 +3452,168 @@ html, body {
     container.appendChild(svg);
   }
 
+  // ---- Compliance appendix rendering ------------------------------------
+  // Paints Appendices A–E for one run. The appendix slides are dense
+  // verification tables intended for compliance archive and adviser
+  // spot-check; they are stripped from the client-facing PDF before
+  // sending. suffix is '' for single-run, '-baseline' / '-scenario' for
+  // dual-run (each run gets its own copy of every appendix slide).
+  function renderAppendix(plan, proj, suffix) {
+    var rows = (proj && proj.rows) || [];
+    var single = !!plan.single;
+
+    function tdHtml(text, opts){
+      opts = opts || {};
+      var cls = opts.cls ? ' class="' + opts.cls + '"' : '';
+      var align = opts.right ? ' style="text-align: right"' : '';
+      return '<td' + cls + align + '>' + (text == null ? '' : text) + '</td>';
+    }
+
+    // Appendix A — Income chart data (per-year net components vs target).
+    var aTbody = runEl(suffix, 'appendix-a-tbody');
+    if (aTbody) {
+      aTbody.innerHTML = rows.map(function(r){
+        var net = (r.netTotal != null) ? r.netTotal : ((r.totalIncome||0) - (r.tax||0));
+        var laN = (r.netLA != null) ? r.netLA : (r.laDraw||0);
+        var diN = (r.netDisc != null) ? r.netDisc : (r.discDraw||0);
+        var otN = (r.netOther != null) ? r.netOther : (r.otherIncome||0);
+        var tgt = (r.requiredNom != null) ? r.requiredNom : (r.requiredReal || 0);
+        return '<tr>' +
+          tdHtml(r.year) +
+          tdHtml(r.age) +
+          tdHtml(fmtR(laN), { cls: 'num', right: true }) +
+          tdHtml(fmtR(diN), { cls: 'num', right: true }) +
+          tdHtml(fmtR(otN), { cls: 'num', right: true }) +
+          tdHtml(fmtR(r.tax || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(net), { cls: 'num', right: true }) +
+          tdHtml(fmtR(tgt), { cls: 'num', right: true }) +
+        '</tr>';
+      }).join('');
+    }
+
+    // Appendix B — Capital chart data (per-year balances + draw rate).
+    var bTbody = runEl(suffix, 'appendix-b-tbody');
+    if (bTbody) {
+      bTbody.innerHTML = rows.map(function(r){
+        var rate = (r.totalCapital > 0) ? (r.totalIncome / r.totalCapital) : 0;
+        return '<tr>' +
+          tdHtml(r.year) +
+          tdHtml(r.age) +
+          tdHtml(fmtR(r.laBalance || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(r.discBalance || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(r.totalCapital || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtPct(rate, 2), { cls: 'num', right: true }) +
+        '</tr>';
+      }).join('');
+    }
+
+    // Appendix C / D — per-year per-spouse tax breakdown.
+    var spouses = plan.spouses || [];
+    var spouseA = spouses[0] || { name: 'Spouse A' };
+    var spouseB = spouses[1] || { name: 'Spouse B' };
+    setRunField(suffix, 'spouseAName', spouseA.name || 'Spouse A');
+    if (!single) setRunField(suffix, 'spouseBName', spouseB.name || 'Spouse B');
+
+    function paintTaxTbody(tbodyId, taxObjs){
+      var tb = runEl(suffix, tbodyId);
+      if (!tb) return;
+      tb.innerHTML = (taxObjs || []).map(function(o, i){
+        return '<tr>' +
+          tdHtml(rows[i] ? rows[i].year : '') +
+          tdHtml(o.age != null ? o.age : '') +
+          tdHtml(fmtR(o.laDraw || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.otherTaxable != null ? o.otherTaxable : (o.otherIncome || 0)), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.gain || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.inclusion || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.taxable || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.grossPreRebate || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.rebate || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtR(o.tax || 0), { cls: 'num', right: true }) +
+          tdHtml(fmtPct(o.effRate || 0, 1), { cls: 'num', right: true }) +
+        '</tr>';
+      }).join('');
+    }
+    paintTaxTbody('appendix-c-tbody', proj.taxA_objs);
+    if (!single) paintTaxTbody('appendix-d-tbody', proj.taxB_objs);
+
+    // Appendix E — plan inputs verbatim.
+    var grid = runEl(suffix, 'appendix-e-grid');
+    if (grid) {
+      var lines = [];
+      function row(label, value){
+        lines.push('<div class="lbl">' + esc(label) + '</div>');
+        lines.push('<div class="val">' + esc(value == null ? '—' : String(value)) + '</div>');
+      }
+      function header(text){
+        lines.push('<div class="section-h">' + esc(text) + '</div>');
+      }
+      header('Family');
+      row('Family name', plan.familyName);
+      row('Prepared for', plan.preparedFor);
+      row('Prepared on', plan.preparedOn);
+      row('Adviser', plan.adviser);
+      row('Mode', plan.single ? 'Single client' : 'Couple');
+
+      header('Spouses');
+      spouses.forEach(function(s, i){
+        var letter = (i === 0) ? 'A' : 'B';
+        row(letter + ' · Name', s.name);
+        row(letter + ' · Age', s.age);
+        row(letter + ' · LA balance', fmtR(s.laBalance || 0));
+        row(letter + ' · Discretionary', fmtR(s.discretionary || 0));
+        row(letter + ' · Disc base cost', fmtR(s.discBaseCost || 0));
+        var streams = s.otherIncome || [];
+        if (streams.length) {
+          streams.forEach(function(st, j){
+            var name = st.name || st.kind || ('Stream ' + (j+1));
+            var monthly = (st.monthlyAmount != null) ? st.monthlyAmount : (st.monthly || 0);
+            var startAge = (st.startAge != null) ? st.startAge : '—';
+            var endAge = (st.endAge != null) ? st.endAge :
+                         (st.duration != null && st.startAge != null ? (st.startAge + st.duration - 1) : '—');
+            var pct = (st.pctTaxable != null) ? st.pctTaxable : 100;
+            var cpi = st.cpiLinked ? 'CPI-linked' : 'flat';
+            row(letter + ' · Stream · ' + name,
+                fmtR(monthly) + '/mo · ages ' + startAge + '–' + endAge + ' · ' + pct + '% taxable · ' + cpi);
+          });
+        }
+      });
+
+      header('Lifestyle');
+      row('Monthly need', fmtR(plan.monthlyNeed || 0));
+      row('Annual lump sums', fmtR(plan.annualLumpSums || 0));
+      row('Return assumption', fmtPct(plan.returnPct || 0, 2));
+      row('CPI assumption', fmtPct(plan.cpiPct || 0, 2));
+      row('Auto top-up', plan.autoTopUp ? 'On' : 'Off');
+
+      var goals = plan.goals || [];
+      header('Goals (' + goals.length + ')');
+      if (goals.length) {
+        goals.forEach(function(g){
+          row(g.label || 'Goal',
+              fmtR(g.amountPV || 0) + ' every ' + (g.everyNYears || 1) + ' yr · ages ' + g.startAge + '–' + g.endAge);
+        });
+      } else {
+        row('—', 'no goals');
+      }
+
+      var events = plan.capitalEvents || [];
+      header('Capital events (' + events.length + ')');
+      if (events.length) {
+        events.forEach(function(e){
+          var sign = (e.amount || 0) >= 0 ? '+' : '−';
+          var nm = e.label || 'Capital event';
+          var who = e.forWhom || (e.spouse === 'A' ? 'A' : 'B');
+          row(nm,
+              sign + ' ' + fmtR(Math.abs(e.amount || 0)) + ' · year ' + e.year + ' · age ' + (e.age != null ? e.age : '—') + ' · ' + who);
+        });
+      } else {
+        row('—', 'no events');
+      }
+
+      grid.innerHTML = lines.join('');
+    }
+  }
+
   // ---- Per-run rendering -------------------------------------------------
   // Renders all per-run fields, ledgers, tables, and charts for a single
   // run (plan + projection pair). suffix is '' for single-run, '-baseline'
@@ -3420,11 +3917,23 @@ html, body {
       'compliance-v2': 'V'
     };
     var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var appendixCount = 0;
     slides.forEach(function (s, i) {
       var pn = String(i + 1).padStart(2, '0');
       s.querySelectorAll('[data-field="pageNum"]').forEach(function (n) { n.textContent = pn; });
+      // Appendix slides carry static lettered labels in their HTML
+      // (Appendix A, Appendix B, ...) — don't overwrite the .rn spans.
+      // Page numbers still increment per-slide.
+      if (s.classList.contains('appendix-slide')) {
+        appendixCount++;
+        return;
+      }
       var sectionRn = hasDualRun ? V2_SECTION[s.getAttribute('data-slide')] : null;
-      var rn = sectionRn != null ? sectionRn : (hasDualRun ? null : ROMAN[i] || String(i + 1));
+      // Subtract appendix count from the position when picking a Roman
+      // numeral so client-facing slides keep their natural numbering when
+      // the deck is extended with appendix pages.
+      var clientFacingIdx = i - appendixCount;
+      var rn = sectionRn != null ? sectionRn : (hasDualRun ? null : ROMAN[clientFacingIdx] || String(clientFacingIdx + 1));
       if (rn != null) {
         var footRN = s.querySelector('.slide-foot .rn');
         if (footRN) footRN.textContent = rn + '.';
@@ -3993,9 +4502,14 @@ html, body {
     renderRunV2(snap.baseline.plan, snap.baseline.projection, '-baseline');
     renderRunV2(snap.plan, snap.projection, '-scenario');
     renderAssumptionsCompare();
+    // Compliance appendix — one full set per run for verification archive.
+    renderAppendix(snap.baseline.plan, snap.baseline.projection, '-baseline');
+    renderAppendix(snap.plan, snap.projection, '-scenario');
   } else {
     renderRun(snap.plan, snap.projection, '');
     renderCompare();
+    // Compliance appendix — single set for the live scenario.
+    renderAppendix(snap.plan, snap.projection, '');
   }
   renumberSlides();
 

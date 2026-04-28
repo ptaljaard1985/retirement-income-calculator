@@ -107,6 +107,52 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 26 — 2026-04-28 (verification chain: appendix · invariants · fingerprint · netParts collapse)
+
+**Built / changed** — four coordinated pieces tightening the calculator ↔ report verification chain. Pierre's worry was structural: Sessions 22 + 25 both shipped wrong client numbers because of a misleadingly-named field and a duplicated derivation path, with no way for the adviser to verify what the report carried. Engine math untouched: **115/115 Python (was 108) + 41/41 JS (was 19) pass.**
+
+1. **Compliance appendix slides A–E** in `retirement_drawdown_report.html`. Five new dense year-by-year verification tables append at the end of every export — Income chart data (year/age/LA-net/Disc-net/Other-net/Tax/Net total/Target need), Capital chart data (balances + withdrawal rate %), Spouse A tax breakdown (LA draw / Other taxable / Gain / Inclusion / Taxable / Pre-rebate / Rebate / Tax / Eff%), Spouse B tax (dropped in single-client mode), and Plan inputs verbatim (every spouse / goal / event / income stream as written). Coral header bar carries "STRIP BEFORE SENDING TO CLIENT" — the slides are designed to be visibly internal so they can never be mistaken for client material. Adviser saves the full PDF to compliance archive and strips appendix pages before sending the client copy. **In dual-run mode each appendix is cloned per-run** (10 slides total: 5 baseline + 5 scenario, with a "Baseline run" / "Scenario run" tag injected into the eyebrow during cloning) so both runs are independently verifiable. Setup wiring lives in `setupSingleRun()` (reveal + drop-D-if-single) and `setupDualRun()` (KEEP-set + clone via `cloneAppendix(suffix)` mirroring the existing `makeRun(suffix)` pattern). `renumberSlides()` extended: appendix slides keep their static lettered labels (`Appendix A` etc.) — the rn walker explicitly skips them and subtracts `appendixCount` from `i` so client-facing slides retain natural Roman numbering.
+
+2. **`validateSnapshot(proj, plan, label)` in the calculator.** 11 identity assertions, runs inside `buildReportSnapshot` before the snapshot is returned. Each captures a Session-22 / Session-25 class of bug:
+   - I1: `totalIncome === laDraw + discDraw + otherIncome` (within R1).
+   - I2: `totalIncome - tax >= 0` (net never negative).
+   - I3: `shortfall === ((totalIncome - tax) < requiredNom - 1)` (Session-25 net-vs-net comparison).
+   - I4: `laBalance >= 0 && discBalance >= 0`.
+   - I5: `sustainableTo` (when not null) lies in `[startAge, horizonAge]`.
+   - I6: `taxByPerson.length === (single ? 1 : 2)`.
+   - I7: `hhTax === taxA.tax + (single ? 0 : taxB.tax)` (within R1).
+   - I8: `year1.age === startAge`.
+   - I9: `requiredNom > 0` for the first 10 rows.
+   - I10: every `event.year === row.year`.
+   - I11: `netTotal === totalIncome - tax` (when present — locks Component 4's contract).
+
+   On any failure: `console.error()` the offending values + throw with a `label / code — msg` message. The export-click handler at line ~6586 already wraps `buildReportSnapshot()` in `try/catch` + `alert(...)` so the failure surfaces visibly to the adviser. Both halves validated when a baseline is locked. JS tests cover happy path + each invariant trip individually.
+
+3. **Snapshot fingerprint** (`fingerprint6` + `fingerprintFromProjection`). 6-char base36 hash via synchronous djb2 — chosen over `crypto.subtle.digest` because the latter is async and would force the export-click into a Promise chain. Anchors: Y1 gross income, Y1 net income, `sustainableTo`, household gross, mid-horizon gross income, end-horizon total capital. Values rounded to rand precision so float wobble between Chart.js paints doesn't change the hash. Same hash function is called from `refresh()` (using the cached `lastProjection` — no extra `project()` call) to paint `fp:abc123` into a new mono span inside `.tab-nav-actions` next to the Export-report button, AND inside `buildReportSnapshot()` to emit `snapshot.fingerprint`. Report's cover slide cover-foot gained a 5th cell with `data-field="fingerprint"`; `renderShared()` paints it. Adviser glances at both surfaces — match means the PDF in hand was produced from the screen state currently visible. Mismatch means someone exported, then changed an input, then printed a stale tab.
+
+4. **`netParts` duplication collapsed.** `incomeBarSeries()` (calculator line ~4348) and `netParts(r)` (report line ~2798) were two implementations of one tax-apportionment rule (LA/Disc/Other split household tax in proportion to gross share). The report's `netParts(r)` is now a 4-line lookup that reads pre-computed `r.netLA / netDisc / netOther / netTotal` from the snapshot, with a legacy fallback to gross stacking for old localStorage snapshots. The formula now lives once on the calculator side, in `buildProjectionPayload`. Calculator UI's `incomeBarSeries` retains its `realMode` deflation branch — the calculator UI supports a Real|Nominal toggle; the snapshot is nominal-only by design (Session 24 settled the report on nominal). New Python parity test `tests/python/test_net_apportionment.py` (7 cases) locks the formula so future drift between calculator JS and Python port surfaces as a test failure, not a wrong client PDF.
+
+**Architectural decisions**
+- **Appendix per-run in dual-run, not side-by-side.** Considered shared 5-slide appendix with baseline + scenario columns side-by-side (~16 cols at A4 landscape). Rejected: column density would force fonts below 10px to fit, and verification is cleaner when each table maps 1:1 to a chart in the deck above. Per-run produces 10 slides but each is straightforwardly readable.
+- **`taxA_objs / taxB_objs` added to snapshot, not just to engine result.** Appendix C/D needs per-year per-spouse tax breakdown. The engine's `taxA_obj_series` already exists (Session 16); previously only Y1 (`taxA`/`taxB`) was on the snapshot. Lifting the full arrays adds ~6 lines + ~1 KB per export — small cost for the most diagnostically valuable verification table in the appendix.
+- **Fingerprint is djb2, not SHA.** SubtleCrypto is async; converting the export flow to a Promise chain would touch every consumer. djb2 is 10 lines, deterministic, no deps. The fingerprint's job is "did the same numbers go in?" — collision resistance against adversarial inputs is not part of the threat model.
+- **Fingerprint computed from `lastProjection`, not from a full snapshot rebuild.** `refresh()` runs on every input change; rebuilding the full snapshot (deep-clone of plan inputs + per-row payload + validation) every keystroke would be wasteful. Reading anchors directly off `p.table` and `p.nominal` is essentially free.
+- **Invariants throw, not warn.** Pierre wants loud failure, not silent corruption. The existing click-handler `try/catch + alert` was already the right shape — invariants ride that path without modifying the handler.
+- **Misleading `p.nominal.total` not renamed.** Architecture doc has flagged it as a trap twice; cost-benefit may shift again. Each component above closes the immediate verification gap without the rename sweep, which would touch the calculator + Python tests + every consumer.
+- **Engine untouched.** 115/115 Python + 41/41 JS pass. `project()`, `solveTopUp`, `stepPerson` byte-for-byte identical. Only the snapshot shape (additive: `netLA / netDisc / netOther / netTotal / taxA_objs / taxB_objs / fingerprint`) and presentation grew.
+
+**Smoke check**
+JS test suite: `node tests/js/run.js` — 41/41 pass (was 19), covering fingerprint determinism + sensitivity + format, all 11 invariants with happy-path + per-invariant-trip, plus the existing solver tests.
+Python test suite: `pytest` — 115/115 pass (was 108), with 7 new `test_net_apportionment.py` cases.
+Both inline scripts parse cleanly under `new Function()`. Browser walkthrough at A4 landscape print preview deferred to user — the calculator's `tab-nav-actions` + report's cover-foot are both visible on first load; appendix slides paginate one-per-page via the existing `.slide { page-break-after: always }` rule.
+
+**Follow-ups**
+- Browser walkthrough at 1366×768: open `retirement_drawdown.html`, watch the `fp:` string in the top-nav change as sliders move. Click Export Report. Cover slide of the new tab should display the same fingerprint. Scroll to the end — 5 coral-headered appendix slides (or 10 in dual-run) with dense tables. Spot-check Appendix A's first row against the income chart's year-1 bar in the deck above.
+- DevTools verification of invariants: in console after a successful export, `var s = JSON.parse(localStorage['sw-drawdown-snapshot']); s.projection.rows[0].totalIncome = 999; localStorage.setItem('sw-drawdown-snapshot', JSON.stringify(s));` then click Export Report → should `alert("scenario / I1 — totalIncome != laDraw + discDraw + otherIncome")` instead of opening the report.
+- Print preview: confirm the coral header bar of appendix slides survives `print-color-adjust: exact` (already on `.slide` via the existing print stylesheet).
+- 40+ year horizon: the appendix tables fit ~35 rows at 10.5px font. If a longer horizon overflows A4, add a "(continued)" pattern. Defer until observed.
+- Document the asymmetry that snapshot net is nominal-only (no Real-mode equivalent) — the relevant note is in `buildProjectionPayload` near the apportionment block.
+
 ### Session 25 — 2026-04-27 (report income charts: net bars · solid navy target · age-99 horizon)
 
 **Built / changed** — three follow-ups to the dual-run income chart after Pierre A/B'd it against the calculator's Scenarios tab and flagged shortfall mis-detection, dashed coral target, and an early x-axis cutoff. Engine math untouched: **108/108 Python + 19/19 JS** still pass.

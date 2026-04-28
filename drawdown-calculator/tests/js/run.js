@@ -130,6 +130,10 @@ const helpers = [
   'incomeTaxPreRebate',  // legacy non-year version
   'rebate',              // legacy non-year version
   'stepPerson',
+  'deriveMilestones',     // used by fingerprintFromProjection
+  'fingerprint6',         // snapshot fingerprint (Component 3)
+  'fingerprintFromProjection',
+  'validateSnapshot',     // snapshot invariants (Component 2)
 ];
 
 let helpersSrc = '';
@@ -155,7 +159,10 @@ const testModuleSrc = `
   ${CREEP_SRC}
   ${helpersSrc}
   ${solveTopUpSrc}
-  return { solveTopUp, stepPerson, incomeTaxYear, rebateYear, cgtExclusionYear, incomeTaxPreRebateYear };
+  return {
+    solveTopUp, stepPerson, incomeTaxYear, rebateYear, cgtExclusionYear, incomeTaxPreRebateYear,
+    deriveMilestones, fingerprint6, fingerprintFromProjection, validateSnapshot
+  };
 `;
 
 const testAPI = new Function(testModuleSrc)();
@@ -380,6 +387,298 @@ test('single: both spouses fully depleted mid-year stays finite', () => {
   assert.strictEqual(r.laDrawB, 0);
   assert.strictEqual(r.discA, 0);
   assert.strictEqual(r.discB, 0);
+});
+
+
+// ============================================================
+// fingerprint6 — pure synchronous djb2 hash of N anchor numbers
+// ============================================================
+
+console.log('\n== fingerprint6 ==');
+
+test('fingerprint6: deterministic — same inputs → same output', () => {
+  const a = testAPI.fingerprint6([100, 200, 300, 400, 500, 600]);
+  const b = testAPI.fingerprint6([100, 200, 300, 400, 500, 600]);
+  assert.strictEqual(a, b);
+});
+
+test('fingerprint6: format — 6 lowercase alphanumeric chars', () => {
+  const fp = testAPI.fingerprint6([1, 2, 3, 4, 5, 6]);
+  assert.strictEqual(fp.length, 6);
+  assert.ok(/^[0-9a-z]{6}$/.test(fp), 'fp=' + fp + ' fails format');
+});
+
+test('fingerprint6: sensitivity — changing any anchor changes the hash', () => {
+  const base = testAPI.fingerprint6([100, 200, 300, 400, 500, 600]);
+  for (let i = 0; i < 6; i++) {
+    const mutated = [100, 200, 300, 400, 500, 600];
+    mutated[i] += 1;
+    const fp = testAPI.fingerprint6(mutated);
+    assert.notStrictEqual(fp, base, `anchor ${i} change did not alter fingerprint`);
+  }
+});
+
+test('fingerprint6: rounds to rand precision (cents do not affect)', () => {
+  // The Math.round in fingerprint6 means 100.4 and 100.0 both hash to 100.
+  const a = testAPI.fingerprint6([100.4, 200, 300, 400, 500, 600]);
+  const b = testAPI.fingerprint6([100, 200, 300, 400, 500, 600]);
+  assert.strictEqual(a, b);
+});
+
+test('fingerprint6: handles zero and negative numbers', () => {
+  const fp1 = testAPI.fingerprint6([0, 0, 0, 0, 0, 0]);
+  const fp2 = testAPI.fingerprint6([-100, 50, 0, 999, -5, 1]);
+  assert.strictEqual(fp1.length, 6);
+  assert.strictEqual(fp2.length, 6);
+  assert.notStrictEqual(fp1, fp2);
+});
+
+
+// ============================================================
+// validateSnapshot — invariant assertions (Component 2)
+// ============================================================
+
+console.log('\n== validateSnapshot ==');
+
+// Build a minimal valid snapshot for the happy-path baseline. Real fields
+// only — anything left undefined would cause defensive `|| 0` reads to no-op
+// the assertion (we want to test the assertions, not the falsy fallbacks).
+function makeValidSnapshot() {
+  const rows = [];
+  for (let i = 0; i < 35; i++) {
+    const laDraw = 200_000;
+    const discDraw = 50_000;
+    const otherIncome = 30_000;
+    const totalIncome = laDraw + discDraw + otherIncome;  // 280_000
+    const tax = 40_000;
+    const requiredNom = 200_000 * Math.pow(1.03, i);
+    const net = totalIncome - tax;
+    rows.push({
+      year: 2026 + i,
+      age: 65 + i,
+      laDraw, discDraw, otherIncome, totalIncome, tax,
+      netLA: laDraw - tax * (laDraw / totalIncome),
+      netDisc: discDraw - tax * (discDraw / totalIncome),
+      netOther: otherIncome - tax * (otherIncome / totalIncome),
+      netTotal: net,
+      requiredReal: 200_000,
+      requiredNom: requiredNom,
+      laBalance: 4_000_000,
+      discBalance: 1_000_000,
+      totalCapital: 5_000_000,
+      shortfall: net < requiredNom - 1,
+      events: []
+    });
+  }
+  return {
+    proj: {
+      startAge: 65,
+      horizonAge: 99,
+      years: 35,
+      rNom: 0.065, cpi: 0.03,
+      rows: rows,
+      sustainableTo: 95,
+      depletesAt: null, laCapHitAt: null, discExhaustsAt: null,
+      year1: rows[0],
+      taxA: { tax: 25_000, grossIncome: 150_000 },
+      taxB: { tax: 15_000, grossIncome: 100_000 },
+      taxByPerson: [
+        { name: 'A', tax: 25_000, grossIncome: 150_000 },
+        { name: 'B', tax: 15_000, grossIncome: 100_000 }
+      ],
+      hhGross: 250_000,
+      hhTax: 40_000,
+      hhNet: 210_000,
+      hhEff: 0.16
+    },
+    plan: { single: false }
+  };
+}
+
+test('validateSnapshot: happy path does not throw', () => {
+  const s = makeValidSnapshot();
+  testAPI.validateSnapshot(s.proj, s.plan, 'scenario');
+});
+
+test('validateSnapshot: I1 fires when totalIncome != sum of components', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[0].totalIncome = 999_999;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I1/
+  );
+});
+
+test('validateSnapshot: I2 fires when net is meaningfully negative', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[0].tax = s.proj.rows[0].totalIncome + 1000;  // tax > gross
+  // I1 will also fire if we change tax without rebalancing — but here we're
+  // only changing tax, so totalIncome still matches sum. I2 should fire.
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I2/
+  );
+});
+
+test('validateSnapshot: I3 fires when shortfall flag mismatches net-vs-net', () => {
+  const s = makeValidSnapshot();
+  // Force shortfall=true on a row where (totalIncome-tax) clearly >= requiredNom.
+  s.proj.rows[0].shortfall = true;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I3/
+  );
+});
+
+test('validateSnapshot: I4 fires on negative balances', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[0].laBalance = -1000;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I4/
+  );
+});
+
+test('validateSnapshot: I5 fires when sustainableTo is outside horizon', () => {
+  const s = makeValidSnapshot();
+  s.proj.sustainableTo = 200;  // way past horizon
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I5/
+  );
+});
+
+test('validateSnapshot: I6 fires when taxByPerson length mismatches single', () => {
+  const s = makeValidSnapshot();
+  s.plan.single = true;  // expect 1 spouse but taxByPerson has 2
+  // I7 may also fire (hhTax sums both); test specifically for I6 by
+  // also restoring hhTax to match single mode.
+  s.proj.hhTax = s.proj.taxA.tax;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I6/
+  );
+});
+
+test('validateSnapshot: I7 fires when hhTax mismatches sum of spouse tax', () => {
+  const s = makeValidSnapshot();
+  s.proj.hhTax = 999_999;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I7/
+  );
+});
+
+test('validateSnapshot: I8 fires when year1.age != startAge', () => {
+  const s = makeValidSnapshot();
+  s.proj.year1 = { age: 99 };  // mismatched
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I8/
+  );
+});
+
+test('validateSnapshot: I9 fires on zero requiredNom in early years', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[2].requiredNom = 0;
+  // I3 will also fire because shortfall flag is now wrong; I9 fires first
+  // by row order so we check that the error mentions I9 OR I3 — both are
+  // legitimate signals.
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I9|I3/
+  );
+});
+
+test('validateSnapshot: I10 fires when event.year != row.year', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[5].events = [{ year: 9999, label: 'Bad event', amount: 100_000 }];
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I10/
+  );
+});
+
+test('validateSnapshot: I11 fires when netTotal != totalIncome - tax', () => {
+  const s = makeValidSnapshot();
+  s.proj.rows[0].netTotal = 999_999;
+  assert.throws(
+    () => testAPI.validateSnapshot(s.proj, s.plan, 'scenario'),
+    /I11/
+  );
+});
+
+test('validateSnapshot: single-client mode happy path', () => {
+  const s = makeValidSnapshot();
+  s.plan.single = true;
+  s.proj.taxByPerson = [{ name: 'Client', tax: 25_000, grossIncome: 150_000 }];
+  s.proj.taxA = { tax: 25_000, grossIncome: 150_000 };
+  s.proj.taxB = null;
+  s.proj.hhTax = 25_000;
+  s.proj.hhGross = 150_000;
+  s.proj.hhNet = 125_000;
+  testAPI.validateSnapshot(s.proj, s.plan, 'scenario');
+});
+
+
+// ============================================================
+// fingerprintFromProjection — composite hash from engine result
+// ============================================================
+
+console.log('\n== fingerprintFromProjection ==');
+
+// Build a minimal project()-shaped object (only the fields fingerprint
+// actually reads).
+function makeFakeProjection(overrides) {
+  const n = 35;
+  const draw = (v) => Array(n).fill(v);
+  const bal = (v) => Array(n).fill(v);
+  const tax = Array(n).fill(50_000);
+  const target = Array(n).fill(200_000);
+  const proj = {
+    years: n,
+    startAge: 65,
+    table: {
+      laA_draw: draw(150_000), laB_draw: draw(100_000),
+      discA_draw: draw(30_000), discB_draw: draw(20_000),
+      otherA: draw(20_000), otherB: draw(10_000),
+      laA_bal: bal(2_000_000), laB_bal: bal(1_500_000),
+      discA_bal: bal(500_000), discB_bal: bal(400_000),
+      clampA: Array(n).fill('ok'), clampB: Array(n).fill('ok')
+    },
+    nominal: { draw: draw(330_000), target: target, tax: tax },
+    taxA: { grossIncome: 200_000 }, taxB: { grossIncome: 130_000 }
+  };
+  if (overrides) Object.assign(proj, overrides);
+  return proj;
+}
+
+test('fingerprintFromProjection: deterministic for identical projections', () => {
+  const a = testAPI.fingerprintFromProjection(makeFakeProjection());
+  const b = testAPI.fingerprintFromProjection(makeFakeProjection());
+  assert.strictEqual(a, b);
+  assert.strictEqual(a.length, 6);
+});
+
+test('fingerprintFromProjection: changes when Y1 income changes', () => {
+  const base = testAPI.fingerprintFromProjection(makeFakeProjection());
+  const mutated = makeFakeProjection();
+  mutated.table.laA_draw[0] = 999_999;  // change Y1 LA-A draw
+  const fp = testAPI.fingerprintFromProjection(mutated);
+  assert.notStrictEqual(fp, base);
+});
+
+test('fingerprintFromProjection: changes when end-capital changes', () => {
+  const base = testAPI.fingerprintFromProjection(makeFakeProjection());
+  const mutated = makeFakeProjection();
+  mutated.table.laA_bal[34] = 9_999_999;  // change last-year LA balance
+  const fp = testAPI.fingerprintFromProjection(mutated);
+  assert.notStrictEqual(fp, base);
+});
+
+test('fingerprintFromProjection: handles empty projection gracefully', () => {
+  const fp = testAPI.fingerprintFromProjection(null);
+  assert.strictEqual(fp.length, 6);  // still a 6-char string, not a throw
 });
 
 

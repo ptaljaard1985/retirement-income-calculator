@@ -269,14 +269,18 @@ A second self-contained HTML file in this directory. It produces the editorial A
   projection: {
     startAge, horizonAge, years, rNom, cpi,
     rows: [{ year, age, laDraw, discDraw, otherIncome, totalIncome, tax,
+             netLA, netDisc, netOther, netTotal,           // v2 (Session 26) — pre-apportioned net
              requiredReal, requiredNom, laBalance, discBalance, totalCapital, shortfall, events }],
     sustainableTo, depletesAt, laCapHitAt, discExhaustsAt,
-    year1, taxA, taxB, taxByPerson, hhGross, hhTax, hhNet, hhEff
+    year1, taxA, taxB, taxByPerson, hhGross, hhTax, hhNet, hhEff,
+    taxA_objs, taxB_objs                                   // v2 (Session 26) — per-year per-spouse tax breakdown
   },
   baseline: null | {                                       // present iff baseline locked at export time
     plan: { ... },                                         // same shape as top-level plan, frozen at lock time
-    projection: { ... }                                    // same shape as top-level projection
-  }
+    projection: { ... },                                   // same shape as top-level projection
+    fingerprint: "abc123"                                  // v2 (Session 26) — 6-char hash of baseline projection
+  },
+  fingerprint: "abc123"                                    // v2 (Session 26) — 6-char hash of live projection
 }
 ```
 
@@ -285,12 +289,17 @@ A second self-contained HTML file in this directory. It produces the editorial A
 - `plan.goals[]` is read from `goalsStore` and surfaced verbatim. The v2 dual-run report's GE slide renders goals as a dedicated section (the **ii.** block in the four-section stack) underneath a top **i. Lifestyle expenses** section that holds `monthlyNeed` and `annualLumpSums` as two distinct rows. Goals do not appear on the v1 single-run slides today.
 - `projection.rows[i]` is shaped to the report binder's expectations exactly — no further transformation is done at render time.
 - `projection.taxByPerson` is a 1- or 2-element array `[{name, age, laDraw, otherIncome, discDraw, gain, inclusion, taxable, grossIncome, tax, effRate}]` built from `p.taxA` / `p.taxB` for the Y1 tax slide. Length 1 in single-client mode.
-- `baseline` is omitted entirely when no baseline is locked. When present, **its `plan` is the inputs as captured at lock time** (deep-cloned, immune to later edits on Scenarios) and **its `projection` is the frozen `project()` output** at that moment. The report renders both runs end-to-end when this block is present.
+- `projection.rows[i].netLA / netDisc / netOther / netTotal` (Session 26) are the per-source net-to-bank components after household tax has been apportioned in proportion to each source's gross share — same formula as the calculator UI's `incomeBarSeries`. Lifting the formula onto the snapshot collapsed what was a duplicated derivation in the report's `netParts(r)`. Nominal-only (the calculator UI's `realMode` branch is intentionally not replicated). Identity invariant: `netTotal === totalIncome - tax` (within R1).
+- `projection.taxA_objs / taxB_objs` (Session 26) are per-year per-spouse tax breakdown arrays — `[{laDraw, otherIncome, otherTaxable, otherTaxFree, gain, inclusion, taxable, grossPreRebate, rebate, tax, grossIncome, effRate, age}, ...]` cloned defensively from `p.taxA_objs` / `p.taxB_objs` (the engine's per-year tax objects from Session 16). Empty array `[]` for `taxB_objs` in single-client mode. Consumed by the report's compliance Appendix C / D.
+- `snapshot.fingerprint` (Session 26) is a 6-char base36 djb2 hash of six anchor numbers: Y1 gross, Y1 net, sustainableTo, hhGross, mid-horizon gross, end-horizon total capital. Synchronous (`crypto.subtle` was rejected as async). Computed by `fingerprintFromProjection(p)` and rendered both on the calculator's `tab-nav-actions` (via `refresh()`) and on the report's cover-foot via `setField('fingerprint', ...)`. Adviser glances at both surfaces — match means the PDF was produced from the live state.
+- `baseline` is omitted entirely when no baseline is locked. When present, **its `plan` is the inputs as captured at lock time** (deep-cloned, immune to later edits on Scenarios) and **its `projection` is the frozen `project()` output** at that moment. The report renders both runs end-to-end when this block is present. Carries its own `fingerprint`.
 
 **Calculator-side construction** (`retirement_drawdown.html`):
 - `captureCurrentPlanInputs()` — reads the live DOM/store and returns a deep-cloned, self-contained `plan`-shape object. Called both at lock time (to populate the `baselineInputs` global) and at export time (to populate the live `plan`).
-- `buildProjectionPayload(p, planInputs)` — pure of DOM, takes a `project()` result and matching inputs, returns the `projection` shape.
-- `buildReportSnapshot()` orchestrates: builds the live `plan` + `projection`; if `baseline && baselineInputs`, also builds the baseline pair and attaches under `snapshot.baseline`.
+- `buildProjectionPayload(p, planInputs)` — pure of DOM, takes a `project()` result and matching inputs, returns the `projection` shape. Lifts net apportionment + per-year tax breakdown onto the snapshot (Session 26).
+- `validateSnapshot(proj, plan, label)` — runs 11 identity assertions on a built projection block before it's emitted (Session 26). Throws on failure; the export-click handler at line ~6586 wraps `buildReportSnapshot()` in `try/catch` + `alert(...)` so failures surface visibly to the adviser instead of silently shipping a malformed snapshot.
+- `fingerprint6(nums)` + `fingerprintFromProjection(p)` (Session 26) — synchronous djb2 hash of six anchor numbers from a `project()` result. Rendered into `#top-nav-fp` from `refresh()` and into `snapshot.fingerprint` by `buildReportSnapshot()`.
+- `buildReportSnapshot()` orchestrates: builds the live `plan` + `projection`, attaches the live `fingerprint`; if `baseline && baselineInputs`, also builds the baseline pair (with its own fingerprint) and attaches under `snapshot.baseline`; then runs `validateSnapshot()` against both halves before returning.
 - `snapshotBaseline()` (the Explore-Scenario / re-lock handler) freezes BOTH `baseline = JSON.parse(JSON.stringify(project()))` AND `baselineInputs = captureCurrentPlanInputs()`. Cleared together by the Clear-baseline handler.
 
 **Schema versioning**:
@@ -333,6 +342,13 @@ A second self-contained HTML file in this directory. It produces the editorial A
     [levers-v2]             four-lever editorial grid (single, replaces v1 levers)
     [compliance-v2]         six-block compliance grid (single, replaces v1 compliance)
 
+    # Compliance appendix (data-conditional="appendix", ship hidden — Session 26):
+    [appendix-a]            Income chart data — year, age, LA-net, Disc-net, Other-net, Tax, Net total, Target
+    [appendix-b]            Capital chart data — year, age, LA bal, Disc bal, Total cap, Withdrawal %
+    [appendix-c]            Spouse A tax breakdown (per-year, from taxA_objs)
+    [appendix-d]            Spouse B tax breakdown (per-year — dropped if plan.single)
+    [appendix-e]            Plan inputs verbatim (every spouse, goal, event, income stream)
+
   <div id="empty-banner">  shown when no snapshot in localStorage
 <script>  one IIFE
 ```
@@ -353,6 +369,8 @@ A second self-contained HTML file in this directory. It produces the editorial A
 `setupDualRun()` drops every slide except the cover and the five v2 templates, then clones `run-income` + `run-ge` twice (once for baseline, once for scenario) — `suffixSlide(node, '-baseline'|'-scenario')` rewrites every `id` and per-run `data-field` attr in place, exempting `SHARED_FIELDS`. Originals are removed after cloning. The static v2 slides are revealed by clearing their `display:none`. `setupSingleRun()` drops both `[data-conditional="dualrun"]` AND `[data-conditional="dualrun-v2"]` so the v1 12-slide flow stays untouched.
 
 **Section numbering**: v2 uses **section** Roman numerals (I/I for the baseline pair, II/II for the scenario pair, III for assumptions, IV for levers, V for compliance) rather than per-slide. The cover takes no numeral. `renumberSlides()` switches between the v2 section map and the v1 per-slide walker by checking `hasDualRun`. Page numbers (`pageNum` / `pageTotal`) always increment per-slide regardless of mode.
+
+**Compliance appendix (Session 26)** — Five slide templates (`appendix-a` through `appendix-e`) are appended to the deck by `renderAppendix(plan, proj, suffix)`. In single-run they're revealed in place after the v1 flow; in dual-run they're cloned per-run via `cloneAppendix(suffix)` so 10 slides total appear (5 baseline + 5 scenario, with a "Baseline run" / "Scenario run" tag injected into the eyebrow during cloning). Coral header bar + "STRIP BEFORE SENDING TO CLIENT" mono caption — visually distinct so they cannot be mistaken for client-facing material. `renumberSlides()` skips appendix slides for the rn walker (they keep their static "Appendix A/B/C/D/E" labels) but still increments page numbers per-slide. Adviser saves the full PDF to compliance archive; strips appendix pages from the client copy. Single-client mode drops Appendix D (Spouse B tax) automatically.
 
 **Run identity**: each cloned slide carries a 4 px coloured strip below the slide-top (`paper-3` for baseline, `navy` for scenario) and a chip in the slide-top meta (`I. Baseline · locked` / `II. Scenario · explored today`). The strip + chip are written by `renderRunV2` via the `runStripHost` / `runChipHost` placeholder spans in the template.
 

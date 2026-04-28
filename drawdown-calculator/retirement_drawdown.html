@@ -2568,6 +2568,10 @@
     <button type="button" class="tab-nav-tab" data-tab-target="assumptions" role="tab" aria-selected="false">Assumptions</button>
   </div>
   <div class="tab-nav-actions">
+    <span id="top-nav-fp"
+          class="num"
+          title="Snapshot fingerprint — should match the report cover slide for the PDF you exported from this state"
+          style="font-family: var(--mono); font-size: 10.5px; color: var(--mute); letter-spacing: 0.04em; margin-right: 12px;">fp:&mdash;</span>
     <button type="button" class="btn ghost" id="btn-export-report-nav" title="Open the editorial client report in a new tab">Export report &rarr;</button>
   </div>
 </nav>
@@ -5075,6 +5079,11 @@
     updateLeverLabels();
     var p = project();
     lastProjection = p;
+    // Paint the snapshot fingerprint into the top-nav so the adviser can
+    // confirm the open report PDF matches the screen at any time. Computed
+    // from the engine result directly — no full snapshot rebuild needed.
+    var fpEl = document.getElementById('top-nav-fp');
+    if (fpEl) fpEl.textContent = 'fp:' + fingerprintFromProjection(p);
     updateCards(p);
     updateTaxPanel(p);
     updateAlerts(p);
@@ -6308,6 +6317,57 @@
     return { sustainableTo: sustainableTo, depletesAt: depletesAt, laCapHitAt: laCapHitAt, discExhaustsAt: discExhaustsAt };
   }
 
+  // ---- Snapshot fingerprint ---------------------------------------------
+  // 6-char alphanumeric hash of 6 anchor numbers. Synchronous djb2 — chosen
+  // over crypto.subtle.digest because the latter is async and would force
+  // the export-click handler into a Promise chain. Values are rounded to
+  // rand precision so float wobble between Chart.js paints doesn't change
+  // the fingerprint between consecutive refresh() calls. Identical numbers
+  // always produce the identical hash; any meaningful change to a Y1 /
+  // mid-horizon / endpoint anchor changes the hash.
+  function fingerprint6(nums){
+    var h = 5381;
+    for (var i = 0; i < nums.length; i++){
+      var v = Math.round(nums[i] || 0);
+      h = ((h << 5) + h) ^ v;
+      h = h & 0xffffffff;
+    }
+    return ((h >>> 0) % 2176782336).toString(36).padStart(6, '0').slice(-6);
+  }
+
+  // Compute the fingerprint from a project() result. Reads anchor numbers
+  // directly from the engine output — no full snapshot rebuild — so refresh()
+  // can call it on every input change without measurable overhead.
+  function fingerprintFromProjection(p){
+    if (!p || !p.table) return '—'.repeat(6);
+    var t = p.table, n = p.years || 0;
+    if (n <= 0) return '—'.repeat(6);
+    function gross(i){
+      return (t.laA_draw[i]||0) + (t.laB_draw[i]||0)
+           + (t.discA_draw[i]||0) + (t.discB_draw[i]||0)
+           + (t.otherA[i]||0) + (t.otherB[i]||0);
+    }
+    function cap(i){
+      return (t.laA_bal[i]||0) + (t.laB_bal[i]||0)
+           + (t.discA_bal[i]||0) + (t.discB_bal[i]||0);
+    }
+    var y1Gross = gross(0);
+    var y1Tax = (p.nominal && p.nominal.tax && p.nominal.tax[0]) || 0;
+    var ms = deriveMilestones(p);
+    var midIdx = Math.floor(n / 2);
+    var lastIdx = n - 1;
+    var hhGross = ((p.taxA && p.taxA.grossIncome) || 0)
+                + ((p.taxB && p.taxB.grossIncome) || 0);
+    return fingerprint6([
+      y1Gross,
+      y1Gross - y1Tax,
+      ms.sustainableTo || 0,
+      hhGross,
+      gross(midIdx),
+      cap(lastIdx)
+    ]);
+  }
+
   // Snapshot the live plan inputs into a self-contained, deep-cloned object
   // matching the report snapshot's `plan` block (plus an internal `startYear`
   // used by the projection-payload builder; stripped before emitting). Called
@@ -6465,6 +6525,20 @@
       var requiredReal = p.targetPVAnnual;
       var requiredNom = (p.nominal.target && p.nominal.target[i]) || 0;
       var rowEvents = capitalEvents.filter(function(e){ return e.year === startYear + i; });
+      // Apportion household tax across LA / Disc / Other in proportion to gross
+      // share. Mirrors incomeBarSeries() in the calculator UI but stays in
+      // nominal terms (the calculator UI's realMode branch is intentionally
+      // not replicated here — Session 24 settled the report on nominal).
+      // Lifting this onto the snapshot collapses what was a duplicated
+      // derivation in the report's netParts() (Session 26 work).
+      var grossBase = laDraw + discDraw + otherInc;
+      var netLA = laDraw, netDisc = discDraw, netOther = otherInc;
+      if (grossBase > 0 && taxNom > 0) {
+        netLA    = Math.max(0, laDraw   - taxNom * (laDraw   / grossBase));
+        netDisc  = Math.max(0, discDraw - taxNom * (discDraw / grossBase));
+        netOther = Math.max(0, otherInc - taxNom * (otherInc / grossBase));
+      }
+      var netTotal = netLA + netDisc + netOther;
       rows.push({
         year: startYear + i,
         age: p.startAge + i,
@@ -6473,6 +6547,10 @@
         otherIncome: otherInc,
         totalIncome: totalIncome,
         tax: taxNom,
+        netLA: netLA,
+        netDisc: netDisc,
+        netOther: netOther,
+        netTotal: netTotal,
         requiredReal: requiredReal,
         requiredNom: requiredNom,
         laBalance: laBalance,
@@ -6522,8 +6600,91 @@
       hhGross: hhGross,
       hhTax: hhTax,
       hhNet: hhGross - hhTax,
-      hhEff: hhGross > 0 ? hhTax / hhGross : 0
+      hhEff: hhGross > 0 ? hhTax / hhGross : 0,
+      // Per-year per-spouse tax breakdown arrays for the report's compliance
+      // appendix (Appendix C / D). Each entry carries the same fields as the
+      // engine's taxA_obj_series rows: laDraw, otherIncome, otherTaxable,
+      // otherTaxFree, gain, inclusion, taxable, grossPreRebate, rebate, tax,
+      // grossIncome, effRate, age. Cloned defensively so later mutations on
+      // the engine result don't bleed into the snapshot.
+      taxA_objs: (p.taxA_objs || []).map(function(o){ return Object.assign({}, o); }),
+      taxB_objs: single ? [] : (p.taxB_objs || []).map(function(o){ return Object.assign({}, o); })
     };
+  }
+
+  // Snapshot invariants. Each assertion captures a Session-22 / Session-25
+  // class of bug (wrong-source field, gross-vs-net confusion). On failure:
+  // log the offending values and throw — the export-click handler at
+  // ~line 6586 wraps buildReportSnapshot in try/catch and surfaces the
+  // message via alert(), so a malformed snapshot fails loudly to the
+  // adviser instead of silently producing a wrong client PDF.
+  function validateSnapshot(proj, plan, label){
+    var R1 = 1.0;  // rand tolerance
+    function fail(code, msg, ctx){
+      console.error('[snapshot ' + label + ' invariant ' + code + ']', msg, ctx);
+      throw new Error(label + ' / ' + code + ' — ' + msg);
+    }
+    var rows = proj.rows || [];
+    var single = !!plan.single;
+    for (var i = 0; i < rows.length; i++){
+      var r = rows[i];
+      var sumGross = (r.laDraw||0) + (r.discDraw||0) + (r.otherIncome||0);
+      // I1: totalIncome decomposes into its three components (Session 22 class).
+      if (Math.abs((r.totalIncome||0) - sumGross) > R1){
+        fail('I1', 'totalIncome != laDraw + discDraw + otherIncome', {i: i, row: r, sum: sumGross});
+      }
+      // I2: net is never negative (tax can't exceed gross).
+      if ((r.totalIncome||0) - (r.tax||0) < -R1){
+        fail('I2', 'net income negative', {i: i, row: r});
+      }
+      // I3: shortfall flag matches net-vs-net comparison (Session 25 class).
+      var expectedShortfall = ((r.totalIncome||0) - (r.tax||0)) < ((r.requiredNom||0) - 1);
+      if (!!r.shortfall !== expectedShortfall){
+        fail('I3', 'shortfall flag mismatch', {i: i, row: r, expected: expectedShortfall});
+      }
+      // I4: balances never go negative (modulo float epsilon).
+      if ((r.laBalance||0) < -R1 || (r.discBalance||0) < -R1){
+        fail('I4', 'negative balance', {i: i, row: r});
+      }
+      // I9: requiredNom is positive in the early years (catches zero-target bug).
+      if (i < 10 && !((r.requiredNom||0) > 0)){
+        fail('I9', 'requiredNom not positive in first 10 years', {i: i, row: r});
+      }
+      // I10: every event on a row lands in that row's calendar year.
+      if (r.events && r.events.length){
+        for (var e = 0; e < r.events.length; e++){
+          if (r.events[e].year !== r.year){
+            fail('I10', 'event year != row year', {i: i, ev: r.events[e], row: r});
+          }
+        }
+      }
+      // I11: net components sum to gross - tax (locks Component-4 contract).
+      if (r.netTotal != null){
+        if (Math.abs((r.netTotal||0) - ((r.totalIncome||0) - (r.tax||0))) > R1){
+          fail('I11', 'netTotal != totalIncome - tax', {i: i, row: r});
+        }
+      }
+    }
+    // I5: sustainableTo (when present) lies inside the projection horizon.
+    if (proj.sustainableTo !== null && proj.sustainableTo !== undefined){
+      if (proj.sustainableTo < proj.startAge || proj.sustainableTo > proj.horizonAge){
+        fail('I5', 'sustainableTo outside horizon', {sustainableTo: proj.sustainableTo, startAge: proj.startAge, horizonAge: proj.horizonAge});
+      }
+    }
+    // I6: taxByPerson length matches single/couple mode.
+    var expectedTaxLen = single ? 1 : 2;
+    if (!proj.taxByPerson || proj.taxByPerson.length !== expectedTaxLen){
+      fail('I6', 'taxByPerson length mismatch', {len: (proj.taxByPerson||[]).length, expected: expectedTaxLen});
+    }
+    // I7: hhTax equals taxA + taxB (within rounding).
+    var taxSum = ((proj.taxA && proj.taxA.tax) || 0) + (single ? 0 : ((proj.taxB && proj.taxB.tax) || 0));
+    if (Math.abs((proj.hhTax||0) - taxSum) > R1){
+      fail('I7', 'hhTax != taxA.tax + taxB.tax', {hhTax: proj.hhTax, sum: taxSum});
+    }
+    // I8: year1 anchors at startAge.
+    if (proj.year1 && proj.year1.age !== proj.startAge){
+      fail('I8', 'year1.age != startAge', {year1Age: proj.year1.age, startAge: proj.startAge});
+    }
   }
 
   function buildReportSnapshot(){
@@ -6538,7 +6699,12 @@
     var snapshot = {
       schemaVersion: 2,
       plan: plan,
-      projection: projectionPayload
+      projection: projectionPayload,
+      // 6-char hash of 6 anchor numbers from the live projection. The
+      // calculator's top-nav paints the same fingerprint live; an adviser
+      // comparing the open report cover slide to the screen can confirm in
+      // one glance that the PDF was produced from the current state.
+      fingerprint: fingerprintFromProjection(p)
     };
 
     // When a baseline is locked, also emit a baseline run so the report can
@@ -6549,8 +6715,16 @@
       delete bPlan.startYear;
       snapshot.baseline = {
         plan: bPlan,
-        projection: buildProjectionPayload(baseline, baselineInputs)
+        projection: buildProjectionPayload(baseline, baselineInputs),
+        fingerprint: fingerprintFromProjection(baseline)
       };
+    }
+
+    // Validate before returning. Any failure throws and is surfaced to the
+    // adviser by the export-click handler's catch block.
+    validateSnapshot(snapshot.projection, snapshot.plan, 'scenario');
+    if (snapshot.baseline){
+      validateSnapshot(snapshot.baseline.projection, snapshot.baseline.plan, 'baseline');
     }
 
     return snapshot;
