@@ -2816,7 +2816,7 @@
     <div class="rail-section-head">Spending</div>
     <div class="rail-slider">
       <div class="lever-head">
-        <label>Monthly need <span class="rail-swing">&plusmn;R30k</span></label>
+        <label>Monthly need <span class="rail-swing">&plusmn;R100k</span></label>
         <span class="val" id="needs-monthly-rail-out">R0</span>
       </div>
       <input type="range" min="0" max="100000" step="500" value="50000" id="needs-monthly-rail">
@@ -6290,7 +6290,7 @@
     canonical.addEventListener('input', recenter);
     canonical.addEventListener('blur', recenter);
   }
-  setupRailSpendingSlider('needs-monthly', 'needs-monthly-rail', 'needs-monthly-rail-out', 30000);
+  setupRailSpendingSlider('needs-monthly', 'needs-monthly-rail', 'needs-monthly-rail-out', 100000);
 
   // ===== Export report =====
   // Serialise the current plan + projection into the shape the editorial
