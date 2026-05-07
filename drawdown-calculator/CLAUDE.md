@@ -107,6 +107,38 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 27 — 2026-04-28 (sustainableTo net-vs-net fix · I12 invariant)
+
+**Built / changed** — surgical follow-up after Pierre A/B'd the Session 26 export and spotted that the report headline said "the same household carries to age 96" while the income chart's coral wash started at age 94. Two paths computed first-shortfall age and disagreed by 2 years. Tests: **115/115 Python · 45/45 JS** (was 41 — added 3 deriveMilestones cases + 1 I12 trip).
+
+**Why the headline was off.** Two functions in the calculator detect shortfall and they used different comparisons:
+- `buildProjectionPayload` (line 6481, post Session 25): `r.shortfall = (totalIncome - tax) < requiredNom - 1` — **net vs net**. Drives the chart's per-row coral wash.
+- `deriveMilestones` (line 6307, pre this session): `shortfall = pp.nominal.draw[i] < pp.nominal.target[i] - 1` — **gross vs net**. Drives `proj.sustainableTo`, which the report's headline copy reads.
+
+The engine's solver treats `nominal.target` as a NET (after-tax) target — Session 25 fixed `buildProjectionPayload` accordingly, but the parallel fix in `deriveMilestones` was missed. At typical SARS marginal rates gross sits ~25% above net, so gross stays above the net target for ~2-3 more years than net does, and `sustainableTo` over-reported by exactly that margin. Calculator outcome strip on Planning was unaffected (it reads from `analyseProjection`, which has done net-vs-net real all along) — the bug was scoped to the snapshot pipeline → report headlines.
+
+1. **`deriveMilestones` line 6307**: changed from `var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;` to read `pp.nominal.tax[i]` and compare `(rs[i] - taxes[i]) < target - 1`. Tolerance stays at R1 (matches `r.shortfall`). All other milestones (`depletesAt` / `laCapHitAt` / `discExhaustsAt`) untouched — they're balance-driven, not income-vs-target.
+
+2. **New invariant I12 in `validateSnapshot`**: when `sustainableTo` is non-null, the row at that age must have `shortfall === false`. Ties the two derivations together structurally — if a future change ever causes `deriveMilestones` and `buildProjectionPayload` to disagree, the export will throw with a visible alert before the snapshot ships. This is exactly the defence-in-depth Session 26's framework was built for; the bug found two days later proves the framework's value.
+
+3. **JS test additions** (`tests/js/run.js`): three focused cases for `deriveMilestones` exercising the net-vs-net contract (gross > target but net < target → sustainableTo stays null, recovery scenarios, regression guard) plus an I12-trip case in `validateSnapshot`. The `makeValidSnapshot` test fixture was also tightened — the pre-existing version had a hardcoded `sustainableTo: 95` that didn't agree with the row-level shortfall flags it generated. I12 caught the inconsistency in the test fixture itself, which is exactly what it should do; fixed by scaling all the per-row income / tax values by CPI so net consistently exceeds target every year.
+
+**Architectural decisions**
+- **Tolerance asymmetry between `analyseProjection` (R100, real) and `deriveMilestones` (R1, nominal) left as-is.** Both compute shortfall correctly net-vs-net after this fix; in extreme edge cases they could disagree by 1 year due to different tolerances. Not a problem for typical scenarios; if Pierre sees a 1-year mismatch between the calculator outcome strip and the report headline, that's the next thread to pull.
+- **No engine math change.** `project()`, `solveTopUp`, `stepPerson` byte-for-byte identical. Only `deriveMilestones` (pure helper, reads engine output) and `validateSnapshot` (new check) touched. 115/115 Python pass.
+- **Fingerprint will change for the same plan inputs.** `sustainableTo` is one of the 6 anchor numbers — old reports printed before this fix will show a different fingerprint than the live calculator after deploying. That's the point: the fix is correct, so old fingerprints reflect the old (wrong) number; new ones reflect the corrected number. Adviser may notice their pre-fix PDFs no longer match a refreshed calculator screen — by design.
+- **Knock-on audit ran first.** Before shipping, traced every consumer: calculator outcome strip uses `analyseProjection` (correct), report headlines use `proj.sustainableTo` (fixes), capital chart slice clamps at age 99 (no visible change), v1 Compare slide delta preserved (both halves shift together), Python parity port has no `sustainable_to` consumer (no test churn). Single chart-slice path was the only "could change geometry" risk; verified clamped behaviour leaves it visually identical.
+
+**Smoke check**
+- `cd tests/python && pytest` → 115 passed
+- `cd tests/js && node run.js` → 45 passed
+- Both inline scripts parse cleanly under `new Function()`.
+
+**Follow-ups**
+- Browser walkthrough: open the calculator, watch `fp:` change after the fix lands. Click Export Report, confirm the cover-slide fingerprint matches the screen. The headline on the Answer / Run-income slides should now read the same age the chart's coral wash signals.
+- If Pierre's compliance archive contains a pre-fix PDF that needs to be re-issued, flag the discrepancy: the old PDF's "carries to age 96" overstated the sustainable horizon by ~2 years.
+- Tolerance reconciliation between `analyseProjection` (R100 real) and `deriveMilestones` (R1 nominal) — only relevant if a 1-year edge-case mismatch surfaces in practice.
+
 ### Session 26 — 2026-04-28 (verification chain: appendix · invariants · fingerprint · netParts collapse)
 
 **Built / changed** — four coordinated pieces tightening the calculator ↔ report verification chain. Pierre's worry was structural: Sessions 22 + 25 both shipped wrong client numbers because of a misleadingly-named field and a duplicated derivation path, with no way for the adviser to verify what the report carried. Engine math untouched: **115/115 Python (was 108) + 41/41 JS (was 19) pass.**
