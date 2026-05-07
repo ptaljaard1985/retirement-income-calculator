@@ -213,6 +213,7 @@ NUMERIC_SERIES = (
     'la', 'disc', 'total', 'draw', 'tax', 'net', 'target',
     'laA_bal', 'laA_draw', 'laB_bal', 'laB_draw',
     'discA_bal', 'discA_draw', 'discB_bal', 'discB_draw',
+    'discA_base', 'discB_base',
     'otherA', 'otherB', 'tax_A', 'tax_B', 'draw_rate_pct',
 )
 
@@ -426,6 +427,99 @@ class TestCapitalEvolution:
             assert abs(p['discB_bal'][i + 1] - expected_B) <= TOL_RAND, \
                 (f"{s['_name']}: discB_bal[{i+1}] = {p['discB_bal'][i+1]:.2f}, "
                  f"expected {expected_B:.2f}")
+
+    @pytest.mark.parametrize("s", ALL_SCENARIOS, ids=ALL_IDS)
+    def test_disc_base_cost_evolves_correctly(self, s):
+        """Base-cost trajectory identity (proportional / weighted-average
+        cost basis):
+
+            cost_used[y]   = base[y] × (draw[y] / balance[y])     if balance[y] > 0
+                           = 0                                    if balance[y] = 0
+            base[y+1]      = base[y] − cost_used[y] + events_y+1
+
+        Capital events add the same nominal amount to BOTH base and balance
+        (the inflow arrives "at cost" — no embedded gain on day one),
+        matching the SA tax treatment for inheritances, property proceeds,
+        and matured endowments.
+
+        This invariant locks the proportional cost-basis method. If a
+        future change accidentally switches to FIFO or specific-ID, the
+        per-year balance identity (test_disc_balance_evolves_correctly)
+        would still hold but THIS test would fail. NOT covered today
+        outside this assertion."""
+        p = run(s)
+        cpi = s['cpi']
+        events = s.get('events') or []
+        for i in range(len(p['discA_base']) - 1):
+            # Per-spouse cost_used for year i (the proportional slice of
+            # base disposed when discDraw is taken from discBalance).
+            balA, drawA, baseA = p['discA_bal'][i], p['discA_draw'][i], p['discA_base'][i]
+            balB, drawB, baseB = p['discB_bal'][i], p['discB_draw'][i], p['discB_base'][i]
+            cost_used_A = baseA * (drawA / balA) if balA > 0 else 0
+            cost_used_B = baseB * (drawB / balB) if balB > 0 else 0
+
+            # Events landing in year i+1 add their full nominal to base.
+            event_A = sum(
+                ev['amountPV'] * (1 + cpi) ** i
+                for ev in events
+                if ev['year'] == i + 1 and ev['spouse'] == 'A'
+            )
+            event_B = sum(
+                ev['amountPV'] * (1 + cpi) ** i
+                for ev in events
+                if ev['year'] == i + 1 and ev['spouse'] == 'B'
+            )
+
+            expected_A = baseA - cost_used_A + event_A
+            expected_B = baseB - cost_used_B + event_B
+
+            assert abs(p['discA_base'][i + 1] - expected_A) <= TOL_RAND, \
+                (f"{s['_name']}: discA_base[{i+1}] = {p['discA_base'][i+1]:.2f}, "
+                 f"expected {expected_A:.2f} "
+                 f"(base[i]={baseA:.0f}, draw={drawA:.0f}, "
+                 f"bal={balA:.0f}, costUsed={cost_used_A:.0f}, ev={event_A:.0f})")
+            assert abs(p['discB_base'][i + 1] - expected_B) <= TOL_RAND, \
+                (f"{s['_name']}: discB_base[{i+1}] = {p['discB_base'][i+1]:.2f}, "
+                 f"expected {expected_B:.2f} "
+                 f"(base[i]={baseB:.0f}, draw={drawB:.0f}, "
+                 f"bal={balB:.0f}, costUsed={cost_used_B:.0f}, ev={event_B:.0f})")
+
+    @pytest.mark.parametrize("s", ALL_SCENARIOS, ids=ALL_IDS)
+    def test_disc_base_non_negative(self, s):
+        """Base cost can't go negative — proportional disposal can only
+        drain it down to zero (cost_used ≤ base when proportion ≤ 1)."""
+        p = run(s)
+        for i, v in enumerate(p['discA_base']):
+            assert v >= -0.01, \
+                f"{s['_name']}: discA_base[{i}] = {v} (negative)"
+        for i, v in enumerate(p['discB_base']):
+            assert v >= -0.01, \
+                f"{s['_name']}: discB_base[{i}] = {v} (negative)"
+
+    @pytest.mark.parametrize("s", ALL_SCENARIOS, ids=ALL_IDS)
+    def test_disc_base_bounded_by_balance(self, s):
+        """Once base ≤ balance (the sane initial condition guaranteed by
+        readPerson's `Math.min(base, disc)` clamp on input), the
+        proportional method preserves base ≤ balance through every year:
+
+            new_base / new_bal = (base − base × p) / (bal − bal × p) × (1+r)... no — actually:
+            after draw: new_base = base × (1 − p), new_bal = (bal × (1 − p)) × (1 + r)
+            ratio = base/(bal × (1+r))   — drops by 1/(1+r) each year.
+
+        Events bump both equally so ratio rises toward 1 but never above.
+        If this invariant ever fails, either the input wasn't sanitised or
+        the proportional formula is wrong."""
+        p = run(s)
+        for i in range(len(p['discA_bal'])):
+            balA, baseA = p['discA_bal'][i], p['discA_base'][i]
+            balB, baseB = p['discB_bal'][i], p['discB_base'][i]
+            # Allow R 1 of float slack and the empty-pot edge (both 0).
+            assert baseA <= balA + 1, \
+                (f"{s['_name']}: discA_base[{i}] = {baseA:.2f} > "
+                 f"discA_bal[{i}] = {balA:.2f}")
+            assert baseB <= balB + 1, \
+                (f"{s['_name']}: discB_base[{i}] = {baseB:.2f} > "
+                 f"discB_bal[{i}] = {balB:.2f}")
 
 
 # ============================================================

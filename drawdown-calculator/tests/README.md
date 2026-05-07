@@ -18,7 +18,7 @@ pip install pytest       # one-time
 pytest                   # or `pytest -v` for verbose output
 ```
 
-Current count: **378 passing**.
+Current count: **450 passing**.
 
 ## JS tests — solver behaviour
 
@@ -54,7 +54,7 @@ The suite is organised into five tiers, ordered by what they protect against. Th
 |---|---|---|
 | 1. Closed-form unit tests | **In place** (115 cases) | A formula is wrong against SARS, CGT, or clamp regulation. |
 | 2. JS ↔ Python parity | **Planned** | The two implementations have drifted from each other. |
-| 3. Property-based invariants | **In place** (263 cases) | Engine produces NaN, negative balances, or violates regulation in any input region. |
+| 3. Property-based invariants | **In place** (335 cases) | Engine produces NaN, negative balances, violates regulation, or drifts in cost-basis arithmetic in any input region. |
 | 4. SARS-table refresh battery | **Planned** | The annual Feb-budget refresh quietly breaks a bracket-edge case. |
 | 5. Snapshot tests | **Planned** | The full trajectory drifts silently between sessions. |
 
@@ -80,7 +80,7 @@ Estimated effort: ~4 hours. The plumbing is similar to what `run.js` already doe
 
 ### Tier 3 — Property-based invariants (in place)
 
-File: `test_invariants.py`. **263 cases** across ~25 named scenarios.
+File: `test_invariants.py`. **335 cases** across ~25 named scenarios.
 
 Where unit tests check specific numbers, property tests assert structural promises that must hold for ANY input within the calculator's domain:
 
@@ -89,7 +89,7 @@ Where unit tests check specific numbers, property tests assert structural promis
 - **I-LA-PCT** — `la_draw / la_balance_start ∈ [0.025, 0.175]` whenever balance > 0 (the legislated band).
 - **I-TAX-POS / I-TAX-MAX** — tax ≥ 0 (rebate floor) AND tax ≤ gross × 45% (top marginal rate).
 - **I-NET-POS** — net = gross − tax never negative.
-- **I-EVOL** — strict per-year capital-evolution identity: `bal_start[y+1] = (bal_start[y] − draw[y]) × (1 + r) ± events_y+1`. The most powerful invariant: if the per-year balance arithmetic holds for every year of every scenario, the year-loop has no silent bugs (events landing in the wrong year, growth applied twice, draws applied at the wrong point).
+- **I-EVOL** — strict per-year capital-evolution identity: `bal_start[y+1] = (bal_start[y] − draw[y]) × (1 + r) ± events_y+1`. The most powerful invariant: if the per-year balance arithmetic holds for every year of every scenario, the year-loop has no silent bugs (events landing in the wrong year, growth applied twice, draws applied at the wrong point). Includes a parallel **base-cost** identity: `base[y+1] = base[y] − base[y] × (draw[y] / bal[y]) + events_y+1` — locks the proportional / weighted-average cost-basis method against drift to FIFO or specific-ID.
 - **I-CONV** — when Phase 2 is active, the solver may converge or under-shoot (insufficient pots) but never over-shoots beyond tolerance. Phase-3 boost-compounding regression is covered separately by `test_boost.py`.
 - **I-FEAT** — feature-specific consistency: capital events bump disc by exact nominal; goals bump targets in qualifying years only; tax-free streams flow to net without raising tax.
 
