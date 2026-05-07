@@ -981,7 +981,9 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 28px;
+    padding-bottom: 28px;
     margin-bottom: 28px;
+    border-bottom: 1px solid var(--hairline);
     align-items: stretch;
   }
   .empty-ledgers > div {
@@ -1048,7 +1050,9 @@
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
     gap: 40px;
+    padding-bottom: 36px;
     margin-bottom: 36px;
+    border-bottom: 1px solid var(--hairline);
   }
   .empty-divider {
     background: var(--hairline);
@@ -1179,9 +1183,8 @@
 
   /* Household needs strip */
   .empty-markets {
-    padding: 24px 0;
+    padding: 0 0 24px;
     margin-bottom: 28px;
-    border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
   }
   .empty-markets .empty-steplabel { margin-bottom: 14px; }

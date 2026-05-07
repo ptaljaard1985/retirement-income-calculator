@@ -107,6 +107,31 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 30 — 2026-05-07 (state-1 row dividers · income-chart cached-update fix)
+
+**Built / changed** on `claude/state1-row-dividers` — two surgical UI tweaks. Engine math untouched; tests still **115/115 Python · 45/45 JS**.
+
+1. **Cached-chart update path for the Income chart aligned with the Session-29 reorder.** The S29 reorder (LA → Other → Disc → Tax) updated the initial dataset definitions and `INCOME_DATASET_INDEX` correctly, but the cached-chart update branch in `buildIncomeChart` (line ~4407) was still feeding `bars.disc` to `datasets[1]` and `bars.other` to `datasets[2]`. After the reorder, `datasets[1]` is the navy "Other income" entry and `datasets[2]` is the gold "Discretionary" entry. Net effect: the gold band painted Other-income data under the Discretionary label, while actual disc draws (correctly zero) painted as a 0-height invisible navy band. Pierre caught it: auto-top-up off + disc sliders at R 0, yet the chart showed a non-zero gold band sized exactly like the household's Rental + DB pension. Fix: swap `datasets[1]` and `datasets[2]` data + hidden assignments to match the reordered chart. The initial `new Chart()` build path (run only once per page load) was always correct; the bug surfaced on every subsequent `refresh()` that hit the cached-update branch.
+
+2. **State 1 row dividers — full-width hairline at the bottom of every two-column row.** Pierre asked for visible section delimiters across the Info screen so each row's content "ends" at a clear baseline regardless of how many ledger items are inside. Three CSS adjustments:
+   - `.empty-setup` (Spouse setup): added `padding-bottom: 36px; border-bottom: 1px solid var(--hairline);` (kept the existing `margin-bottom: 36px` for above-the-line breathing room).
+   - `.empty-ledgers` (paired-row class — used twice for Row 2 and Row 3): same pattern with `padding-bottom: 28px; border-bottom: 1px solid var(--hairline); margin-bottom: 28px;`.
+   - `.empty-markets`: dropped `border-top` (the row above now carries its own bottom border, so the previous double-line would have read as visual noise). Kept `border-bottom` so the markets row still frames as a strip.
+
+   Mirrors the existing `.empty-titleplate` pattern (padding + margin + border-bottom). Total visual rhythm between rows: 28px padding above the line, then 1px hairline, then 28-36px margin into the next row's content.
+
+**Architectural decisions**
+- **Padding-bottom + margin-bottom rather than just margin-bottom + border.** Borders sit at the box edge — without `padding-bottom`, the hairline would touch the last item in the row. The padding gives the line breathing room above; the margin gives breathing room below. Same pattern the title plate already uses, so the State 1 reads as a uniform editorial sequence.
+- **Drop `.empty-markets` border-top, not the previous row's border-bottom.** Either approach removes the doubled line, but losing the previous row's bottom border would mean Row 3 (Other income + Capital events) had no visible delimiter — and that was the row Pierre was specifically asking to be delimited. Markets keeps its bottom border because the page below it is a CTA, and the strip-style framing was deliberate.
+
+**Smoke check**
+- `cd tests/python && pytest` → 115 passed.
+- `cd tests/js && node run.js` → 45 passed.
+- Inline script parses cleanly under `new Function()`.
+
+**Follow-ups**
+- Browser walkthrough at 1366×768: open `retirement_drawdown.html` fresh, confirm full-width hairlines under Spouse setup, under the Monthly + Goals row, under the Other income + Capital events row, and below Market assumptions. Add unequal counts of incomes vs events to confirm the lines still span the column gutter cleanly. Reload the calculator on Planning, drag any slider, confirm the Income chart's gold "Discretionary" band stays at zero when disc-draw sliders are R 0 and auto-top-up is off; the navy "Other income" band should appear as the second slot above LA.
+
 ### Session 29 — 2026-05-07 (info-screen polish · monthly-need slider · income-chart reorder · two follow-ups closed)
 
 **Built / changed** on `claude/info-screen-tweaks` — Info-screen polish in six pieces plus an Income-chart stacking reorder. Engine math untouched; tests still **115/115 Python · 45/45 JS**.
