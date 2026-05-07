@@ -4,16 +4,6 @@ Small, deliberate debts accumulated while building the calculator. Not a to-do l
 
 ## Open
 
-### Rail "Annual lumps" slider is orphaned after Session 27
-**Where:** `retirement_drawdown.html` — `#needs-lump-rail` slider DOM at lines ~2815–2820, `setupRailSpendingSlider('needs-lump', 'needs-lump-rail', 'needs-lump-rail-out', 100000)` at line ~6283.
-**Why:** Session 27 removed the visible Annual lump sums input from State 1 in favour of modelling lumps as Goals. The hidden `#needs-lump` input now defaults to 0, but the rail slider on Planning is still wired and lets the user dial a non-zero lump in. With no canonical State 1 affordance feeding it, the slider is the only way to recreate the retired concept — either a power-user shortcut worth keeping, or dead chrome.
-**Cleanup:** Decide with Pierre. To remove: delete the `.rail-slider` block at lines 2815–2821, the `setupRailSpendingSlider('needs-lump', ...)` line at 6283, the `Annual lumps` label / `needs-lump-rail-out` val span. The hidden `#needs-lump` input stays so engine reads keep resolving to 0.
-
-### v2 report's GE "Annual lump-sum needs" row is now always R 0
-**Where:** `retirement_drawdown_report.html` — `renderLifestyleSection` (~line 2900+, in the dual-run GE slide).
-**Why:** Session 27 retired Annual lump sums; the snapshot's `plan.annualLumpSums` now defaults to 0. The lifestyle row paints "R 0" instead of an empty/skipped section. Functionally fine but visually noisy.
-**Cleanup:** Skip the row when `annualLumpSums === 0` — `if (plan.annualLumpSums > 0) { renderRow(...) }` inside `renderLifestyleSection`. The diff badge logic above (`annualLumpSums` uplifted/reduced) becomes unreachable but harmless.
-
 ### Report capital chart still renders in nominal terms
 **Where:** `retirement_drawdown_report.html` — `renderCapitalChart` (line ~2889) call site at line ~3271
 **Why:** Session 21 fixed the income-chart y-axis blow-up by deflating per-row income/draw values to today's-rand via `toRealRows()`. The capital chart was deliberately left in nominal because (a) its y-axis represents capital balances rather than expenses (the user's diagnosis was specifically about "max annual expenses"), and (b) capital-balance nominal growth is part of the story being told (real value in year 30 is intuitively smaller than nominal). If Pierre flags the capital chart as visually similar — early-year stubs, peak balance dominating the y-axis — apply the same `toRealRows` pattern, but extend the helper to also deflate `laBalance / discBalance / totalCapital` (currently it only handles the four income/draw fields).

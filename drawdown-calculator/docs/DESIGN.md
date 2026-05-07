@@ -139,10 +139,10 @@ Sits below the plan-bar. Controls row (`.controls-row`) above the chart card: `I
 
 Chart.js only — no plugins from npm, no other libraries. Two inline plugins are registered for the Income chart:
 
-- **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`. **No explicit `order:` values** — stacking follows array index, so the visual top-to-bottom is Tax → Other → Disc → LA (and the transparent Target line is behind them):
+- **Income chart (default)**: five datasets, four of them stacked bars in stack `'income'`. **No explicit `order:` values** — stacking follows array index, so the visual top-to-bottom is Tax → Disc → Other → LA (and the transparent Target line is behind them). Reordered in Session 29 so Other sits as the second-from-bottom layer rather than third — Other reads as the household's stable layer beneath the variable Disc draw:
   1. **LA (net)** — teal `#2a6b6b`, LA rand draw minus its share of household tax.
-  2. **Disc (net)** — gold `#b8893c`, disc draw minus its share of household tax (which is mostly the CGT on the realised gain for that draw, but is apportioned from the single household tax total).
-  3. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
+  2. **Other (net)** — navy-soft `#38495b`, other taxable income minus its share of household tax.
+  3. **Disc (net)** — gold `#b8893c`, disc draw minus its share of household tax (which is mostly the CGT on the realised gain for that draw, but is apportioned from the single household tax total).
   4. **Target need** — invisible `line` dataset (transparent border/fill) retained as the per-year data carrier for both plugins and as the legend toggle target.
   5. **Tax** — dusty rose `--pink` `#d27a88`, stacks **on top** of 1–3 so the bar TOTAL = gross income. Colored portion = net to bank; pink cap = household tax bite. On-target years: colored sum lands exactly on the target line. Shortfall years: the gap between colored top and target line is the actual shortfall. This is deliberate (Option B) — the client sees the tax slice rather than a target line floating below the gross-bar tops. The pink is loud on purpose; the tax bite is the single most resonant figure in a client meeting.
   - Tax apportionment (per year): `laTax = tax × la/gross`, `discTax = tax × disc/gross`, `otherTax = tax × other/gross`, where `gross = la + disc + other`. All three sources bear their proportional share of the household tax total (which already includes CGT on disc gains). Bar total = gross; colored sum = gross − tax = net to bank. See `incomeBarSeries()` in the engine.
