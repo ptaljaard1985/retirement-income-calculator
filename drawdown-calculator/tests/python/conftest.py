@@ -368,6 +368,13 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
 
     sA = dict(pA)
     sB = dict(pB)
+    # Sanitise base ≤ balance on input — mirrors the JS readPerson() clamp at
+    # `Math.min(parseCurrency('hp-base-'+suffix), discBal)`. The proportional
+    # cost-basis method assumes base ≤ balance; without this clamp, the
+    # invariant can fail on hand-edited inputs where the user typed a larger
+    # base cost than the current balance.
+    sA['discBaseCost'] = min(sA['discBaseCost'], sA['discBalance'])
+    sB['discBaseCost'] = min(sB['discBaseCost'], sB['discBalance'])
     # Legacy scalar `otherIncome` is treated as fully taxable. Schedule-driven
     # paths overwrite these per year below.
     sA.setdefault('otherTaxable', sA['otherIncome'])
@@ -379,6 +386,11 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         labels=[], la=[], disc=[], total=[], draw=[], tax=[], net=[], target=[],
         laA_bal=[], laA_draw=[], laB_bal=[], laB_draw=[],
         discA_bal=[], discA_draw=[], discB_bal=[], discB_draw=[],
+        # Base-cost series parallel discA_bal / discB_bal: start-of-year value,
+        # before that year's draw drains a proportional slice and before any
+        # year-end capital event tops it back up. Lets tests assert the
+        # year-by-year base-cost evolution identity.
+        discA_base=[], discB_base=[],
         otherA=[], otherB=[],
         tax_A=[], tax_B=[], clamp_A=[], clamp_B=[],
         draw_rate_pct=[],
@@ -387,6 +399,7 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
     for y in range(years):
         la_start_A, la_start_B = sA['laBalance'], sB['laBalance']
         disc_start_A, disc_start_B = sA['discBalance'], sB['discBalance']
+        base_start_A, base_start_B = sA['discBaseCost'], sB['discBaseCost']
         cap_start = la_start_A + la_start_B + disc_start_A + disc_start_B
 
         age_this_A = age_A + y
@@ -469,6 +482,8 @@ def project(pA, pB, age_A, age_B, r_nom, cpi, target_pv_annual,
         series['discA_draw'].append(rA['disc_draw'])
         series['discB_bal'].append(disc_start_B)
         series['discB_draw'].append(rB['disc_draw'])
+        series['discA_base'].append(base_start_A)
+        series['discB_base'].append(base_start_B)
         series['otherA'].append(sA['otherIncome'])
         series['otherB'].append(sB['otherIncome'])
         series['tax_A'].append(tax_Y_A)
