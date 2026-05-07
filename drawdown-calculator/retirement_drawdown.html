@@ -4404,14 +4404,15 @@
 
     if (incomeChart){
       incomeChart.data.labels = p.labels;
+      // Stack order: LA → Other → Disc → Target → Tax (Session 29 reorder).
       incomeChart.data.datasets[0].data = bars.la;
-      incomeChart.data.datasets[1].data = bars.disc;
-      incomeChart.data.datasets[2].data = bars.other;
+      incomeChart.data.datasets[1].data = bars.other;
+      incomeChart.data.datasets[2].data = bars.disc;
       incomeChart.data.datasets[3].data = targetArr;
       incomeChart.data.datasets[4].data = bars.tax;
       incomeChart.data.datasets[0].hidden = !incomeSeriesVisible.la;
-      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.disc;
-      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.other;
+      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.other;
+      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.disc;
       incomeChart.data.datasets[3].hidden = !incomeSeriesVisible.target;
       incomeChart.data.datasets[4].hidden = !incomeSeriesVisible.tax;
       incomeChart.update();
