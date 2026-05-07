@@ -128,4 +128,4 @@ Estimated effort: ~2 hours.
 
 ## CI
 
-No CI configured in this repo. If you add one, run `pytest` (Python) and `node tests/js/run.js` (Node). Both should exit 0.
+GitHub Actions workflow at `.github/workflows/tests.yml` runs on every push to `main` and every PR. It installs Python 3.12 + Node 20, runs an inline-script syntax check on both HTML files, then executes the full Python suite and the JS solver suite. Any non-zero exit fails the workflow.
