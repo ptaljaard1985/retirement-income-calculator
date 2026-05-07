@@ -107,6 +107,42 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 27 — 2026-05-07 (state-1 paired layout · annual lump sums folded into Goals)
+
+**Built / changed** — Info-screen restructure on `claude/pull-main-create-feature-wnlLl`. State 1 (the setup screen Pierre walks the couple through at the top of the meeting) was reflowed from "two stacked strips below the spouse cards" into a 4-row paired-grid narrative, and Annual lump sums was retired from the visible UI in favour of modelling the same need as a Goal. Engine math untouched: **115/115 Python + 41/41 JS** pass.
+
+**Why it was wrong before.** Roman numerals on State 1 ran I, II → VI, VII, VIII → III, IV, V because the ledgers (Other income / Capital events / Goals) had been promoted above the fold in Session 17 without resequencing. Reading order didn't match numeral order. Annual lump sums was also a redundant concept once Goals shipped (Session 17): a Goal with `everyNYears: 1` over the household horizon expresses the same recurring lump-sum drain, with finer control (label, age range, escalation cadence). Two ways to enter the same thing is a UI smell.
+
+1. **State 1 DOM reorganised into 4 rows.** The visible content under the title plate + couple/single toggle is now:
+   - **Row 1**: Spouse A (I) | Spouse B (II) — `.empty-setup`, unchanged.
+   - **Row 2**: Monthly household need (III) | Goals (IV) — paired in `.empty-ledgers` (now 2-col).
+   - **Row 3**: Other taxable income (V) | Family capital events (VI) — paired in a second `.empty-ledgers`.
+   - **Row 4**: Market assumptions (VII) — full-width band in new `.empty-markets`.
+   Roman numerals now run I-VII in document order. The Goals subhint extended to mention "lump-sum needs" so users know where the retired Annual lump sums affordance went.
+
+2. **`.empty-ledgers` re-purposed from 3-col to 2-col.** Was `grid-template-columns: 1fr 1fr 1fr; gap: 24px; mb: 36px` for the old (Other income | Capital events | Goals) row; now `1fr 1fr; gap: 28px; mb: 28px` and used twice (Row 2 + Row 3). The class name is generic enough — left as-is rather than renamed to avoid a sweep through any external readers.
+
+3. **`.empty-needs` strip class deleted.** Was the bordered 3-col container holding Monthly + Lump + Markets. With Lump removed and Monthly + Markets relocated, the container has no role. Cell-divider rules `.empty-needs-cell:first-child` / `:last-child` deleted; `.empty-needs-cell { padding: 0 }` retained because the Monthly cell still uses `.empty-needs-cell .input-wrap.large` + `.empty-needs-cell .hint` styling inside the new pair-grid. The mobile rule at the bottom of `.empty-canvas` lost its `.empty-needs { 1fr; gap: 18px }` line for the same reason.
+
+4. **`.empty-markets` band added.** Mirrors the framing the old `.empty-needs` strip carried (top + bottom hairlines, 24px y-padding, 28px bottom margin) so Markets reads as a deliberate cap on the page rather than an afterthought tacked below the ledgers. The `.hint { return · CPI }` selector below it was scoped under `.empty-markets .hint` via a comma-extension on the existing `.empty-needs-cell .hint` rule — same italic 11px serif visual.
+
+5. **Annual lump sums removed from the visible UI.** The `<input id="needs-lump" value="100 000">` cell + label deleted from State 1 DOM. A hidden `<input type="text" id="needs-lump" value="0" hidden>` was added to the existing hidden-inputs block so engine reads (`parseCurrency('needs-lump')` at retirement_drawdown.html:3510 + 4003, the `needs-monthly * 12 + needs-lump` formula in `getCurrentTargetPV`, the snapshot capture at line 6489's `annualLumpSums: parseCurrency('needs-lump')`) all resolve cleanly to 0 without code changes. The rail's "Annual lumps ±R100k" slider on Planning is still wired (lines 2818, 2820, 6283); it now defaults to 0 instead of 100 000 on cold load. Tracked as orphan affordance in `TECH_DEBT.md` for a follow-up cut.
+
+**Architectural decisions**
+- **Hidden `needs-lump` over engine surgery.** Considered ripping `parseCurrency('needs-lump')` out of every read site and rewriting `targetPVAnnual = monthly * 12` directly. Rejected: the engine reads, the snapshot field `annualLumpSums`, the report's GE Lifestyle row "Annual lump-sum needs", the v2 diff badge logic that compares scenario vs. baseline `annualLumpSums` — all keep working byte-identical when `needs-lump` is just always 0. A rip would touch ~6 calculator sites, the snapshot schema (still v2), the report renderer, and the diff helper. Hidden 0 is one line and zero regression risk; the concept retires gracefully.
+- **`.empty-ledgers` reused for both pair rows over a new class.** The class name is colour-neutral once it's 2-col (it's just "a paired row in the empty canvas"). Reusing it keeps the mobile collapse rule (`.empty-ledgers { grid-template-columns: 1fr; gap: 24px }`) covering both pair rows with one selector. A new class would have meant duplicate mobile rules.
+- **Markets stays full-width, not paired.** Tried pairing Markets with another scalar but nothing else on State 1 wants the same visual weight (return + CPI sliders + numeric readouts). Full-width with the bordered band echoes the old strip framing and gives the two sliders room to stretch.
+- **Goals subhint extended, not the steplabel.** The Goals section already had `recurring household expenses — travel, cars, holidays`; appending `, lump-sum needs` keeps the original framing intact and signals where the retired affordance moved. Cleaner than adding a "lump sums →" pointer or a dismiss-once banner.
+- **Engine + tests untouched.** 115/115 Python + 41/41 JS pass. No schema change, no Python parity test needed, no snapshot bump. The only behaviour delta is a default-value change (cold-load target drops from R 700k/yr to R 600k/yr because lump now defaults to 0 instead of 100 000); everything else is presentation.
+
+**Smoke check**
+Tests both green. Browser walkthrough deferred to user — open `retirement_drawdown.html` fresh, confirm Info renders four rows in the order above with numerals I-VII running, then on Planning confirm the chart still draws against a R 600k target line (was R 700k pre-change). The "Annual lumps" rail slider should sit at 0 on cold load; dragging it still injects lump in the engine reads.
+
+**Follow-ups**
+- Rail "Annual lumps" slider is now an orphan (defaults to 0, no canonical State 1 affordance feeds it). Either remove the slider DOM + the `setupRailSpendingSlider('needs-lump', ...)` call at line 6283, or leave it as a power-user shortcut. Logged in `TECH_DEBT.md`.
+- v2 dual-run report's GE Lifestyle section still renders the "Annual lump-sum needs" row sourced from `plan.annualLumpSums`. With lump now always 0, the row will show R 0 by default. Consider dropping the row from the lifestyle stack entirely (one-line edit in the report's `renderLifestyleSection`), or leaving it as a visible 0 for completeness.
+- v2 diff helper compares `annualLumpSums` between baseline + scenario for the `↑ uplifted/reduced` Lifestyle badge. With lump always 0 in the new world it'll never trigger, but the code path is harmless.
+
 ### Session 26 — 2026-04-28 (verification chain: appendix · invariants · fingerprint · netParts collapse)
 
 **Built / changed** — four coordinated pieces tightening the calculator ↔ report verification chain. Pierre's worry was structural: Sessions 22 + 25 both shipped wrong client numbers because of a misleadingly-named field and a duplicated derivation path, with no way for the adviser to verify what the report carried. Engine math untouched: **115/115 Python (was 108) + 41/41 JS (was 19) pass.**

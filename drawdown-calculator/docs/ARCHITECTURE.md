@@ -14,7 +14,8 @@ Chart.js is the only runtime dependency, loaded from `cdnjs.cloudflare.com`.
 
 ```
 <nav class="tab-nav">             Brand + family + 5 tab buttons + Export report
-<section data-tab-panel="info">   Today's "State 1" setup screen, kept as-is
+<section data-tab-panel="info">   "State 1" setup screen — 4-row paired layout
+                                    (spouses · monthly+goals · income+events · markets)
 <div class="rail-canvas-shell">   2-col grid: 240px rail + 1fr canvas
   <aside class="rail">              Sticky live levers (Drawdown, Markets,
                                     Spending, Display, Schedules, Lock CTA)
