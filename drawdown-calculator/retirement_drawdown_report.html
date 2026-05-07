@@ -3226,8 +3226,8 @@ html, body {
         }));
       }
       svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH, width: bw, height: laH, fill: COLORS.la, opacity: 0.92 }));
-      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
-      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - dH - oH, width: bw, height: oH, fill: COLORS.other, opacity: 0.92 }));
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - oH, width: bw, height: oH, fill: COLORS.other, opacity: 0.92 }));
+      svg.appendChild(el('rect', { x: x, y: pad.top + innerH - laH - oH - dH, width: bw, height: dH, fill: COLORS.disc, opacity: 0.92 }));
     });
 
     // 1px white vertical year dividers between flush bars (matches the
@@ -4094,7 +4094,6 @@ html, body {
     opts = opts || {};
     var baseline = opts.baseline || null;
     var monthly = plan.monthlyNeed || 0;
-    var annualLump = plan.annualLumpSums || 0;
 
     function row(name, amount, unit, defaultNote, baselineAmount, deltaUnit, deltaNounSingular) {
       var nameInner = name;
@@ -4116,19 +4115,12 @@ html, body {
       '</div>';
     }
 
-    var html = row(
+    return row(
       'Monthly lifestyle income', monthly, '/mo',
       'Real-terms target across the household. Escalates with CPI.',
       baseline ? baseline.monthlyNeed : null,
       '/mo', 'lever'
     );
-    html += row(
-      'Annual lump-sum needs', annualLump, '/yr',
-      'Once-a-year provision on top of the monthly target. Escalates with CPI.',
-      baseline ? baseline.annualLumpSums : null,
-      '/yr', 'lever'
-    );
-    return html;
   }
 
   function renderGoalsCol(plan, opts) {
@@ -4323,13 +4315,11 @@ html, body {
         return (e.spouse || '') + '|' + (e.year || 0) + '|' + (e.label || '').toString().trim().toLowerCase();
       });
     }
-    // Lifestyle change-count: monthlyNeed + annualLumpSums each count
-    // independently, so the section subtitle can read "2 items · 2 changed"
-    // when both move.
+    // Lifestyle change-count: monthlyNeed is the only lifestyle row left,
+    // so the section subtitle reads "1 item" or "1 item · 1 changed".
     var lifestyleChangeCount = 0;
-    if (baselinePlan) {
-      if (baselinePlan.monthlyNeed !== plan.monthlyNeed) lifestyleChangeCount++;
-      if (baselinePlan.annualLumpSums !== plan.annualLumpSums) lifestyleChangeCount++;
+    if (baselinePlan && baselinePlan.monthlyNeed !== plan.monthlyNeed) {
+      lifestyleChangeCount++;
     }
 
     var geHeadline;
@@ -4356,7 +4346,7 @@ html, body {
       return bits.length ? ' · ' + bits.join(' · ') : '';
     }
     setRunField(suffix, 'geLifestyleCount',
-      '2 items' + (lifestyleChangeCount > 0 ? ' · ' + lifestyleChangeCount + ' changed' : ''));
+      '1 item' + (lifestyleChangeCount > 0 ? ' · 1 changed' : ''));
     setRunField(suffix, 'geGoalsCount',
       (goalCt === 0 ? 'none' : goalCt + (goalCt === 1 ? ' goal' : ' goals')) + diffTail(goalDiff, 0));
     setRunField(suffix, 'geOtherCount',

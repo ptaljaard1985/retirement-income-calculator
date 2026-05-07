@@ -107,6 +107,59 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
+### Session 29 — 2026-05-07 (info-screen polish · monthly-need slider · income-chart reorder · two follow-ups closed)
+
+**Built / changed** on `claude/info-screen-tweaks` — Info-screen polish in six pieces plus an Income-chart stacking reorder. Engine math untouched; tests still **115/115 Python · 45/45 JS**.
+
+1. **Roman numerals removed from Info screen.** `<span class="rom">I.</span>` … `VII.` deleted from all seven steplabels. The `.rom` and `.empty-steplabel .rom` CSS rules dropped — `.rom` had no other call sites (verified via grep). Reading order is unchanged; the numerals only added visual chrome. Spouse-A's `.label-couple` / `.label-single` swap still works; the leading `<span class="rom">I.</span>` was the only loss in that label.
+
+2. **Two-column row alignment when item counts differ.** `.empty-ledgers` cells were stretching to row height but their internal ledger boxes were content-sized → "+ Add …" buttons sat at different y positions when one column had more items than the other. Fix in three CSS adjustments:
+   - `.empty-ledgers > div { display: flex; flex-direction: column; }` — cells become flex columns.
+   - `.empty-events-ledger`, `.empty-incomes-ledger` get `flex: 1; display: flex; flex-direction: column;` so the ledger box absorbs the cell's full height.
+   - `.empty-events-ledger .add-btn`, `.empty-incomes-ledger .add-btn` get `margin: auto 0 0` (was `4px 0 0`) so the add button sits at the bottom of the box regardless of how many items pile from the top.
+   Also `.empty-ledgers .empty-steplabel` flips to `flex-direction: column; align-items: flex-start; gap: 4px; min-height: 38px` so a wrapping subhint on one side doesn't shove its column's content below its sibling. Title on line 1, subhint on line 2 (italic serif). The 38px min-height absorbs cells with no subhint (Monthly need) so they line up with the goals/incomes/events headers.
+
+3. **Monthly household need is now a slider (0–R 300 000 · default 0).** `<input type="text" id="needs-monthly" value="50 000">` replaced with `<input type="range" id="needs-monthly" min="0" max="300000" step="1000" value="0">` plus a big readout span `#needs-monthly-out` styled to match the prior gold-R/22px-mono treatment. Cold-load target need is therefore R 0 (was R 50 000 × 12 = R 600 000); chart's target line lands at zero until the adviser drags. Engine reads via `parseCurrency('needs-monthly')` still work — `.value` on a range is a numeric string, `parseCurrency` strips non-digits, returns the integer rand value. Wiring:
+   - `needs-monthly` added to `sliderIds` so the input listener attaches `updateSliderFill` + `refresh()`.
+   - `needs-monthly` removed from `hpInputs` (the text-input blur-format list) — `formatCurrencyInput` would otherwise force-stringify the slider value.
+   - `updateLeverLabels()` writes the readout: `set('needs-monthly-out', Math.round(read('needs-monthly')).toLocaleString('en-ZA').replace(/,/g, ' '))` — produces `0` / `50 000`. The `R` prefix lives in markup so the readout span carries just the number.
+   - `setupRailSpendingSlider` extended to handle a range-typed canonical: when canonical is a `<input type="range">`, the rail's input handler writes `String(v)` directly (a range input rejects `"50 000"` style strings) and calls `updateSliderFill(canonical)`. Text-input canonicals continue to receive the formatted "50 000" string. The rail slider stays at its existing ±R30k anchor-and-swing behaviour relative to the canonical.
+
+4. **Market assumptions row split into two clearly-labelled cells.** Was a single `.empty-assumptions` flex row with `[range][num] · [range][num]` and a hint `return · CPI` below. Now a 2-column grid with named cells:
+   - Cell 1: `ASSUM-LABEL: Investment return` + `[range][num 9.00%]` row.
+   - Cell 2: `ASSUM-LABEL: Inflation` + `[range][num 5.00%]` row.
+   - The redundant `return · CPI` hint dropped. `.assum-label` shares the eyebrow style language (Inter Tight 11px uppercase, 1.4px tracking, mute colour) so it harmonises with the rest of State 1's section labels.
+
+5. **Rail "Annual lumps" slider removed.** The `.rail-slider` block + `setupRailSpendingSlider('needs-lump', ...)` call deleted. With monthly-need now defaulting to 0 and the canonical lumps having defaulted to 0 since Session 28, the rail slider was orphaned (no canonical State-1 affordance, no diff signal). Hidden `#needs-lump` input retained so `parseCurrency('needs-lump')` reads in `targetPVAnnual` continue to resolve to 0.
+
+6. **v2 report's GE "Annual lump-sum needs" row dropped.** `renderLifestyleSection` returns only the Monthly lifestyle income row. `lifestyleChangeCount` simplified — only `monthlyNeed` is compared to baseline, since `annualLumpSums` is constant 0 across both runs. Section subtitle now reads `1 item` (or `1 item · 1 changed` when scenario monthly differs). Diff badge logic for `annualLumpSums` removed (would have been unreachable). The v1 single-run path's appendix-style "Annual lump sums" row in the plan-inputs verbatim section (line ~3583) is preserved — that's a compliance artefact and a verbatim record should still show the field, even at R 0.
+
+7. **Income chart stacking reordered: LA → Other → Disc → Tax (was LA → Disc → Other → Tax).** Pierre wanted Other income pinned in the second slot — it reads as a more stable, predictable layer when the conversation is about "where does the income come from this year?" Disc moves to the third slot, just below the tax cap. Updates in three places:
+   - `buildIncomeChart` main datasets array: indices [1] and [2] swapped (Other now at [1], Disc at [2]). Stack still follows array index — no `order:` props.
+   - `buildCompareMiniChart` (Scenarios two-up cards): same swap on the cmp datasets, same swap on the `ref.data.datasets[i].data = bars.X` update path.
+   - `INCOME_DATASET_INDEX` lookup → `{ la: 0, other: 1, disc: 2, target: 3, tax: 4 }`. The legend pill toggle handler reads through this map; series-toggle keys (`la` / `disc` / `other` / `tax` / `target`) unchanged so legend HTML didn't move.
+   - Report's inline-SVG `renderIncomeChart`: paint order swapped from `LA → Disc → Other` to `LA → Other → Disc` so the printed PDF matches the screen.
+
+   The colours stay the same per source (LA teal, Other navy-soft, Disc gold, Tax pink); only the y-stacking order flipped.
+
+**Architectural decisions**
+- **Slider over text input for Monthly need.** Pierre asked for a slider; the trade-off is precision vs. expressiveness. R 1 000 step gives 300 ticks across the 0–300k range — adequate for client meetings where "around R 50k/mo" is the conversation, not "exactly R 53 715". If finer precision is ever needed, the existing rail Monthly-need slider (`±R 30k` swing around canonical) gives the adviser a fine-tune affordance on Planning without leaving the chart in view.
+- **Default 0, not the previous R 50 000.** Pierre's explicit request. Aligns with the "blank calculator on cold load" principle — the adviser walks the client through every input deliberately rather than starting from a planted default. Cold-load target line lands at R 0; the conversation begins by dragging the slider up.
+- **`min-height: 38px` on steplabel rather than markup placeholders.** Considered injecting an invisible `&nbsp;` second line into bare-title steplabels (Monthly need, Spouse cards) to force uniform height without CSS. Rejected: invisible whitespace is a debugging trap and the min-height is one declaration. Steplabels with a subhint stack to ~33px (1 title line + 1 subhint line); the 38px reserves room for subhint wrapping at smaller viewports without growing the cell when subhint fits on one line.
+- **Range canonical via direct value-write + manual `updateSliderFill`, not via dispatched input event.** Could have done `canonical.value = String(v); canonical.dispatchEvent(new Event('input', { bubbles: true }))` and let the canonical's own listener handle fill + refresh. Rejected: dispatching `input` would fire `recenter` (the rail's anchor-recompute helper listens to canonical's input) on every rail drag, re-anchoring the rail slider to its current value mid-drag and breaking the ±R 30k swing UX. Direct write + explicit `updateSliderFill(canonical)` keeps the rail's drag isolated from canonical's anchor.
+- **Engine untouched.** 115/115 Python + 45/45 JS pass. No `project()` arithmetic touched; only DOM shape, listener wiring, and presentation.
+
+**Smoke check**
+- `cd tests/python && pytest` → 115 passed.
+- `cd tests/js && node run.js` → 45 passed.
+- Both inline scripts parse cleanly under `new Function()`.
+- No `class="rom"` references remain anywhere in `retirement_drawdown.html`.
+
+**Follow-ups**
+- Browser walkthrough at 1366×768: open `retirement_drawdown.html` fresh, confirm State 1 reads cleanly without numerals, the Monthly need slider sits at 0 with the readout showing `R 0`, and dragging it updates the readout + chart target. On Planning, confirm the rail's Monthly-need slider stays anchored to the new canonical value (the ±R 30k swing should track wherever Pierre dragged the State 1 slider). Add a couple of incomes + events of unequal counts and confirm the "+ Add …" buttons sit at the same y across both columns.
+- Report end-to-end: lock a baseline with Monthly = R 50k, drag scenario to R 60k, click Export Report — confirm the dual-run GE Lifestyle section shows a single row (`Monthly lifestyle income`) on both runs, with the `↑ uplifted` badge + coral amount + `+ R 10 000/mo vs. baseline` narrative on the scenario side.
+- The Spouse-card defaults (R 4m LA / R 1m disc / R 500k base cost) still planted on cold load. If "blank everywhere" becomes the broader pattern Pierre wants, those would need to default to 0 next.
+
 ### Session 28 — 2026-05-07 (state-1 paired layout · annual lump sums folded into Goals)
 
 **Built / changed** — Info-screen restructure on `claude/pull-main-create-feature-wnlLl`. State 1 (the setup screen Pierre walks the couple through at the top of the meeting) was reflowed from "two stacked strips below the spouse cards" into a 4-row paired-grid narrative, and Annual lump sums was retired from the visible UI in favour of modelling the same need as a Goal. Engine math untouched: **115/115 Python + 45/45 JS** pass (test counts inherit Session 27's additions).
