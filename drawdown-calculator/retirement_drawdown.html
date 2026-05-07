@@ -986,9 +986,9 @@
   }
   .empty-ledgers {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 36px;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 28px;
   }
 
   /* Title plate */
@@ -1174,21 +1174,14 @@
   }
 
   /* Household needs strip */
-  .empty-needs {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0;
+  .empty-markets {
     padding: 24px 0;
     margin-bottom: 28px;
     border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
   }
-  .empty-needs-cell {
-    padding: 0 24px;
-    border-left: 1px solid var(--hairline);
-  }
-  .empty-needs-cell:first-child { border-left: none; padding-left: 0; }
-  .empty-needs-cell:last-child { padding-right: 0; }
+  .empty-markets .empty-steplabel { margin-bottom: 10px; }
+  .empty-needs-cell { padding: 0; }
   .empty-needs-cell .empty-steplabel { margin-bottom: 10px; }
   .empty-needs-cell .input-wrap.large {
     display: flex;
@@ -1214,7 +1207,8 @@
     padding: 0;
     outline: none;
   }
-  .empty-needs-cell .hint {
+  .empty-needs-cell .hint,
+  .empty-markets .hint {
     font-size: 11px;
     color: var(--mute);
     margin-top: 6px;
@@ -1838,9 +1832,6 @@
     .empty-setup { grid-template-columns: 1fr; gap: 28px; }
     .empty-divider { display: none; }
     .empty-ledgers { grid-template-columns: 1fr; gap: 24px; }
-    .empty-needs { grid-template-columns: 1fr; gap: 18px; }
-    .empty-needs-cell { border-left: none; padding: 12px 0; border-top: 1px solid var(--hairline); }
-    .empty-needs-cell:first-child { padding-top: 0; border-top: none; }
   }
 
   /* ===== Tab navigation (Session 15 redesign) =====
@@ -2658,12 +2649,34 @@
       </div>
     </div>
 
-    <!-- Other income + Capital events placed above the fold (after spouse setup,
-         before household needs). Two-column on wide screens; collapses below 820px. -->
+    <!-- Row 2 — Monthly need + Goals (paired 2-col) -->
+    <div class="empty-ledgers">
+      <div class="empty-needs-cell">
+        <div class="empty-steplabel"><span class="rom">III.</span> Monthly household need</div>
+        <div class="input-wrap large">
+          <span class="pfx">R</span><input type="text" id="needs-monthly" value="50 000" inputmode="numeric" aria-label="Monthly household expenses">
+        </div>
+        <div class="hint">after tax &middot; today's money</div>
+      </div>
+
+      <div class="empty-goals">
+        <div class="empty-steplabel">
+          <span class="rom">IV.</span> Goals
+          <span class="empty-subhint">recurring household expenses &mdash; travel, cars, holidays, lump-sum needs</span>
+        </div>
+        <div class="empty-events-ledger">
+          <div id="goals-list" class="events-list"></div>
+          <div id="goals-empty" class="events-empty">No goals yet.</div>
+          <button type="button" id="goals-add" class="add-btn">&#xFF0B; Add goal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3 — Other income + Capital events (paired 2-col) -->
     <div class="empty-ledgers">
       <div class="empty-incomes">
         <div class="empty-steplabel">
-          <span class="rom">VI.</span> Other taxable income
+          <span class="rom">V.</span> Other taxable income
           <span class="empty-subhint">DB pensions, rental, trust distributions &mdash; today's money</span>
         </div>
         <div class="empty-incomes-ledger">
@@ -2675,7 +2688,7 @@
 
       <div class="empty-events">
         <div class="empty-steplabel">
-          <span class="rom">VII.</span> Family capital events
+          <span class="rom">VI.</span> Family capital events
           <span class="empty-subhint">one-off inflows along the timeline &mdash; property sales, inheritances, maturing policies</span>
         </div>
         <div class="empty-events-ledger">
@@ -2684,45 +2697,17 @@
           <button type="button" id="events-add" class="add-btn">&#xFF0B; Add capital event</button>
         </div>
       </div>
-
-      <div class="empty-goals">
-        <div class="empty-steplabel">
-          <span class="rom">VIII.</span> Goals
-          <span class="empty-subhint">recurring household expenses &mdash; travel, cars, holidays</span>
-        </div>
-        <div class="empty-events-ledger">
-          <div id="goals-list" class="events-list"></div>
-          <div id="goals-empty" class="events-empty">No goals yet.</div>
-          <button type="button" id="goals-add" class="add-btn">&#xFF0B; Add goal</button>
-        </div>
-      </div>
     </div>
 
-    <!-- Household needs + market assumptions strip -->
-    <div class="empty-needs">
-      <div class="empty-needs-cell">
-        <div class="empty-steplabel"><span class="rom">III.</span> Monthly household need</div>
-        <div class="input-wrap large">
-          <span class="pfx">R</span><input type="text" id="needs-monthly" value="50 000" inputmode="numeric" aria-label="Monthly household expenses">
-        </div>
-        <div class="hint">after tax &middot; today's money</div>
+    <!-- Row 4 — Market assumptions (full-width strip) -->
+    <div class="empty-markets">
+      <div class="empty-steplabel"><span class="rom">VII.</span> Market assumptions</div>
+      <div class="empty-assumptions">
+        <span class="empty-assum"><input type="range" id="return" min="2" max="15" step="0.25" value="9" aria-label="Expected nominal return"><span class="num" id="return-out">9.00%</span></span>
+        <span class="sep">&middot;</span>
+        <span class="empty-assum"><input type="range" id="cpi" min="2" max="10" step="0.25" value="5" aria-label="Inflation CPI"><span class="num" id="cpi-out">5.00%</span></span>
       </div>
-      <div class="empty-needs-cell">
-        <div class="empty-steplabel"><span class="rom">IV.</span> Annual lump sums</div>
-        <div class="input-wrap large">
-          <span class="pfx">R</span><input type="text" id="needs-lump" value="100 000" inputmode="numeric" aria-label="Annual lump-sum needs">
-        </div>
-        <div class="hint">holidays, car, home</div>
-      </div>
-      <div class="empty-needs-cell">
-        <div class="empty-steplabel"><span class="rom">V.</span> Market assumptions</div>
-        <div class="empty-assumptions">
-          <span class="empty-assum"><input type="range" id="return" min="2" max="15" step="0.25" value="9" aria-label="Expected nominal return"><span class="num" id="return-out">9.00%</span></span>
-          <span class="sep">&middot;</span>
-          <span class="empty-assum"><input type="range" id="cpi" min="2" max="10" step="0.25" value="5" aria-label="Inflation CPI"><span class="num" id="cpi-out">5.00%</span></span>
-        </div>
-        <div class="hint">return &middot; CPI</div>
-      </div>
+      <div class="hint">return &middot; CPI</div>
     </div>
 
     <!-- Hidden inputs kept in the DOM so the engine, print summary, and export
@@ -2734,6 +2719,9 @@
     <input type="text" id="client-name" value="Client Household" hidden>
     <input type="text" id="client-date" value="" hidden>
     <input type="text" id="adviser-name" value="Simple Wealth (Pty) Ltd" hidden>
+    <!-- Annual lump sums was removed from State 1 in favour of modelling them as Goals.
+         Kept as a hidden 0 so engine target reads (parseCurrency('needs-lump')) still resolve. -->
+    <input type="text" id="needs-lump" value="0" hidden>
 
     <!-- CTA: just the centered button. -->
     <div class="empty-cta">
