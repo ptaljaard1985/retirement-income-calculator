@@ -981,7 +981,9 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 28px;
+    padding-bottom: 28px;
     margin-bottom: 28px;
+    border-bottom: 1px solid var(--hairline);
     align-items: stretch;
   }
   .empty-ledgers > div {
@@ -1048,7 +1050,9 @@
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
     gap: 40px;
+    padding-bottom: 36px;
     margin-bottom: 36px;
+    border-bottom: 1px solid var(--hairline);
   }
   .empty-divider {
     background: var(--hairline);
@@ -1179,9 +1183,8 @@
 
   /* Household needs strip */
   .empty-markets {
-    padding: 24px 0;
+    padding: 0 0 24px;
     margin-bottom: 28px;
-    border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
   }
   .empty-markets .empty-steplabel { margin-bottom: 14px; }
@@ -4404,14 +4407,15 @@
 
     if (incomeChart){
       incomeChart.data.labels = p.labels;
+      // Stack order: LA → Other → Disc → Target → Tax (Session 29 reorder).
       incomeChart.data.datasets[0].data = bars.la;
-      incomeChart.data.datasets[1].data = bars.disc;
-      incomeChart.data.datasets[2].data = bars.other;
+      incomeChart.data.datasets[1].data = bars.other;
+      incomeChart.data.datasets[2].data = bars.disc;
       incomeChart.data.datasets[3].data = targetArr;
       incomeChart.data.datasets[4].data = bars.tax;
       incomeChart.data.datasets[0].hidden = !incomeSeriesVisible.la;
-      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.disc;
-      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.other;
+      incomeChart.data.datasets[1].hidden = !incomeSeriesVisible.other;
+      incomeChart.data.datasets[2].hidden = !incomeSeriesVisible.disc;
       incomeChart.data.datasets[3].hidden = !incomeSeriesVisible.target;
       incomeChart.data.datasets[4].hidden = !incomeSeriesVisible.tax;
       incomeChart.update();
