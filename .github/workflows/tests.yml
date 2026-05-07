@@ -1,0 +1,55 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Inline-script syntax check (calculator + report)
+        working-directory: drawdown-calculator
+        run: |
+          node -e "
+          const fs = require('fs');
+          let bad = 0;
+          for (const f of ['retirement_drawdown.html', 'retirement_drawdown_report.html']) {
+            const html = fs.readFileSync(f, 'utf8');
+            const blocks = html.match(/<script[\\s\\S]*?>([\\s\\S]*?)<\/script>/g) || [];
+            blocks.forEach((b, i) => {
+              const src = b.replace(/^<script[^>]*>/, '').replace(/<\/script>\$/, '');
+              if (!src.trim()) return;
+              try { new Function(src); console.log(f + ' block ' + i + ': OK'); }
+              catch (e) { console.error(f + ' block ' + i + ': ' + e.message); bad++; }
+            });
+          }
+          process.exit(bad ? 1 : 0);
+          "
+
+      - name: Python suite
+        working-directory: drawdown-calculator/tests/python
+        run: pytest -q
+
+      - name: JS solver suite
+        working-directory: drawdown-calculator/tests/js
+        run: node run.js
