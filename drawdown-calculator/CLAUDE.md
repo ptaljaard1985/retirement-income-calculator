@@ -107,9 +107,9 @@ Ask. Pierre would rather answer one question now than fix a silent regression la
 
 Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_LOG.md`.
 
-### Session 27 — 2026-05-07 (state-1 paired layout · annual lump sums folded into Goals)
+### Session 28 — 2026-05-07 (state-1 paired layout · annual lump sums folded into Goals)
 
-**Built / changed** — Info-screen restructure on `claude/pull-main-create-feature-wnlLl`. State 1 (the setup screen Pierre walks the couple through at the top of the meeting) was reflowed from "two stacked strips below the spouse cards" into a 4-row paired-grid narrative, and Annual lump sums was retired from the visible UI in favour of modelling the same need as a Goal. Engine math untouched: **115/115 Python + 41/41 JS** pass.
+**Built / changed** — Info-screen restructure on `claude/pull-main-create-feature-wnlLl`. State 1 (the setup screen Pierre walks the couple through at the top of the meeting) was reflowed from "two stacked strips below the spouse cards" into a 4-row paired-grid narrative, and Annual lump sums was retired from the visible UI in favour of modelling the same need as a Goal. Engine math untouched: **115/115 Python + 45/45 JS** pass (test counts inherit Session 27's additions).
 
 **Why it was wrong before.** Roman numerals on State 1 ran I, II → VI, VII, VIII → III, IV, V because the ledgers (Other income / Capital events / Goals) had been promoted above the fold in Session 17 without resequencing. Reading order didn't match numeral order. Annual lump sums was also a redundant concept once Goals shipped (Session 17): a Goal with `everyNYears: 1` over the household horizon expresses the same recurring lump-sum drain, with finer control (label, age range, escalation cadence). Two ways to enter the same thing is a UI smell.
 
@@ -133,7 +133,7 @@ Most recent first. Keep to ~5 entries here; archive older ones in `docs/SESSION_
 - **`.empty-ledgers` reused for both pair rows over a new class.** The class name is colour-neutral once it's 2-col (it's just "a paired row in the empty canvas"). Reusing it keeps the mobile collapse rule (`.empty-ledgers { grid-template-columns: 1fr; gap: 24px }`) covering both pair rows with one selector. A new class would have meant duplicate mobile rules.
 - **Markets stays full-width, not paired.** Tried pairing Markets with another scalar but nothing else on State 1 wants the same visual weight (return + CPI sliders + numeric readouts). Full-width with the bordered band echoes the old strip framing and gives the two sliders room to stretch.
 - **Goals subhint extended, not the steplabel.** The Goals section already had `recurring household expenses — travel, cars, holidays`; appending `, lump-sum needs` keeps the original framing intact and signals where the retired affordance moved. Cleaner than adding a "lump sums →" pointer or a dismiss-once banner.
-- **Engine + tests untouched.** 115/115 Python + 41/41 JS pass. No schema change, no Python parity test needed, no snapshot bump. The only behaviour delta is a default-value change (cold-load target drops from R 700k/yr to R 600k/yr because lump now defaults to 0 instead of 100 000); everything else is presentation.
+- **Engine + tests untouched.** 115/115 Python + 45/45 JS pass post-merge. No schema change, no Python parity test needed, no snapshot bump. The only behaviour delta is a default-value change (cold-load target drops from R 700k/yr to R 600k/yr because lump now defaults to 0 instead of 100 000); everything else is presentation.
 
 **Smoke check**
 Tests both green. Browser walkthrough deferred to user — open `retirement_drawdown.html` fresh, confirm Info renders four rows in the order above with numerals I-VII running, then on Planning confirm the chart still draws against a R 600k target line (was R 700k pre-change). The "Annual lumps" rail slider should sit at 0 on cold load; dragging it still injects lump in the engine reads.
@@ -142,6 +142,38 @@ Tests both green. Browser walkthrough deferred to user — open `retirement_draw
 - Rail "Annual lumps" slider is now an orphan (defaults to 0, no canonical State 1 affordance feeds it). Either remove the slider DOM + the `setupRailSpendingSlider('needs-lump', ...)` call at line 6283, or leave it as a power-user shortcut. Logged in `TECH_DEBT.md`.
 - v2 dual-run report's GE Lifestyle section still renders the "Annual lump-sum needs" row sourced from `plan.annualLumpSums`. With lump now always 0, the row will show R 0 by default. Consider dropping the row from the lifestyle stack entirely (one-line edit in the report's `renderLifestyleSection`), or leaving it as a visible 0 for completeness.
 - v2 diff helper compares `annualLumpSums` between baseline + scenario for the `↑ uplifted/reduced` Lifestyle badge. With lump always 0 in the new world it'll never trigger, but the code path is harmless.
+
+### Session 27 — 2026-04-28 (sustainableTo net-vs-net fix · I12 invariant)
+
+**Built / changed** — surgical follow-up after Pierre A/B'd the Session 26 export and spotted that the report headline said "the same household carries to age 96" while the income chart's coral wash started at age 94. Two paths computed first-shortfall age and disagreed by 2 years. Tests: **115/115 Python · 45/45 JS** (was 41 — added 3 deriveMilestones cases + 1 I12 trip).
+
+**Why the headline was off.** Two functions in the calculator detect shortfall and they used different comparisons:
+- `buildProjectionPayload` (line 6481, post Session 25): `r.shortfall = (totalIncome - tax) < requiredNom - 1` — **net vs net**. Drives the chart's per-row coral wash.
+- `deriveMilestones` (line 6307, pre this session): `shortfall = pp.nominal.draw[i] < pp.nominal.target[i] - 1` — **gross vs net**. Drives `proj.sustainableTo`, which the report's headline copy reads.
+
+The engine's solver treats `nominal.target` as a NET (after-tax) target — Session 25 fixed `buildProjectionPayload` accordingly, but the parallel fix in `deriveMilestones` was missed. At typical SARS marginal rates gross sits ~25% above net, so gross stays above the net target for ~2-3 more years than net does, and `sustainableTo` over-reported by exactly that margin. Calculator outcome strip on Planning was unaffected (it reads from `analyseProjection`, which has done net-vs-net real all along) — the bug was scoped to the snapshot pipeline → report headlines.
+
+1. **`deriveMilestones` line 6307**: changed from `var shortfall = (rs[i] || 0) < (ts[i] || 0) - 1;` to read `pp.nominal.tax[i]` and compare `(rs[i] - taxes[i]) < target - 1`. Tolerance stays at R1 (matches `r.shortfall`). All other milestones (`depletesAt` / `laCapHitAt` / `discExhaustsAt`) untouched — they're balance-driven, not income-vs-target.
+
+2. **New invariant I12 in `validateSnapshot`**: when `sustainableTo` is non-null, the row at that age must have `shortfall === false`. Ties the two derivations together structurally — if a future change ever causes `deriveMilestones` and `buildProjectionPayload` to disagree, the export will throw with a visible alert before the snapshot ships. This is exactly the defence-in-depth Session 26's framework was built for; the bug found two days later proves the framework's value.
+
+3. **JS test additions** (`tests/js/run.js`): three focused cases for `deriveMilestones` exercising the net-vs-net contract (gross > target but net < target → sustainableTo stays null, recovery scenarios, regression guard) plus an I12-trip case in `validateSnapshot`. The `makeValidSnapshot` test fixture was also tightened — the pre-existing version had a hardcoded `sustainableTo: 95` that didn't agree with the row-level shortfall flags it generated. I12 caught the inconsistency in the test fixture itself, which is exactly what it should do; fixed by scaling all the per-row income / tax values by CPI so net consistently exceeds target every year.
+
+**Architectural decisions**
+- **Tolerance asymmetry between `analyseProjection` (R100, real) and `deriveMilestones` (R1, nominal) left as-is.** Both compute shortfall correctly net-vs-net after this fix; in extreme edge cases they could disagree by 1 year due to different tolerances. Not a problem for typical scenarios; if Pierre sees a 1-year mismatch between the calculator outcome strip and the report headline, that's the next thread to pull.
+- **No engine math change.** `project()`, `solveTopUp`, `stepPerson` byte-for-byte identical. Only `deriveMilestones` (pure helper, reads engine output) and `validateSnapshot` (new check) touched. 115/115 Python pass.
+- **Fingerprint will change for the same plan inputs.** `sustainableTo` is one of the 6 anchor numbers — old reports printed before this fix will show a different fingerprint than the live calculator after deploying. That's the point: the fix is correct, so old fingerprints reflect the old (wrong) number; new ones reflect the corrected number. Adviser may notice their pre-fix PDFs no longer match a refreshed calculator screen — by design.
+- **Knock-on audit ran first.** Before shipping, traced every consumer: calculator outcome strip uses `analyseProjection` (correct), report headlines use `proj.sustainableTo` (fixes), capital chart slice clamps at age 99 (no visible change), v1 Compare slide delta preserved (both halves shift together), Python parity port has no `sustainable_to` consumer (no test churn). Single chart-slice path was the only "could change geometry" risk; verified clamped behaviour leaves it visually identical.
+
+**Smoke check**
+- `cd tests/python && pytest` → 115 passed
+- `cd tests/js && node run.js` → 45 passed
+- Both inline scripts parse cleanly under `new Function()`.
+
+**Follow-ups**
+- Browser walkthrough: open the calculator, watch `fp:` change after the fix lands. Click Export Report, confirm the cover-slide fingerprint matches the screen. The headline on the Answer / Run-income slides should now read the same age the chart's coral wash signals.
+- If Pierre's compliance archive contains a pre-fix PDF that needs to be re-issued, flag the discrepancy: the old PDF's "carries to age 96" overstated the sustainable horizon by ~2 years.
+- Tolerance reconciliation between `analyseProjection` (R100 real) and `deriveMilestones` (R1 nominal) — only relevant if a 1-year edge-case mismatch surfaces in practice.
 
 ### Session 26 — 2026-04-28 (verification chain: appendix · invariants · fingerprint · netParts collapse)
 
