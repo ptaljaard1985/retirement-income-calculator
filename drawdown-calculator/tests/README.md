@@ -18,7 +18,7 @@ pip install pytest       # one-time
 pytest                   # or `pytest -v` for verbose output
 ```
 
-Current count: **450 passing**.
+Current count: **498 passing** (450 + 48 parity).
 
 ## JS tests — solver behaviour
 
@@ -53,7 +53,7 @@ The suite is organised into five tiers, ordered by what they protect against. Th
 | Tier | Status | What it protects against |
 |---|---|---|
 | 1. Closed-form unit tests | **In place** (115 cases) | A formula is wrong against SARS, CGT, or clamp regulation. |
-| 2. JS ↔ Python parity | **Planned** | The two implementations have drifted from each other. |
+| 2. JS ↔ Python parity | **In place** (48 cases) | The two implementations have drifted from each other. |
 | 3. Property-based invariants | **In place** (335 cases) | Engine produces NaN, negative balances, violates regulation, or drifts in cost-basis arithmetic in any input region. |
 | 4. SARS-table refresh battery | **Planned** | The annual Feb-budget refresh quietly breaks a bracket-edge case. |
 | 5. Snapshot tests | **Planned** | The full trajectory drifts silently between sessions. |
@@ -66,17 +66,22 @@ These test the *building blocks* of the engine against closed-form expectations.
 
 This is the "the formula is right" tier. Externally verifiable in TaxTim, SARS eFiling, or pen-and-paper.
 
-### Tier 2 — JS ↔ Python parity (planned)
+### Tier 2 — JS ↔ Python parity (in place)
 
-A new test file `tests/python/test_js_parity.py` would:
+Files: `tests/js/parity_runner.js` (Node harness), `tests/python/test_js_parity.py` (pytest).
 
-1. For each scenario in the property-tests grid, run it through `project()` in the Python port.
-2. Spawn a Node subprocess that runs the same scenario through the JS engine in `retirement_drawdown.html` (extending the extraction trick `run.js` uses to cover the full `project()` function rather than just the helpers).
-3. Compare row-by-row equality on every series, asserting tight float tolerance.
+For every scenario in the Tier-3 grid, runs `project()` through both engines and asserts row-by-row equality on every series:
 
-This is the missing test that "the JS produces what the Python claims it does." Today the two implementations are independently developed against the same spec — drift can only be caught by the adviser A/B'ing the report (which is exactly how the Session-25, -27, and -30 bugs were caught).
+- The Python port via `conftest.py::project()`.
+- The actual JS engine: a Node harness loads `retirement_drawdown.html`'s inline `<script>`, injects a `globalThis.__pari` exposure right before the IIFE close, runs the script under a DOM stub, then calls `project()` once per scenario with controlled inputs.
 
-Estimated effort: ~4 hours. The plumbing is similar to what `run.js` already does; main work is extending the DOM stub to handle the wider DOM-read surface of `project()` (slider values, ID-based reads of LA balances, etc.).
+The harness's DOM stub backs `getElementById(...).value` reads with a per-scenario `DOM_VALUES` map. Stores (`eventsStore` / `incomeStore` / `goalsStore`) are mutated in place via the exposed closure refs so each scenario's events / income schedule / goals override the seeded defaults.
+
+The parity layer catches the bug class neither Tier 1 nor Tier 3 covers: drift between two implementations of the same spec. The Session-22 (`totalIncome` reading the capital series), Session-25 (`sustainableTo` net-vs-gross), and Session-30 (chart-data dataset swap) bugs were all JS-only — they would have surfaced under parity rather than being caught by Pierre A/B'ing the printed report.
+
+Skipped automatically when Node is not on PATH or the harness fails. Tolerance is R 1 (the two engines run the same arithmetic on the same inputs and should be bit-identical; R 1 covers ordering noise in the proportional-cost CGT calculation).
+
+**Note on base-cost coverage:** The parity test compares balance, draw, tax, net, and clamp series — not the base-cost series, because the JS engine doesn't expose `discA_base` / `discB_base` outwardly. This is sound: if the Python base trajectory is correct (locked by the Tier-3 base-cost identity invariant) AND the JS produces identical tax (which is computed from gain = draw − cost_used), then JS's internal base trajectory must also be correct.
 
 ### Tier 3 — Property-based invariants (in place)
 
@@ -123,4 +128,4 @@ Estimated effort: ~2 hours.
 
 ## CI
 
-No CI configured in this repo. If you add one, run `pytest` (Python) and `node tests/js/run.js` (Node). Both should exit 0.
+GitHub Actions workflow at `.github/workflows/tests.yml` runs on every push to `main` and every PR. It installs Python 3.12 + Node 20, runs an inline-script syntax check on both HTML files, then executes the full Python suite and the JS solver suite. Any non-zero exit fails the workflow.
